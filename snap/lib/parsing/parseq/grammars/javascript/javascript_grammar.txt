@@ -1,0 +1,10 @@
+
+# https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar
+# https://en.wikipedia.org/wiki/JavaScript_syntax
+# https://ecma-international.org/publications-and-standards/standards/ecma-262/
+# or download an open source browser and get it from there?
+# mozilla -> ../js/src/frontend
+
+# NOTE: hashbang, and comments left out
+
+

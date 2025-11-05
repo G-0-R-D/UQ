@@ -1,0 +1,922 @@
+<html><script type="text/javascript">try {
+(function injectPageScriptAPI(scriptName, shouldOverrideWebSocket, shouldOverrideWebRTC, isInjected) { 
+
+    'use strict';
+
+    /**
+     * If script have been injected into a frame via contentWindow then we can simply take the copy of messageChannel left for us by parent document
+     * Otherwise creates new message channel that sends a message to the content-script to check if request should be allowed or not.
+     */
+    var messageChannel = isInjected ? window[scriptName] : (function () {
+
+        // Save original postMessage and addEventListener functions to prevent webpage from tampering both.
+        var postMessage = window.postMessage;
+        var addEventListener = window.addEventListener;
+
+        // Current request ID (incremented every time we send a new message)
+        var currentRequestId = 0;
+        var requestsMap = {};
+
+        /**
+         * Handles messages sent from the content script back to the page script.
+         *
+         * @param event Event with necessary data
+         */
+        var onMessageReceived = function (event) {
+
+            if (!event.data || !event.data.direction || event.data.direction !== "to-page-script@abu") {
+                return;
+            }
+
+            var requestData = requestsMap[event.data.requestId];
+            if (requestData) {
+                var wrapper = requestData.wrapper;
+                requestData.onResponseReceived(wrapper, event.data.block);
+                delete requestsMap[event.data.requestId];
+            }
+        };
+
+        /**
+         * @param url                The URL to which wrapped object is willing to connect
+         * @param requestType        Request type ( WEBSOCKET or WEBRTC)
+         * @param wrapper            WebSocket wrapper instance
+         * @param onResponseReceived Called when response is received
+         */
+        var sendMessage = function (url, requestType, wrapper, onResponseReceived) {
+
+            if (currentRequestId === 0) {
+                // Subscribe to response when this method is called for the first time
+                addEventListener.call(window, "message", onMessageReceived, false);
+            }
+
+            var requestId = ++currentRequestId;
+            requestsMap[requestId] = {
+                wrapper: wrapper,
+                onResponseReceived: onResponseReceived
+            };
+
+            var message = {
+                requestId: requestId,
+                direction: 'from-page-script@abu',
+                elementUrl: url,
+                documentUrl: document.URL,
+                requestType: requestType
+            };
+
+            // Send a message to the background page to check if the request should be blocked
+            postMessage.call(window, message, "*");
+        };
+
+        return {
+            sendMessage: sendMessage
+        };
+
+    })();
+
+    /*
+     * In some case Chrome won't run content scripts inside frames.
+     * So we have to intercept access to contentWindow/contentDocument and manually inject wrapper script into this context
+     *
+     * Based on: https://github.com/adblockplus/adblockpluschrome/commit/1aabfb3346dc0821c52dd9e97f7d61b8c99cd707
+     */
+    var injectedToString = Function.prototype.toString.bind(injectPageScriptAPI);
+
+    var injectedFramesAdd;
+    var injectedFramesHas;
+    if (window.WeakSet instanceof Function) {
+        var injectedFrames = new WeakSet();
+        injectedFramesAdd = WeakSet.prototype.add.bind(injectedFrames);
+        injectedFramesHas = WeakSet.prototype.has.bind(injectedFrames);
+    } else {
+        var frames = [];
+        injectedFramesAdd = function (el) {
+            if (frames.indexOf(el) < 0) {
+                frames.push(el);
+            }
+        };
+        injectedFramesHas = function (el) {
+            return frames.indexOf(el) >= 0;
+        };
+    }
+
+    /**
+     * Injects wrapper's script into passed window
+     * @param contentWindow Frame's content window
+     */
+    function injectPageScriptAPIInWindow(contentWindow) {
+        try {
+            if (contentWindow && !injectedFramesHas(contentWindow)) {
+                injectedFramesAdd(contentWindow);
+                contentWindow[scriptName] = messageChannel; // Left message channel for the injected script
+                var args = "'" + scriptName + "', " + shouldOverrideWebSocket + ", " + shouldOverrideWebRTC + ", true";
+                contentWindow.eval("(" + injectedToString() + ")(" + args + ");");
+                delete contentWindow[scriptName];
+            }
+        } catch (e) {
+        }
+    }
+
+    /**
+     * Overrides access to contentWindow/contentDocument for the passed HTML element's interface (iframe, frame, object)
+     * If the content of one of these objects is requested we will inject our wrapper script.
+     * @param iface HTML element's interface
+     */
+    function overrideContentAccess(iface) {
+
+        var contentWindowDescriptor = Object.getOwnPropertyDescriptor(iface.prototype, "contentWindow");
+        var contentDocumentDescriptor = Object.getOwnPropertyDescriptor(iface.prototype, "contentDocument");
+
+        // Apparently in HTMLObjectElement.prototype.contentWindow does not exist
+        // in older versions of Chrome such as 42.
+        if (!contentWindowDescriptor) {
+            return;
+        }
+
+        var getContentWindow = Function.prototype.call.bind(contentWindowDescriptor.get);
+        var getContentDocument = Function.prototype.call.bind(contentDocumentDescriptor.get);
+
+        contentWindowDescriptor.get = function () {
+            var contentWindow = getContentWindow(this);
+            injectPageScriptAPIInWindow(contentWindow);
+            return contentWindow;
+        };
+        contentDocumentDescriptor.get = function () {
+            injectPageScriptAPIInWindow(getContentWindow(this));
+            return getContentDocument(this);
+        };
+
+        Object.defineProperty(iface.prototype, "contentWindow", contentWindowDescriptor);
+        Object.defineProperty(iface.prototype, "contentDocument", contentDocumentDescriptor);
+    }
+
+    var interfaces = [HTMLFrameElement, HTMLIFrameElement, HTMLObjectElement];
+    for (var i = 0; i < interfaces.length; i++) {
+        overrideContentAccess(interfaces[i]);
+    }
+
+    /**
+     * Defines properties in destination object
+     * @param src Source object
+     * @param dest Destination object
+     * @param properties Properties to copy
+     */
+    var copyProperties = function (src, dest, properties) {
+        for (var i = 0; i < properties.length; i++) {
+            var prop = properties[i];
+            var descriptor = Object.getOwnPropertyDescriptor(src, prop);
+            // Passed property may be undefined
+            if (descriptor) {
+                Object.defineProperty(dest, prop, descriptor);
+            }
+        }
+    };
+
+    /**
+     * Check request by sending message to content script
+     * @param url URL to block
+     * @param type Request type
+     * @param callback Result callback
+     */
+    var checkRequest = function (url, type, callback) {
+        messageChannel.sendMessage(url, type, this, function (wrapper, blockConnection) {
+            callback(blockConnection);
+        });
+    };
+
+    /**
+     * The function overrides window.WebSocket with our wrapper, that will check url with filters through messaging with content-script.
+     *
+     * IMPORTANT NOTE:
+     * This function is first loaded as a content script. The only purpose of it is to call
+     * the "toString" method and use resulting string as a text content for injected script.
+     */
+    var overrideWebSocket = function () { 
+
+        if (!(window.WebSocket instanceof Function)) {
+            return;
+        }
+
+        /**
+         * WebSocket wrapper implementation.
+         * https://github.com/AdguardTeam/AdguardBrowserExtension/issues/349
+         *
+         * Based on:
+         * https://github.com/adblockplus/adblockpluschrome/commit/457a336ee55a433217c3ffe5d363e5c6980f26f4
+         */
+
+        /**
+         * As far as possible we must track everything we use that could be sabotaged by the website later in order to circumvent us.
+         */
+        var RealWebSocket = WebSocket;
+        var closeWebSocket = Function.prototype.call.bind(RealWebSocket.prototype.close);
+
+        function WrappedWebSocket(url, protocols) {
+            // Throw correct exceptions if the constructor is used improperly.
+            if (!(this instanceof WrappedWebSocket)) {
+                return RealWebSocket();
+            }
+            if (arguments.length < 1) {
+                return new RealWebSocket();
+            }
+
+            var websocket = new RealWebSocket(url, protocols);
+
+            // This is the key point: checking if this WS should be blocked or not
+            // Don't forget that the type of 'websocket.url' is String, but 'url 'parameter might have another type.
+            checkRequest(websocket.url, 'WEBSOCKET', function (blocked) {
+                if (blocked) {
+                    closeWebSocket(websocket);
+                }
+            });
+
+            return websocket;
+        }
+
+        // https://github.com/AdguardTeam/AdguardBrowserExtension/issues/488
+        WrappedWebSocket.prototype = RealWebSocket.prototype;
+        window.WebSocket = WrappedWebSocket.bind();
+
+        copyProperties(RealWebSocket, WebSocket, ["CONNECTING", "OPEN", "CLOSING", "CLOSED", "name", "prototype"]);
+
+        RealWebSocket.prototype.constructor = WebSocket;
+
+    };
+
+    /**
+     * The function overrides window.RTCPeerConnection with our wrapper, that will check ice servers URLs with filters through messaging with content-script.
+     *
+     * IMPORTANT NOTE:
+     * This function is first loaded as a content script. The only purpose of it is to call
+     * the "toString" method and use resulting string as a text content for injected script.
+     */
+    var overrideWebRTC = function () { 
+
+
+        if (!(window.RTCPeerConnection instanceof Function) &&
+            !(window.webkitRTCPeerConnection instanceof Function)) {
+            return;
+        }
+
+        /**
+         * RTCPeerConnection wrapper implementation.
+         * https://github.com/AdguardTeam/AdguardBrowserExtension/issues/588
+         *
+         * Based on:
+         * https://github.com/adblockplus/adblockpluschrome/commit/af0585137be19011eace1cf68bf61eed2e6db974
+         *
+         * Chromium webRequest API doesn't allow the blocking of WebRTC connections
+         * https://bugs.chromium.org/p/chromium/issues/detail?id=707683
+         */
+
+        var RealRTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection;
+        var closeRTCPeerConnection = Function.prototype.call.bind(RealRTCPeerConnection.prototype.close);
+
+        var RealArray = Array;
+        var RealString = String;
+        var createObject = Object.create;
+        var defineProperty = Object.defineProperty;
+
+        /**
+         * Convert passed url to string
+         * @param url URL
+         * @returns {string}
+         */
+        function urlToString(url) {
+            if (typeof url !== "undefined") {
+                return RealString(url);
+            }
+        }
+
+        /**
+         * Creates new immutable array from original with some transform function
+         * @param original
+         * @param transform
+         * @returns {*}
+         */
+        function safeCopyArray(original, transform) {
+
+            if (original === null || typeof original !== "object") {
+                return original;
+            }
+
+            var immutable = RealArray(original.length);
+            for (var i = 0; i < immutable.length; i++) {
+                defineProperty(immutable, i, {
+                    configurable: false, enumerable: false, writable: false,
+                    value: transform(original[i])
+                });
+            }
+            defineProperty(immutable, "length", {
+                configurable: false, enumerable: false, writable: false,
+                value: immutable.length
+            });
+            return immutable;
+        }
+
+        /**
+         * Protect configuration from mutations
+         * @param configuration RTCPeerConnection configuration object
+         * @returns {*}
+         */
+        function protectConfiguration(configuration) {
+
+            if (configuration === null || typeof configuration !== "object") {
+                return configuration;
+            }
+
+            var iceServers = safeCopyArray(
+                configuration.iceServers,
+                function (iceServer) {
+
+                    var url = iceServer.url;
+                    var urls = iceServer.urls;
+
+                    // RTCPeerConnection doesn't iterate through pseudo Arrays of urls.
+                    if (typeof urls !== "undefined" && !(urls instanceof RealArray)) {
+                        urls = [urls];
+                    }
+
+                    return createObject(iceServer, {
+                        url: {
+                            configurable: false, enumerable: false, writable: false,
+                            value: urlToString(url)
+                        },
+                        urls: {
+                            configurable: false, enumerable: false, writable: false,
+                            value: safeCopyArray(urls, urlToString)
+                        }
+                    });
+                }
+            );
+
+            return createObject(configuration, {
+                iceServers: {
+                    configurable: false, enumerable: false, writable: false,
+                    value: iceServers
+                }
+            });
+        }
+
+        /**
+         * Check WebRTC connection's URL and close if it's blocked by rule
+         * @param connection Connection
+         * @param url URL to check
+         */
+        function checkWebRTCRequest(connection, url) {
+            checkRequest(url, 'WEBRTC', function (blocked) {
+                if (blocked) {
+                    try {
+                        closeRTCPeerConnection(connection);
+                    } catch (e) {
+                        // Ignore exceptions
+                    }
+                }
+            });
+        }
+
+        /**
+         * Check each URL of ice server in configuration for blocking.
+         *
+         * @param connection RTCPeerConnection
+         * @param configuration Configuration for RTCPeerConnection
+         * https://developer.mozilla.org/en-US/docs/Web/API/RTCConfiguration
+         */
+        function checkConfiguration(connection, configuration) {
+
+            if (!configuration || !configuration.iceServers) {
+                return;
+            }
+
+            var iceServers = configuration.iceServers;
+            for (var i = 0; i < iceServers.length; i++) {
+
+                var iceServer = iceServers[i];
+                if (!iceServer) {
+                    continue;
+                }
+
+                if (iceServer.url) {
+                    checkWebRTCRequest(connection, iceServer.url);
+                }
+
+                if (iceServer.urls) {
+                    for (var j = 0; j < iceServer.urls.length; j++) {
+                        checkWebRTCRequest(connection, iceServer.urls[j]);
+                    }
+                }
+            }
+        }
+
+        /**
+         * Overrides setConfiguration method
+         * https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/setConfiguration
+         */
+        if (RealRTCPeerConnection.prototype.setConfiguration) {
+
+            var realSetConfiguration = Function.prototype.call.bind(RealRTCPeerConnection.prototype.setConfiguration);
+
+            RealRTCPeerConnection.prototype.setConfiguration = function (configuration) {
+                configuration = protectConfiguration(configuration);
+                // Call the real method first, so that validates the configuration
+                realSetConfiguration(this, configuration);
+                checkConfiguration(this, configuration);
+            };
+        }
+
+        function WrappedRTCPeerConnection(configuration, arg) {
+
+            if (!(this instanceof WrappedRTCPeerConnection)) {
+                return RealRTCPeerConnection();
+            }
+
+            configuration = protectConfiguration(configuration);
+
+            /**
+             * The old webkitRTCPeerConnection constructor takes an optional second argument and we must pass it.
+             */
+            var connection = new RealRTCPeerConnection(configuration, arg);
+            checkConfiguration(connection, configuration);
+            return connection;
+        }
+
+        WrappedRTCPeerConnection.prototype = RealRTCPeerConnection.prototype;
+
+        var boundWrappedRTCPeerConnection = WrappedRTCPeerConnection.bind();
+        copyProperties(RealRTCPeerConnection, boundWrappedRTCPeerConnection, ["caller", "generateCertificate", "name", "prototype"]);
+        RealRTCPeerConnection.prototype.constructor = boundWrappedRTCPeerConnection;
+
+        if ("RTCPeerConnection" in window) {
+            window.RTCPeerConnection = boundWrappedRTCPeerConnection;
+        }
+        if ("webkitRTCPeerConnection" in window) {
+            window.webkitRTCPeerConnection = boundWrappedRTCPeerConnection;
+        }
+    };
+
+    if (shouldOverrideWebSocket) {
+        overrideWebSocket();
+    }
+
+    if (shouldOverrideWebRTC) {
+        overrideWebRTC();
+    }
+})('wrapper-script-53390029497284', false, true);
+} catch (ex) { console.error('Error executing AG js: ' + ex); }
+(function () {
+            var current = document.currentScript;
+            var parent = current && current.parentNode;
+            if (parent) {
+                parent.removeChild(current);
+            }
+        })();</script><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>ANSI C grammar (Yacc)</title>
+<link rel="made" rev="made" href="mailto:jutta@pobox.com">
+</head><body>
+
+<h1>ANSI C Yacc grammar</h1>
+
+In 1985, Jeff Lee published his Yacc grammar (which is
+accompanied by a matching <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html">Lex specification</a>)
+for the April 30, 1985 draft version of the
+ANSI C standard.&nbsp;<tt> </tt>Tom Stockfisch reposted
+it to net.sources in 1987; that original, as mentioned in 
+the answer to <a href="https://www.lysator.liu.se/c/c-faq/c-17.html#17-25">question 17.25</a>
+of the comp.lang.c FAQ, can be ftp'ed from ftp.uu.net, file
+<a href="ftp://ftp.uu.net/usenet/net.sources/ansi.c.grammar.Z">usenet/net.sources/ansi.c.grammar.Z</a>.
+<p>
+<a href="mailto:jutta@pobox.com">Jutta Degener</a>, 1995
+</p><p>
+</p><hr>
+<pre>%token <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#check-type">IDENTIFIER</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#CONSTANT">CONSTANT</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#STRING-LITERAL">STRING_LITERAL</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#SIZEOF">SIZEOF</a>
+%token <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#PTR-OP">PTR_OP</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#INC-OP">INC_OP</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#DEC-OP">DEC_OP</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#LEFT-OP">LEFT_OP</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#RIGHT-OP">RIGHT_OP</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#LE-OP">LE_OP</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#GE-OP">GE_OP</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#EQ-OP">EQ_OP</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#NE-OP">NE_OP</a>
+%token <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#AND-OP">AND_OP</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#OR-OP">OR_OP</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#MUL-ASSIGN">MUL_ASSIGN</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#DIV-ASSIGN">DIV_ASSIGN</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#MOD-ASSIGN">MOD_ASSIGN</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#ADD-ASSIGN">ADD_ASSIGN</a>
+%token <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#SUB-ASSIGN">SUB_ASSIGN</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#LEFT-ASSIGN">LEFT_ASSIGN</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#RIGHT-ASSIGN">RIGHT_ASSIGN</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#AND-ASSIGN">AND_ASSIGN</a>
+%token <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#XOR-ASSIGN">XOR_ASSIGN</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#OR-ASSIGN">OR_ASSIGN</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#check-type">TYPE_NAME</a>
+
+%token <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#TYPEDEF">TYPEDEF</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#EXTERN">EXTERN</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#STATIC">STATIC</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#AUTO">AUTO</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#REGISTER">REGISTER</a>
+%token <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#CHAR">CHAR</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#SHORT">SHORT</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#INT">INT</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#LONG">LONG</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#SIGNED">SIGNED</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#UNSIGNED">UNSIGNED</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#FLOAT">FLOAT</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#DOUBLE">DOUBLE</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#CONST">CONST</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#VOLATILE">VOLATILE</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#VOID">VOID</a>
+%token <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#STRUCT">STRUCT</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#UNION">UNION</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#ENUM">ENUM</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#ELLIPSIS">ELLIPSIS</a>
+
+%token <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#CASE">CASE</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#DEFAULT">DEFAULT</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#IF">IF</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#ELSE">ELSE</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#SWITCH">SWITCH</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#WHILE">WHILE</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#DO">DO</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#FOR">FOR</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#GOTO">GOTO</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#CONTINUE">CONTINUE</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#BREAK">BREAK</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#RETURN">RETURN</a>
+
+%start <a href="#translation-unit">translation_unit</a>
+%%
+
+<a name="primary-expression">primary_expression</a>
+	: <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#check-type">IDENTIFIER</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#CONSTANT">CONSTANT</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#STRING-LITERAL">STRING_LITERAL</a>
+	| '(' <a href="#expression">expression</a> ')'
+	;
+
+<a name="postfix-expression">postfix_expression</a>
+	: <a href="#primary-expression">primary_expression</a>
+	| postfix_expression '[' <a href="#expression">expression</a> ']'
+	| postfix_expression '(' ')'
+	| postfix_expression '(' <a href="#argument-expression-list">argument_expression_list</a> ')'
+	| postfix_expression '.' <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#check-type">IDENTIFIER</a>
+	| postfix_expression <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#PTR-OP">PTR_OP</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#check-type">IDENTIFIER</a>
+	| postfix_expression <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#INC-OP">INC_OP</a>
+	| postfix_expression <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#DEC-OP">DEC_OP</a>
+	;
+
+<a name="argument-expression-list">argument_expression_list</a>
+	: <a href="#assignment-expression">assignment_expression</a>
+	| argument_expression_list ',' <a href="#assignment-expression">assignment_expression</a>
+	;
+
+<a name="unary-expression">unary_expression</a>
+	: <a href="#postfix-expression">postfix_expression</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#INC-OP">INC_OP</a> unary_expression
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#DEC-OP">DEC_OP</a> unary_expression
+	| <a href="#unary-operator">unary_operator</a> <a href="#cast-expression">cast_expression</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#SIZEOF">SIZEOF</a> unary_expression
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#SIZEOF">SIZEOF</a> '(' <a href="#type-name">type_name</a> ')'
+	;
+
+<a name="unary-operator">unary_operator</a>
+	: '&amp;'
+	| '*'
+	| '+'
+	| '-'
+	| '~'
+	| '!'
+	;
+
+<a name="cast-expression">cast_expression</a>
+	: <a href="#unary-expression">unary_expression</a>
+	| '(' <a href="#type-name">type_name</a> ')' cast_expression
+	;
+
+<a name="multiplicative-expression">multiplicative_expression</a>
+	: <a href="#cast-expression">cast_expression</a>
+	| multiplicative_expression '*' <a href="#cast-expression">cast_expression</a>
+	| multiplicative_expression '/' <a href="#cast-expression">cast_expression</a>
+	| multiplicative_expression '%' <a href="#cast-expression">cast_expression</a>
+	;
+
+<a name="additive-expression">additive_expression</a>
+	: <a href="#multiplicative-expression">multiplicative_expression</a>
+	| additive_expression '+' <a href="#multiplicative-expression">multiplicative_expression</a>
+	| additive_expression '-' <a href="#multiplicative-expression">multiplicative_expression</a>
+	;
+
+<a name="shift-expression">shift_expression</a>
+	: <a href="#additive-expression">additive_expression</a>
+	| shift_expression <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#LEFT-OP">LEFT_OP</a> <a href="#additive-expression">additive_expression</a>
+	| shift_expression <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#RIGHT-OP">RIGHT_OP</a> <a href="#additive-expression">additive_expression</a>
+	;
+
+<a name="relational-expression">relational_expression</a>
+	: <a href="#shift-expression">shift_expression</a>
+	| relational_expression '&lt;' <a href="#shift-expression">shift_expression</a>
+	| relational_expression '&gt;' <a href="#shift-expression">shift_expression</a>
+	| relational_expression <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#LE-OP">LE_OP</a> <a href="#shift-expression">shift_expression</a>
+	| relational_expression <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#GE-OP">GE_OP</a> <a href="#shift-expression">shift_expression</a>
+	;
+
+<a name="equality-expression">equality_expression</a>
+	: <a href="#relational-expression">relational_expression</a>
+	| equality_expression <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#EQ-OP">EQ_OP</a> <a href="#relational-expression">relational_expression</a>
+	| equality_expression <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#NE-OP">NE_OP</a> <a href="#relational-expression">relational_expression</a>
+	;
+
+<a name="and-expression">and_expression</a>
+	: <a href="#equality-expression">equality_expression</a>
+	| and_expression '&amp;' <a href="#equality-expression">equality_expression</a>
+	;
+
+<a name="exclusive-or-expression">exclusive_or_expression</a>
+	: <a href="#and-expression">and_expression</a>
+	| exclusive_or_expression '^' <a href="#and-expression">and_expression</a>
+	;
+
+<a name="inclusive-or-expression">inclusive_or_expression</a>
+	: <a href="#exclusive-or-expression">exclusive_or_expression</a>
+	| inclusive_or_expression '|' <a href="#exclusive-or-expression">exclusive_or_expression</a>
+	;
+
+<a name="logical-and-expression">logical_and_expression</a>
+	: <a href="#inclusive-or-expression">inclusive_or_expression</a>
+	| logical_and_expression <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#AND-OP">AND_OP</a> <a href="#inclusive-or-expression">inclusive_or_expression</a>
+	;
+
+<a name="logical-or-expression">logical_or_expression</a>
+	: <a href="#logical-and-expression">logical_and_expression</a>
+	| logical_or_expression <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#OR-OP">OR_OP</a> <a href="#logical-and-expression">logical_and_expression</a>
+	;
+
+<a name="conditional-expression">conditional_expression</a>
+	: <a href="#logical-or-expression">logical_or_expression</a>
+	| <a href="#logical-or-expression">logical_or_expression</a> '?' <a href="#expression">expression</a> ':' conditional_expression
+	;
+
+<a name="assignment-expression">assignment_expression</a>
+	: <a href="#conditional-expression">conditional_expression</a>
+	| <a href="#unary-expression">unary_expression</a> <a href="#assignment-operator">assignment_operator</a> assignment_expression
+	;
+
+<a name="assignment-operator">assignment_operator</a>
+	: '='
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#MUL-ASSIGN">MUL_ASSIGN</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#DIV-ASSIGN">DIV_ASSIGN</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#MOD-ASSIGN">MOD_ASSIGN</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#ADD-ASSIGN">ADD_ASSIGN</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#SUB-ASSIGN">SUB_ASSIGN</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#LEFT-ASSIGN">LEFT_ASSIGN</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#RIGHT-ASSIGN">RIGHT_ASSIGN</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#AND-ASSIGN">AND_ASSIGN</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#XOR-ASSIGN">XOR_ASSIGN</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#OR-ASSIGN">OR_ASSIGN</a>
+	;
+
+<a name="expression">expression</a>
+	: <a href="#assignment-expression">assignment_expression</a>
+	| expression ',' <a href="#assignment-expression">assignment_expression</a>
+	;
+
+<a name="constant-expression">constant_expression</a>
+	: <a href="#conditional-expression">conditional_expression</a>
+	;
+
+<a name="declaration">declaration</a>
+	: <a href="#declaration-specifiers">declaration_specifiers</a> ';'
+	| <a href="#declaration-specifiers">declaration_specifiers</a> <a href="#init-declarator-list">init_declarator_list</a> ';'
+	;
+
+<a name="declaration-specifiers">declaration_specifiers</a>
+	: <a href="#storage-class-specifier">storage_class_specifier</a>
+	| <a href="#storage-class-specifier">storage_class_specifier</a> declaration_specifiers
+	| <a href="#type-specifier">type_specifier</a>
+	| <a href="#type-specifier">type_specifier</a> declaration_specifiers
+	| <a href="#type-qualifier">type_qualifier</a>
+	| <a href="#type-qualifier">type_qualifier</a> declaration_specifiers
+	;
+
+<a name="init-declarator-list">init_declarator_list</a>
+	: <a href="#init-declarator">init_declarator</a>
+	| init_declarator_list ',' <a href="#init-declarator">init_declarator</a>
+	;
+
+<a name="init-declarator">init_declarator</a>
+	: <a href="#declarator">declarator</a>
+	| <a href="#declarator">declarator</a> '=' <a href="#initializer">initializer</a>
+	;
+
+<a name="storage-class-specifier">storage_class_specifier</a>
+	: <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#TYPEDEF">TYPEDEF</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#EXTERN">EXTERN</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#STATIC">STATIC</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#AUTO">AUTO</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#REGISTER">REGISTER</a>
+	;
+
+<a name="type-specifier">type_specifier</a>
+	: <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#VOID">VOID</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#CHAR">CHAR</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#SHORT">SHORT</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#INT">INT</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#LONG">LONG</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#FLOAT">FLOAT</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#DOUBLE">DOUBLE</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#SIGNED">SIGNED</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#UNSIGNED">UNSIGNED</a>
+	| <a href="#struct-or-union-specifier">struct_or_union_specifier</a>
+	| <a href="#enum-specifier">enum_specifier</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#check-type">TYPE_NAME</a>
+	;
+
+<a name="struct-or-union-specifier">struct_or_union_specifier</a>
+	: <a href="#struct-or-union">struct_or_union</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#check-type">IDENTIFIER</a> '{' <a href="#struct-declaration-list">struct_declaration_list</a> '}'
+	| <a href="#struct-or-union">struct_or_union</a> '{' <a href="#struct-declaration-list">struct_declaration_list</a> '}'
+	| <a href="#struct-or-union">struct_or_union</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#check-type">IDENTIFIER</a>
+	;
+
+<a name="struct-or-union">struct_or_union</a>
+	: <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#STRUCT">STRUCT</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#UNION">UNION</a>
+	;
+
+<a name="struct-declaration-list">struct_declaration_list</a>
+	: <a href="#struct-declaration">struct_declaration</a>
+	| struct_declaration_list <a href="#struct-declaration">struct_declaration</a>
+	;
+
+<a name="struct-declaration">struct_declaration</a>
+	: <a href="#specifier-qualifier-list">specifier_qualifier_list</a> <a href="#struct-declarator-list">struct_declarator_list</a> ';'
+	;
+
+<a name="specifier-qualifier-list">specifier_qualifier_list</a>
+	: <a href="#type-specifier">type_specifier</a> specifier_qualifier_list
+	| <a href="#type-specifier">type_specifier</a>
+	| <a href="#type-qualifier">type_qualifier</a> specifier_qualifier_list
+	| <a href="#type-qualifier">type_qualifier</a>
+	;
+
+<a name="struct-declarator-list">struct_declarator_list</a>
+	: <a href="#struct-declarator">struct_declarator</a>
+	| struct_declarator_list ',' <a href="#struct-declarator">struct_declarator</a>
+	;
+
+<a name="struct-declarator">struct_declarator</a>
+	: <a href="#declarator">declarator</a>
+	| ':' <a href="#constant-expression">constant_expression</a>
+	| <a href="#declarator">declarator</a> ':' <a href="#constant-expression">constant_expression</a>
+	;
+
+<a name="enum-specifier">enum_specifier</a>
+	: <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#ENUM">ENUM</a> '{' <a href="#enumerator-list">enumerator_list</a> '}'
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#ENUM">ENUM</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#check-type">IDENTIFIER</a> '{' <a href="#enumerator-list">enumerator_list</a> '}'
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#ENUM">ENUM</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#check-type">IDENTIFIER</a>
+	;
+
+<a name="enumerator-list">enumerator_list</a>
+	: <a href="#enumerator">enumerator</a>
+	| enumerator_list ',' <a href="#enumerator">enumerator</a>
+	;
+
+<a name="enumerator">enumerator</a>
+	: <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#check-type">IDENTIFIER</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#check-type">IDENTIFIER</a> '=' <a href="#constant-expression">constant_expression</a>
+	;
+
+<a name="type-qualifier">type_qualifier</a>
+	: <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#CONST">CONST</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#VOLATILE">VOLATILE</a>
+	;
+
+<a name="declarator">declarator</a>
+	: <a href="#pointer">pointer</a> <a href="#direct-declarator">direct_declarator</a>
+	| <a href="#direct-declarator">direct_declarator</a>
+	;
+
+<a name="direct-declarator">direct_declarator</a>
+	: <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#check-type">IDENTIFIER</a>
+	| '(' <a href="#declarator">declarator</a> ')'
+	| direct_declarator '[' <a href="#constant-expression">constant_expression</a> ']'
+	| direct_declarator '[' ']'
+	| direct_declarator '(' <a href="#parameter-type-list">parameter_type_list</a> ')'
+	| direct_declarator '(' <a href="#identifier-list">identifier_list</a> ')'
+	| direct_declarator '(' ')'
+	;
+
+<a name="pointer">pointer</a>
+	: '*'
+	| '*' <a href="#type-qualifier-list">type_qualifier_list</a>
+	| '*' pointer
+	| '*' <a href="#type-qualifier-list">type_qualifier_list</a> pointer
+	;
+
+<a name="type-qualifier-list">type_qualifier_list</a>
+	: <a href="#type-qualifier">type_qualifier</a>
+	| type_qualifier_list <a href="#type-qualifier">type_qualifier</a>
+	;
+
+
+<a name="parameter-type-list">parameter_type_list</a>
+	: <a href="#parameter-list">parameter_list</a>
+	| <a href="#parameter-list">parameter_list</a> ',' <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#ELLIPSIS">ELLIPSIS</a>
+	;
+
+<a name="parameter-list">parameter_list</a>
+	: <a href="#parameter-declaration">parameter_declaration</a>
+	| <a href="#parameter-list">parameter_list</a> ',' <a href="#parameter-declaration">parameter_declaration</a>
+	;
+
+<a name="parameter-declaration">parameter_declaration</a>
+	: <a href="#declaration-specifiers">declaration_specifiers</a> <a href="#declarator">declarator</a>
+	| <a href="#declaration-specifiers">declaration_specifiers</a> <a href="#abstract-declarator">abstract_declarator</a>
+	| <a href="#declaration-specifiers">declaration_specifiers</a>
+	;
+
+<a name="identifier-list">identifier_list</a>
+	: <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#check-type">IDENTIFIER</a>
+	| identifier_list ',' <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#check-type">IDENTIFIER</a>
+	;
+
+<a name="type-name">type_name</a>
+	: <a href="#specifier-qualifier-list">specifier_qualifier_list</a>
+	| <a href="#specifier-qualifier-list">specifier_qualifier_list</a> <a href="#abstract-declarator">abstract_declarator</a>
+	;
+
+<a name="abstract-declarator">abstract_declarator</a>
+	: <a href="#pointer">pointer</a>
+	| <a href="#direct-abstract-declarator">direct_abstract_declarator</a>
+	| <a href="#pointer">pointer</a> <a href="#direct-abstract-declarator">direct_abstract_declarator</a>
+	;
+
+<a name="direct-abstract-declarator">direct_abstract_declarator</a>
+	: '(' <a href="#abstract-declarator">abstract_declarator</a> ')'
+	| '[' ']'
+	| '[' <a href="#constant-expression">constant_expression</a> ']'
+	| direct_abstract_declarator '[' ']'
+	| direct_abstract_declarator '[' <a href="#constant-expression">constant_expression</a> ']'
+	| '(' ')'
+	| '(' <a href="#parameter-type-list">parameter_type_list</a> ')'
+	| direct_abstract_declarator '(' ')'
+	| direct_abstract_declarator '(' <a href="#parameter-type-list">parameter_type_list</a> ')'
+	;
+
+<a name="initializer">initializer</a>
+	: <a href="#assignment-expression">assignment_expression</a>
+	| '{' <a href="#initializer-list">initializer_list</a> '}'
+	| '{' <a href="#initializer-list">initializer_list</a> ',' '}'
+	;
+
+<a name="initializer-list">initializer_list</a>
+	: <a href="#initializer">initializer</a>
+	| initializer_list ',' <a href="#initializer">initializer</a>
+	;
+
+<a name="statement">statement</a>
+	: <a href="#labeled-statement">labeled_statement</a>
+	| <a href="#compound-statement">compound_statement</a>
+	| <a href="#expression-statement">expression_statement</a>
+	| <a href="#selection-statement">selection_statement</a>
+	| <a href="#iteration-statement">iteration_statement</a>
+	| <a href="#jump-statement">jump_statement</a>
+	;
+
+<a name="labeled-statement">labeled_statement</a>
+	: <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#check-type">IDENTIFIER</a> ':' <a href="#statement">statement</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#CASE">CASE</a> <a href="#constant-expression">constant_expression</a> ':' <a href="#statement">statement</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#DEFAULT">DEFAULT</a> ':' <a href="#statement">statement</a>
+	;
+
+<a name="compound-statement">compound_statement</a>
+	: '{' '}'
+	| '{' <a href="#statement-list">statement_list</a> '}'
+	| '{' <a href="#declaration-list">declaration_list</a> '}'
+	| '{' <a href="#declaration-list">declaration_list</a> <a href="#statement-list">statement_list</a> '}'
+	;
+
+<a name="declaration-list">declaration_list</a>
+	: <a href="#declaration">declaration</a>
+	| declaration_list <a href="#declaration">declaration</a>
+	;
+
+<a name="statement-list">statement_list</a>
+	: <a href="#statement">statement</a>
+	| statement_list <a href="#statement">statement</a>
+	;
+
+<a name="expression-statement">expression_statement</a>
+	: ';'
+	| <a href="#expression">expression</a> ';'
+	;
+
+<a name="selection-statement">selection_statement</a>
+	: <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#IF">IF</a> '(' <a href="#expression">expression</a> ')' <a href="#statement">statement</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#IF">IF</a> '(' <a href="#expression">expression</a> ')' <a href="#statement">statement</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#ELSE">ELSE</a> <a href="#statement">statement</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#SWITCH">SWITCH</a> '(' <a href="#expression">expression</a> ')' <a href="#statement">statement</a>
+	;
+
+<a name="iteration-statement">iteration_statement</a>
+	: <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#WHILE">WHILE</a> '(' <a href="#expression">expression</a> ')' <a href="#statement">statement</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#DO">DO</a> <a href="#statement">statement</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#WHILE">WHILE</a> '(' <a href="#expression">expression</a> ')' ';'
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#FOR">FOR</a> '(' <a href="#expression-statement">expression_statement</a> <a href="#expression-statement">expression_statement</a> ')' <a href="#statement">statement</a>
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#FOR">FOR</a> '(' <a href="#expression-statement">expression_statement</a> <a href="#expression-statement">expression_statement</a> <a href="#expression">expression</a> ')' <a href="#statement">statement</a>
+	;
+
+<a name="jump-statement">jump_statement</a>
+	: <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#GOTO">GOTO</a> <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#check-type">IDENTIFIER</a> ';'
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#CONTINUE">CONTINUE</a> ';'
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#BREAK">BREAK</a> ';'
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#RETURN">RETURN</a> ';'
+	| <a href="https://www.lysator.liu.se/c/ANSI-C-grammar-l.html#RETURN">RETURN</a> <a href="#expression">expression</a> ';'
+	;
+
+<a name="translation-unit">translation_unit</a>
+	: <a href="#external-declaration">external_declaration</a>
+	| translation_unit <a href="#external-declaration">external_declaration</a>
+	;
+
+<a name="external-declaration">external_declaration</a>
+	: <a href="#function-definition">function_definition</a>
+	| <a href="#declaration">declaration</a>
+	;
+
+<a name="function-definition">function_definition</a>
+	: <a href="#declaration-specifiers">declaration_specifiers</a> <a href="#declarator">declarator</a> <a href="#declaration-list">declaration_list</a> <a href="#compound-statement">compound_statement</a>
+	| <a href="#declaration-specifiers">declaration_specifiers</a> <a href="#declarator">declarator</a> <a href="#compound-statement">compound_statement</a>
+	| <a href="#declarator">declarator</a> <a href="#declaration-list">declaration_list</a> <a href="#compound-statement">compound_statement</a>
+	| <a href="#declarator">declarator</a> <a href="#compound-statement">compound_statement</a>
+	;
+
+%%
+#include &lt;stdio.h&gt;
+
+extern char yytext[];
+extern int column;
+
+yyerror(s)
+char *s;
+{
+	fflush(stdout);
+	printf("\n%*s\n%*s\n", column, "^", column, s);
+}
+</pre>
+
+
+</body></html>

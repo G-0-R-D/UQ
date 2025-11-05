@@ -1,0 +1,7 @@
+
+for non-recursive gc just do incref/decref whenever data is assigned (including to the stack, every reference, and it's the caller/op that does the refcounting (calling method)
+
+for recursive (when we assign an object into it's own hierarchy), add the parent type as an identity (base class name?  or instance/reference...) with a count (each time added, increase the count), and then each object has a list of super objects, so we can scan the object hierarchy by scanning the ones listed, until we reach the top
+	-- if dependency is detected then we use a weakref (just don't change the refcount up or down)... simple?
+	-- XXX but a class can appear without the instance referencing the object...  so it might have to be per-instance (full list of each parent, and walk it to find ourself, and if found don't change refcount)
+

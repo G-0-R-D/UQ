@@ -1,0 +1,71 @@
+
+"where does InnerAttrVisitor::Visit(A) on line 45 go next?"
+
+Short answer: it dispatches to the specific Visit*Attr override for that attribute kind.
+
+Concretely, InnerAttrVisitor is an alias for ConstAttrVisitor<JSONNodeDumper>. Calling InnerAttrVisitor::Visit(A) jumps into clang::attrvisitor::Base<..., ImplClass>::Visit(A) (in AttrVisitor.h), which switches on A->getKind() and calls VisitNAMEAttr(static_cast<const NAMEAttr*>(A)). If there’s no more-specific override, it falls back to VisitAttr. ([Clang][1])
+
+You can see the exact call site in JSONNodeDumper.cpp:
+
+// ...
+// JOS.attribute("spelling", ...);
+InnerAttrVisitor::Visit(A);
+
+That’s line \~45 in the doxygen-rendered source. ([Clang][2])
+
+And the concrete targets are the per-attribute handlers further down the same file—e.g. VisitAliasAttr, VisitCleanupAttr, VisitDeprecatedAttr, VisitUnavailableAttr, VisitSectionAttr, etc. Those are the “next stops” after the visitor dispatch, depending on A->getKind(). ([Clang][3])
+
+[1]: https://clang.llvm.org/doxygen/AttrVisitor_8h_source.html "clang: include/clang/AST/AttrVisitor.h Source File"
+[2]: https://clang.llvm.org/doxygen//JSONNodeDumper_8cpp_source.html?utm_source=chatgpt.com "clang: lib/AST/JSONNodeDumper.cpp Source File"
+[3]: https://clang.llvm.org/doxygen/classclang_1_1JSONNodeDumper.html "clang: clang::JSONNodeDumper Class Reference"
+
+
+
+
+
+this is what GPT has summariezd this file:
+
+
+Here’s the short, practical take.
+
+It implements Clang’s JSON AST dumper. Concretely, JSONNodeDumper.cpp defines the visitor that walks every major AST node kind (decls, stmts/exprs, types, attrs, comments, template args, ctor initializers, captures, OpenMP/OpenACC clauses) and emits a JSON object for each node via an internal JSON stream (NodeStreamer::JOS). ([codebrowser.dev][1])
+
+### What it writes for each node
+
+* A stable-ish `id` (pointer-printed) and a `kind` name. You’ll see this on decls, stmts/exprs, types, qualifiers, typelocs, comments, etc. ([codebrowser.dev][1])
+* Source coordinates: loc and/or range with start/end; used broadly across nodes. ([codebrowser.dev][1])
+* Selective flags: only present when true, e.g. isImplicit, isInvalid, isUsed/isReferenced, isHidden for NamedDecl. It also records a parentDeclContextId when lexical and semantic parents differ. ([codebrowser.dev][1])
+* Type info for expressions: type plus the expression’s value category (lvalue/xvalue/prvalue). ([codebrowser.dev][1])
+* Type nodes: desugared/qualified type, and booleans like isDependent, containsUnexpandedPack, etc. ([codebrowser.dev][1])
+* Attributes: kind, range, and flags like inherited/implicit. ([codebrowser.dev][1])
+* Odds and ends: named enum/using/linkage details, operator opcodes, string/char literal payloads (escaped), template-argument forms, etc.—all encoded by specialized Visit* methods. ([clang.llvm.org][2])
+
+### How it’s structured
+
+JSONNodeDumper inherits the usual Clang visitor mixins (for decls, stmts, types, attrs, comments, template args) and overrides Visit* methods to emit attributes through JOS.attribute(...), attributeObject(...), and helpers like writeSourceLocation, writeSourceRange, createQualType, createBareDeclRef, and createPointerRepresentation (the node id). ([clang.llvm.org][2])
+
+### Where you encounter it
+
+When you run Clang with the JSON AST flag, this is the code that produces that output:
+
+clang++ -Xclang -ast-dump=json -fsyntax-only path/to/file.cc > ast.json
+
+That command and the JSON schema style are discussed in Clang docs and community posts. ([clang.llvm.org][3])
+
+### Why you’d care (as an implementer/user)
+
+* If you’re post-processing Clang ASTs, this file defines exactly which fields appear for each node and when they’re omitted.
+* If you’re extending Clang, you’d add/adjust a Visit* to surface new node details in the JSON.
+* If your tool depends on stable node identity, note the id comes from pointer formatting (unique per process/run, not a persistent GUID). ([codebrowser.dev][1])
+
+If you want, I can walk a tiny snippet of C++ through -ast-dump=json and annotate the resulting fields line-by-line so you see how each Visit* maps to the JSON.
+
+[1]: https://codebrowser.dev/llvm/clang/lib/AST/JSONNodeDumper.cpp.html "JSONNodeDumper.cpp source code [clang/lib/AST/JSONNodeDumper.cpp] - Codebrowser "
+[2]: https://clang.llvm.org/doxygen/classclang_1_1JSONNodeDumper.html "clang: clang::JSONNodeDumper Class Reference"
+[3]: https://clang.llvm.org/doxygen/classclang_1_1JSONNodeDumper.html?utm_source=chatgpt.com "clang::JSONNodeDumper Class Reference"
+
+codebrowser.dev (https://codebrowser.dev/llvm/clang/lib/AST/JSONNodeDumper.cpp.html)
+JSONNodeDumper.cpp source code [clang/lib/AST/JSONNodeDumper.cpp] - Codebrowser
+Source code of clang/lib/AST/JSONNodeDumper.cpp clang llvmorg on KDAB Codebrowser
+
+

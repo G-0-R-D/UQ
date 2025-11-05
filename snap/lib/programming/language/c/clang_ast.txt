@@ -1,0 +1,101 @@
+
+# https://clang.llvm.org/doxygen/classclang_1_1Stmt.html
+# https://clang.llvm.org/doxygen/classclang_1_1Decl.html
+# https://swtv.kaist.ac.kr/courses/cs458-fall2022/part1-coverage/lec7-Clang-tutorial-v2.pdf
+Stmt:
+	AsmStmt
+		GCCAsmStmt
+		MSAsmStmt
+	CXXCatchStmt
+	CXXForRangeStmt
+	CXXTryStmt
+	CapturedStmt
+	CompoundStmt o
+	CoreturnStmt
+	CoroutineBodyStmt
+	DeclStmt o
+	DoStmt o
+	ForStmt o
+	GotoStmt o
+	IfStmt o
+	IndirectGotoStmt
+	LoopControlStmt o
+	MSDependentExistsStmt
+	NullStmt o
+	ObjCAtCatchStmt
+	ObjCAtFinallyStmt
+	ObjCAtSynchronizedStmt
+	ObjCAtThrowStmt
+	ObjCAtTryStmt
+	ObjCAutoreleasePoolStmt
+	ObjCForCollectionStmt
+	OpenACCConstructStmt
+		OpenACCAssociatedStmtConstruct
+	ReturnStmt o
+	SEHExceptStmt
+	SEHFinallyStmt
+	SEHLeaveStmt
+	SEHTryStmt
+	SYCLKernelCallStmt
+	SwitchCase o
+		CaseStmt o
+		DefaultStmt o
+	SwitchStmt o
+	ValueStmt o
+		AttributedStmt
+		Expr o
+			AbstractConditionalOperator
+			AddrLabelExpr
+			ArrayInitIndexExpr
+		LabelStmt o
+	WhileStmt o
+Decl:
+	OMPDeclarativeDirective
+		OMPAllocateDecl
+		OMPGroupPrivateDecl
+		OMPRequiresDecl
+		OMPThreadPrivateDecl
+	AccessSpecDecl
+	BlockDecl
+	CapturedDecl
+	EmptyDecl
+	ExportDecl
+	ExternCContextDecl
+	FileScopeAsmDecl
+	FriendDecl
+	FriendTemplateDecl
+	ImplicitConceptSpecializationDecl
+	ImportDecl
+	LifetimeExtendedTemporaryDecl
+	LinkageSpecDecl
+	NamedDecl
+		BaseUsingDecl
+			UsingDecl o
+			UsingEnumDecl
+		HLSLBufferDecl
+		HLSLRootSignatureDecl
+		LabelDecl o
+		NamespaceBaseDecl
+		ObjCCompatibleAliasDecl
+		ObjCContainerDecl
+		ObjCMethodDecl
+		ObjCPropertyDecl
+		TemplateDecl
+		TypeDecl o
+		UnresolvedUsingIfExistsDecl
+		UsingDirectiveDecl
+		UsingPackDecl
+		UsingShadowDecl
+		ValueDecl o
+		OpenACCDeclareDecl
+		OpenACCRoutineDecl
+	ObjCPropertyImplDecl
+	OpenACCConstructDecl
+	OutlinedFunctionDecl
+	PragmaCommentDecl
+	PragmaDetectMismatchDecl
+	RequiresExprBodyDecl
+	StaticAssertDecl
+	TopLevelStmtDecl
+	TranslationUnitDecl o
+
