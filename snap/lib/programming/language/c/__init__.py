@@ -18,9 +18,16 @@ def build(ENV):
 
 		__slots__ = []
 
-		LANGUAGE_NAME = 'C'
+		__EXTENSIONS__ = ['c','h','cpp','hpp','cxx']
 
-		def get_module_info(self, FILEPATH, PROJECT):
+		@ENV.SnapProperty
+		class name:
+
+			def get(self, MSG):
+				"()->str"
+				return 'c'
+
+		def get_module_info(self, PROJECT, PROJECT_FILE):
 			'' # TODO
 
 			# TODO list modules as single-name paths relative to project paths...

@@ -309,6 +309,8 @@ def main(ENV):
 
 	SnapContainer = ENV.SnapContainer
 
+	snap_extents_t = ENV.snap_extents_t
+
 	class Test(SnapContainer):
 
 		# TODO update extents to resize the graphic and metric display...
@@ -368,16 +370,20 @@ def main(ENV):
 		def __init__(self, *a, **k):
 			SnapContainer.__init__(self, *a, **k)
 
+			ENV.snap_out('begin extents', self['extents'][:])
+
 			GFX = ENV.GRAPHICS
 
 			text = """
-						one day
-						I looked up at the sky
-						and...
-								*SPLAT*!
+		one day
+		I looked up at the sky
+		and...
+				*SPLAT*!
 			"""
 
-			self['text'] = GFX.Text(text=text)
+			self['text'] = GFX.Text(text=text, extents=snap_extents_t(0,0,0, 800,480,0))
+
+			ENV.snap_out('text extents', self['text']['extents'][:])
 
 			self['children'] = [self['text']]
 

@@ -192,7 +192,7 @@ def build(ENV):
 			#qtext.setTextCursor(cursor)
 
 			ext = self['extents']
-			if 1:#snap_extents_are_null(ext):
+			if 0:#snap_extents_are_null(ext):
 				# TODO set unbounded
 				qtext.setLineWrapMode(Qt5.QTextEdit.NoWrap) # TODO always?  we'll do wrap ourself?
 				#pango_layout_set_width(layout, -1)
@@ -200,7 +200,8 @@ def build(ENV):
 
 			else:
 				#qtext.setLineWrapMode(Qt5.QTextEdit.WidgetWidth)
-				#qtext.setLineWrapColumnOrWidth(10)
+				ENV.snap_out('text extents for wrap', ext[:])
+				qtext.setLineWrapColumnOrWidth(min(20, int(ext[3]-ext[0])))
 				#pango_layout_set_width(layout, int(ext[3]-ext[0]))
 				#pango_layout_set_height(layout, int(ext[4]-ext[1]))
 				#qtext.setGeometry(int(ext[0]), int(ext[1]), int(ext[3]-ext[0]), int(ext[4]-ext[1]))
@@ -279,7 +280,7 @@ def build(ENV):
 				#ENV.snap_out('ext', ext[:], h, 'size', size)
 				#qtext.document().adjustSize()
 				doc_size = qtext.document().size()
-				ENV.snap_out(int(ext[0]), int(ext[1]), int(doc_size.width()), int(doc_size.height()))
+				ENV.snap_out('text geometry set', int(ext[0]), int(ext[1]), int(doc_size.width()), int(doc_size.height()))
 				qtext.setGeometry(int(ext[0]), int(ext[1]), int(doc_size.width()), int(doc_size.height())) # TODO why is this size not correct?
 
 

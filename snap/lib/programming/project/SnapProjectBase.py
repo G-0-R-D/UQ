@@ -123,6 +123,29 @@ def build(ENV):
 			# TODO 
 			raise NotImplementedError('compile')
 
+
+		@ENV.SnapChannel
+		def close(self, MSG):
+			""
+			# TODO
+
+		@ENV.SnapChannel
+		def open(self, MSG):
+			"(str savefile!)"
+
+			# TODO 
+
+		@open.alias
+		def load(self, MSG): pass
+
+
+		@ENV.SnapChannel
+		def save(self, MSG):
+			''
+			# save json info as project working file
+			raise NotImplementedError()
+
+
 		@ENV.SnapChannel
 		def update(self, MSG):
 			"()"

@@ -11,6 +11,8 @@ def build(ENV):
 
 		# TODO file info on project, so we can decode a file with **info generally?  or make a decode_file using a filepath?  and the c project can find the includes from the project or externals when it does this?
 
+		__EXTENSIONS__ = None # assigned in subclass, list of extensions (lowercase)
+
 		"""
 		@ENV.SnapProperty
 		class rootpath:
@@ -37,7 +39,7 @@ def build(ENV):
 			return None
 
 		def uses_extension(self, EXT):
-			return False # subclass must implement
+			return EXT in self.__EXTENSIONS__
 
 		def is_module(self, FILEPATH):
 			return self.uses_extension(self.get_extension(FILEPATH))
@@ -74,9 +76,11 @@ def build(ENV):
 			# TODO missing modules (something is imported but not found)
 
 
-		def module_info(self, FILEPATH, PROJECT):
+		def get_module_info(self, PROJECT, PROJECT_FILE):
 
-			if not self.is_module(FILEPATH):
+			filepath = PROJECT_FILE['filepath']
+
+			if not self.is_module(filepath):
 				return None
 
 			# TODO implement a general decode() handling, where we find import and import_from, and other structures of interest...

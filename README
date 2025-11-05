@@ -298,7 +298,7 @@ ORIENTATION:
 
 		the implementation of the c backend, largely a work in progress!  will be able to say '#include "snap.h"' to use
 		-- modules will be built into header files with a <MODULE_NAME>_MAINBODY(ENV) which represents the 'run' of the
-			module (could that runs if you imported the module in python)
+			module (code that runs if you imported the module in python)
 		-- compilation would create a main.c with initialization of the ENV, include all modules, and then call MAINBODY(ENV)
 			of each imported module
 
@@ -359,9 +359,3 @@ ORIENTATION:
 if you've read all this, I thank you very much for doing so!  I appreciate your interest, and look forward to your feedback and input!  Cheers!
 	-Gord
 
-
-
-
-
-
-Happy Birthday Gemma!

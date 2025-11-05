@@ -11,12 +11,18 @@ def build(ENV):
 
 		__slots__ = []
 
+		__EXTENSIONS__ = ['py']
+
 		@ENV.SnapProperty
 		class name:
 
 			def get(self, MSG):
 				"()->str"
 				return "python"
+
+
+		def get_module_info(self, PROJECT, PROJECT_FILE):
+			''
 
 
 		#def reset(self):

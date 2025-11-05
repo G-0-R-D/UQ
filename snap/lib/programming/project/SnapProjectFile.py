@@ -68,9 +68,13 @@ def build(ENV):
 					QUEUE = enqueue(QUEUE, [v])
 				elif isinstance(v, list):
 					QUEUE = enqueue(QUEUE, v)
+
+
+	COLORS = {
+	}
 		
 
-	class SnapProjectDisplayFile(SnapContainer):
+	class SnapProjectFile(SnapContainer):
 
 		__slots__ = []
 
@@ -87,7 +91,21 @@ def build(ENV):
 
 			def get(self, MSG):
 				"()->dict"
-				return self.__snap_data__['ast']
+				ast = self.__snap_data__['ast']
+				if ast is not None:
+					return ast
+
+				ext = self['extension']
+				lang = ENV.LANGUAGE.get_by_extension(ext)
+				if ext is None or lang is None:
+					return None
+
+				# TODO get ast fresh, assign locally, emit changed
+
+				# XXX TODO pass self to language.get_module_info(self.__snap_data__['__project__'](), self)
+
+				self.changed(ast=ast)
+				return ast
 
 		@ENV.SnapProperty
 		class filepath:
@@ -95,6 +113,22 @@ def build(ENV):
 			def get(self, MSG):
 				"()->str"
 				return self.__snap_data__['filepath']
+
+		@ENV.SnapProperty
+		class extension:
+
+			def get(self, MSG):
+				"()->str"
+				filepath = self['filepath']
+				if filepath:
+					split = os.path.basename(filepath).split('.')
+					if len(split) > 1:
+						return split[-1]
+				return None
+
+		@extension.alias
+		class ext: pass
+
 
 		@ENV.SnapProperty
 		class line_metrics:
@@ -157,7 +191,10 @@ def build(ENV):
 			"""
 
 			GFX = ENV.GRAPHICS
-			CTX.cmd_fill_extents(GFX.Color(.6,.5,.4,1.), self['extents'])
+			bg_color = self.__snap_data__['background_color']
+			if not bg_color:
+				bg_color = GFX.Color(.75, .75, .75, 1.)
+			CTX.cmd_fill_extents(bg_color, self['extents'])
 
 			check = self.__snap_data__['check'] or []
 			if 0:#check:
@@ -166,8 +203,8 @@ def build(ENV):
 				CTX.cmd_draw_text(text)
 				#ENV.snap_debug('text', text['text'])
 
-			for block in (self.__snap_data__['blocks'] or []):
-				CTX.cmd_stroke_extents(GFX.Color(0,0,0,1), block)
+			#for block in (self.__snap_data__['blocks'] or []):
+			#	CTX.cmd_stroke_extents(GFX.Color(0,0,0,1), block)
 
 			text = self.__snap_data__['text_graphic']
 			if text is not None:
@@ -177,7 +214,7 @@ def build(ENV):
 		@ENV.SnapChannel
 		def update(self, MSG):
 			"()"
-			return # XXX TODO
+			return # XXX TODO project make a selection and assigns to module '__display__'?  and then calls update() on the display to set the graphics?
 
 			self.clear()
 
@@ -255,8 +292,11 @@ def build(ENV):
 		def open(self, MSG):
 			"()"
 
+			filepath = self['filepath']
+			if filepath is None:
+				return None
+
 			# NOTE: filepath would be assigned by project and won't be editable (atleast not here!)
-			filepath = self.__snap_data__['filepath']
 			assert os.path.isfile(filepath), 'not a file: {}'.format(repr(filepath))
 
 			with open(filepath, 'r') as openfile:
@@ -266,15 +306,28 @@ def build(ENV):
 
 			text_graphic = self.__snap_data__['text_graphic'] = GFX.Text(text=text)
 
-			ext = filepath.split('.')[-1]
-			try:
-				lang = ENV.LANGUAGE.get_by_extension(ext)
-			except KeyError:
-				ENV.snap_debug('not a recognized language:', filepath, repr(ext))
-				return
-			self.__snap_data__['ast'] = lang.decode(text)
+			ext = self['ext']
+			#try:
+			lang = ENV.LANGUAGE.get_by_extension(ext)
+			ENV.snap_out('lang', lang, ext)
+			if lang is not None:
+				color = COLORS.get(lang)
+				if color is None:
+					if lang['name'] == 'python':
+						color = COLORS[lang] = GFX.Color(.3, 1, .7, 1.)
+					elif lang['name'] == 'c':
+						color = COLORS[lang] = GFX.Color(.8, .6, .4, 1.)
+					else:
+						ENV.snap_debug('no color defined for', lang, lang['name'])
+						color = COLORS[lang] = GFX.Color(0, .25, 1., 1.)
+				self.__snap_data__['background_color'] = color
+					
+			#except KeyError:
+			#	ENV.snap_debug('not a recognized language:', filepath, repr(ext))
+			#	return
+			#self.__snap_data__['ast'] = lang.decode(text)
 
-			self.update()
+			#self.update()
 
 		@ENV.SnapChannel
 		def changed(self, MSG):
@@ -284,13 +337,17 @@ def build(ENV):
 			return SnapContainer.changed(self, MSG)
 
 
-		def __init__(self, MODULE_INFO, **SETTINGS):
+		def __init__(self, PROJECT, filepath=None, **SETTINGS):
 			SnapContainer.__init__(self, **SETTINGS)
 
-			# TODO hold a weakref to project...
-			self.__snap_data__['__module__'] = MODULE_INFO
+			self.__snap_data__['__project__'] = weakref_ref(PROJECT) if PROJECT is not None else None
 
-			self['extents'] = snap_extents_t(0,0,0, 400,800,0)
+			self.__snap_data__['filepath'] = filepath
+
+			if filepath:
+				self.open()
+
+			self['extents'] = snap_extents_t(0,0,0, 850,1100,0)
 
 			# TODO text graphic -> text on it?  or change the text to remove indents?
 
@@ -307,6 +364,6 @@ def build(ENV):
 
 			
 
-	ENV.SnapProjectDisplayFile = SnapProjectDisplayFile
-	return SnapProjectDisplayFile
+	ENV.SnapProjectFile = SnapProjectFile
+	return SnapProjectFile
 
