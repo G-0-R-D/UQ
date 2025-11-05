@@ -41,6 +41,9 @@ LICENSE:
 INSTALL:
 	* I'm on linux, not sure how to do this on other systems (but it shouldn't be too hard!)
 
+	open a terminal in the directory where you want UQ to be and type:
+		"git clone https://github.com/G-0-R-D/UQ"
+
 	using your version of python (with pip already installed), run:
 		"python -m pip install numpy PyQt5"
 

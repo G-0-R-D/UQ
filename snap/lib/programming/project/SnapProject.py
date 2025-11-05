@@ -11,6 +11,8 @@ def build(ENV):
 
 	SnapProjectFile = ENV.SnapProjectFile
 
+	SnapProjectTasks = ENV.__build__('snap.lib.programming.project.SnapProjectTasks')
+
 	# TODO can run headless
 	GFX = getattr(ENV, 'GRAPHICS', None)
 
@@ -50,6 +52,9 @@ def build(ENV):
 
 		def __init__(self, **SETTINGS):
 			SnapProjectBase.__init__(self, **SETTINGS)
+
+			self.__snap_data__['__tasks__'] = SnapProjectTasks(self)
+
 
 	ENV.SnapProject = SnapProject
 	return SnapProject

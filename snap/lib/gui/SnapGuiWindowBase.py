@@ -27,8 +27,10 @@ def build(ENV):
 	SnapMetrics = ENV.SnapMetrics
 	#SnapGraphic = ENV.SnapGraphic # TODO get from engine? XXX actually why not just subclass SnapNode?
 	snap_extents_t = ENV.snap_extents_t
+	snap_matrix_t = ENV.snap_matrix_t
 	snap_extents_fit = ENV.snap_extents_fit
 	snap_matrix_map_extents = ENV.snap_matrix_map_extents
+	snap_matrix_invert = ENV.snap_matrix_invert
 	SnapWindow = ENV.SnapWindow # TODO
 
 	SnapMessage = ENV.SnapMessage
@@ -58,16 +60,12 @@ def build(ENV):
 			def set(self, MSG):
 				"(snap_extents_t!)"
 
-				ext = MSG.args[0]
-				if 0:#ext is not None and self.__snap_data__['__extents_needs_set__']:
-					self['item']['extents'] = ext
-					self.__snap_data__['__extents_needs_set__'] = False
-
-				#if self.__snap_data__['extents'] is None:
-				#	# set once
-				#	self['item']['extents'] = ext # XXX just once on init...
-				#else:
-				#	ENV.snap_out('extents already set', self.__snap_data__['extents'][:])
+				# TODO this needs to be nicer...
+				cam_matrix = snap_matrix_t(*self['camera']['matrix'])
+				ext = snap_extents_t(*MSG.args[0])
+				#snap_matrix_invert(cam_matrix, cam_matrix)
+				#snap_matrix_map_extents(cam_matrix, ext, 0, ext)
+				self['item']['extents'] = ext
 
 				SnapWindow.extents.set(self, MSG)
 
@@ -94,6 +92,18 @@ def build(ENV):
 
 				m = MSG.args[0]
 				self['item']['matrix'] = m
+
+
+		@ENV.SnapChannel
+		def device_event(self, MSG):
+			# TODO forward to user?
+			user = self['item']
+			if user is not None:
+				#ENV.snap_debug('unhandled device event', MSG.kwargs.keys())
+				_return = user.device_event.__direct__(MSG)
+				if _return is True:
+					return True
+			return SnapWindow.device_event(self, MSG)
 
 		@ENV.SnapChannel
 		def allocateXXX(self, MSG):
@@ -195,7 +205,7 @@ def build(ENV):
 				if USER is None:
 					data['__user_window__'] = None
 					data['__blit_texture__'] = None
-					ENV.snap_out('set user abort')
+					#ENV.snap_out('set user abort')
 					return
 
 				elif isinstance(USER, SnapWindow):

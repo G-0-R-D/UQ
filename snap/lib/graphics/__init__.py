@@ -70,7 +70,7 @@ def build(ENV):
 			setattr(self, name, init)
 
 			if getattr(ENV, 'GRAPHICS', None) is None:
-				ENV.snap_out("init graphics", init)
+				#ENV.snap_out("init graphics", init)
 				ENV.GFX = ENV.GRAPHICS = init
 
 			return init

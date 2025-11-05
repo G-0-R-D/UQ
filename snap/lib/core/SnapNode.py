@@ -140,6 +140,12 @@ def build(ENV):
 			# TODO also consider blocking status?
 			return bool(not self.channels)
 
+		def has_node(self, NODE):
+			try:
+				return NODE in [wk() for channel in self.channels.values() for wk in channel]
+			except:
+				return False
+
 		def connect(self, OUTPUT_CHANNEL, LISTENER, INPUT_CHANNEL, CONVERTER):
 
 			L = (weakref_ref(LISTENER), INPUT_CHANNEL, CONVERTER)

@@ -147,8 +147,6 @@ def build(ENV):
 				else:
 					self.changed(object=obj)
 
-				self.start() # ? I think this makes sense because it won't callback until next mainloop iteration...
-
 		@object.alias
 		class node: pass
 
@@ -163,6 +161,29 @@ def build(ENV):
 				return self.__snap_data__['elapsed'] or 0.
 
 			set = None
+
+		@ENV.SnapProperty
+		class finished:
+
+			def get(self, MSG):
+				"()->bool"
+
+				if self.__snap_data__['paused'] is not None:
+					# if pause has status we're still in play
+					return False
+
+				if ENV.mainloop.__data__[0].__snap_listeners__.has_node(self):
+					# if we're listening to mainloop we're in play
+					return False				
+
+				return True
+
+		@ENV.SnapProperty
+		class running:
+
+			def get(self, MSG):
+				"()->bool"
+				return not self['finished']
 
 		# TODO duration?
 
@@ -321,13 +342,15 @@ def build(ENV):
 			"()"
 
 			data = self.__snap_data__
+
 			elapsed = data['elapsed'] = self['elapsed'] + SnapTimers.ELAPSED_TIME
 			if elapsed < self['interval']:
 				#ENV.snap_out('not expired', elapsed)
 				return
 
-			#ENV.snap_out('expired', elapsed, self['interval'])
 			# timer has 'expired', call one iteration (either a call() or a generator next())
+			#if data['object'][1] != 'render':
+			#	ENV.snap_warning('__timeout__', elapsed, self['interval'], data['object'])
 
 			OBJECT_LIST = data['object']
 			if OBJECT_LIST is None:
@@ -383,6 +406,13 @@ def build(ENV):
 			"()"
 			# TODO set properties?
 
+			if MSG.args:
+				assert len(MSG.args) == 1, 'only one callable can be assigned to a timer'
+				self['object'] = MSG.args[0]
+
+			if MSG.kwargs:
+				self.set(**MSG.kwargs)
+
 			del self.__snap_data__['paused']
 			ENV.mainloop.listen(self.__timeout__)
 			self.start.emit()
@@ -402,6 +432,7 @@ def build(ENV):
 			self.__snap_data__['elapsed'] = 0.
 			ENV.mainloop.ignore(self.__timeout__)
 			self.stop.emit()
+			self.finished.emit()
 
 		@stop.alias
 		class cancel: pass
@@ -417,6 +448,7 @@ def build(ENV):
 
 			if CALLABLE is not None:
 				self['object'] = CALLABLE
+				self.start()
 
 	ENV.SnapTimer = SnapTimer
 

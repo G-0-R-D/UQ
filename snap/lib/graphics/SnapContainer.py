@@ -131,12 +131,13 @@ def build(ENV):
 				else:
 					del self.__snap_data__['interactive']
 
-		@ENV.SnapProperty
-		class render_matrix:
-			# in case an operation needs to be performed (like SnapCamera does inversion here)
-			def get(self, MSG):
-				"""()->snap_matrix_t"""
-				return self['matrix']
+		# moved to SnapMatrix base
+		#@ENV.SnapProperty
+		#class render_matrix:
+		#	# in case an operation needs to be performed (like SnapCamera does inversion here)
+		#	def get(self, MSG):
+		#		"""()->snap_matrix_t"""
+		#		return self['matrix']
 
 		@ENV.SnapProperty
 		class children:
@@ -438,6 +439,10 @@ def build(ENV):
 			return SnapMetrics.__setitem__(self, KEY, VALUE)
 		"""
 
+		@ENV.SnapChannel
+		def device_event(self, MSG):
+			"()"
+			#ENV.snap_out('unhandled device event', MSG.kwargs)
 
 
 		@ENV.SnapChannel

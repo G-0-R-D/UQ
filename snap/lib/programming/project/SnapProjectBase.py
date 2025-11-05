@@ -8,9 +8,34 @@ def build(ENV):
 
 	SnapContainer = ENV.SnapContainer
 
+	SnapTimer = ENV.SnapTimer
+
 	class SnapProjectBase(SnapContainer):
 
 		__slots__ = []
+
+		@ENV.SnapProperty
+		class packages:
+
+			def get(self, MSG):
+				"()->str[]"
+				return tuple(p['path'] for p in self.__snap_data__['__packages__'] or [])
+
+			def set(self, MSG):
+				"(str[])"
+				paths = MSG.args[0]
+				if paths is None:
+					del self.__snap_data__['__packages__']
+				else:
+					packages = self.__snap_data__['__packages__'] or []
+					# TODO check new/old
+
+				self.changed(packages=paths)
+				
+				
+				
+				
+
 
 		@ENV.SnapProperty
 		class packages:
@@ -72,6 +97,22 @@ def build(ENV):
 				return files
 
 			set = None
+
+		@ENV.SnapProperty
+		class tasks:
+
+			def get(self, MSG):
+				"()->dict(str:SnapTimer)"
+				return self.__snap_data__['__tasks__'] or {}
+
+			def set(self, MSG):
+				"(dict(str:SnapTimer))"
+				d = MSG.args[0]
+				if d is not None:
+					assert isinstance(d, dict)
+				self.__snap_data__['__tasks__'] = d.copy()
+				self.changed(tasks=d)
+				
 
 		@ENV.SnapProperty
 		class modules:

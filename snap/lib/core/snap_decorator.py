@@ -52,6 +52,10 @@ type[int] -> a specific count of type (maybe even can be a range? [start:end]?) 
 type* -> which would mean a list of type, unidentified types cannot follow this declaration
 	-- NOTE: like: "list(*subtype)" not "list*(subtype)"
 	-- XXX don't use *, just use [] to mean any number of args?
+		-- instead of list(*int|float) use int|float[] where list is implied... (and could be a tuple)
+	TODO also support initializers like dict(keytype:valuetype)
+
+	-- list(type) for when we actually care about it being a list, otherwise use type[]
 
 type can also be complex?:
 list(int,int)
@@ -60,6 +64,8 @@ list[int+](int|float|bool)
 ? -> means optional like: int var?
 ! -> means required like: int var!
 	- neither means it will have a default if not provided, or can accept None as a value without issue
+
+TODO put channel emit() docstring into the declaration itself?  SnapProperty|SnapChannel('(type name, ...)')
 """
 
 def build(ENV):

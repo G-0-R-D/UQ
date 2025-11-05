@@ -136,6 +136,10 @@ def build(ENV):
 				self.__snap_data__['matrix'] = m
 				self.changed(matrix=m)
 
+		# sometimes render_matrix needs to be different (like for SnapCamera)
+		@matrix.alias
+		class render_matrix: pass
+
 		@ENV.SnapProperty
 		class position:
 

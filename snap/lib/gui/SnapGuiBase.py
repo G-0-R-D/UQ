@@ -136,6 +136,7 @@ def build(ENV):
 
 					# we want the active graphic currently under the mouse
 					position_interact_info = POSITION['interact_info'] or {}
+					#ENV.snap_out('press position interact info', position_interact_info)
 					#position_lookup_result = position_interact_info.get('lookup_result') or {}
 					#if position_lookup_result:
 					#	ENV.snap_warning('position lookup result!', position_lookup_result)
@@ -379,7 +380,7 @@ def build(ENV):
 
 					for lookup_result in reversed(lookup_results):
 						lookup_result['graphic'].device_event(action='proximity', state=True, lookup_result=lookup_result.copy(), time=TIME, device=POINTER, source=POSITION)
-					active_window.device_event(action='proximity', state=True, lookup_result=None, time=TIME, device=POINTER, souce=POSITION)
+					active_window.device_event(action='proximity', state=True, lookup_result=None, time=TIME, device=POINTER, source=POSITION)
 				else:
 					# NOTE: windows are same here, so only need to process the graphics...
 					# new = set(lookup_results) - set(previous_lookup_results)

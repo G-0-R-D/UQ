@@ -204,6 +204,8 @@ def build(ENV):
 					#ENV.snap_out('got drag!')
 					'' # TODO camera.translate(x,y, parent=camera)
 
+			return SnapContainer.device_event(self, MSG)
+
 
 		def _do_resize(self):
 			# the window resizes itself lazily (this will be called when render is ready to go)

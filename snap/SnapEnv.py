@@ -60,10 +60,19 @@ class SnapEnv(object):
 
 	# TODO wishlist: make this a lazy import system using __getattr__ or something?  so we build dependencies only when they are needed?  but how to know what the dependencies are without building?  python modules could be analyzed with ast...?
 
-	@property
-	def __mainloop__(self):
-		self.mainloop # touch to create mainloop
-		return self.__PRIVATE__['__MAINLOOP_NODE__']
+	# NOTE to self: self.__PRIVATE__['__MAINLOOP_NODE__'] can also be found at ENV.mainloop.__data__[0]
+	#@property
+	#def __mainloop__(self):
+	#	self.mainloop # touch to create mainloop
+	#	return self.__PRIVATE__['__MAINLOOP_NODE__']
+
+	def mainloop_next(self):
+		# this is in user space, for if the user wants to pump the mainloop themselves
+		M = self.__PRIVATE__['__MAINLOOP_NODE__']
+		# TODO make sure mainloop not already running, then start to call mainloop.next() and yield
+		
+		#	-- maybe implement this as a generator?  just yield after each pump?  then we can initialize the mainloop...
+		raise NotImplementedError()
 
 	@property
 	def mainloop(self):
@@ -284,11 +293,11 @@ class SnapEnv(object):
 
 
 		# TODO headless XXX for now use self.__run__() for headless
-		self.graphics.load(name=INTERNALS.get('graphics', 'QT5'))
-		GUI = self.gui.load(name=INTERNALS.get('gui', 'QT5'))
+		# moved to __init__ so they exist before module build calls...
+		#self.graphics.load(name=INTERNALS.get('graphics', 'QT5'))
+		GUI = self.GUI
 
-
-		win = GUI.Window() # so self.GUI.MAINWINDOW exists before user __init__ is run
+		win = GUI.Window() # so self.GUI.MAINWINDOW exists before user.__init__() is run
 
 		#self.__build__('snap.lib.app')
 
@@ -404,14 +413,16 @@ class SnapEnv(object):
 		self.__build__('snap.lib.core')
 
 		self.__build__('snap.lib.graphics')
+		self.graphics.load(name=KWARGS.get('graphics', 'QT5'))
+
 		self.__build__('snap.lib.os.multiprocessing')
 		self.__build__('snap.lib.os.devices')
 		self.__build__('snap.lib.gui')
+		GUI = self.gui.load(name=KWARGS.get('gui', 'QT5'))
 
 		self.__build__('snap.lib.parsing')
 
 		self.__build__('snap.lib.programming')
-
 
 
 def main():
