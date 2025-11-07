@@ -205,7 +205,7 @@ def build(ENV):
 
 			else:
 				#qtext.setLineWrapMode(Qt5.QTextEdit.WidgetWidth)
-				ENV.snap_out('text extents for wrap', ext[:])
+				ENV.snap_out('text extents for wrap', ext[:], int(ext[3]-ext[0]))
 				qtext.setLineWrapColumnOrWidth(min(20, int(ext[3]-ext[0])))
 				#pango_layout_set_width(layout, int(ext[3]-ext[0]))
 				#pango_layout_set_height(layout, int(ext[4]-ext[1]))

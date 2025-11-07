@@ -8,6 +8,7 @@ def build(ENV):
 	snap_extents_t = ENV.snap_extents_t
 
 	#SnapProjectFile = ENV.SnapProjectFile
+	SnapProjectSettings = ENV.SnapProjectSettings
 	SnapProjectLayout = ENV.SnapProjectLayout
 
 	SnapProjectTasks = ENV.SnapProjectTasks
@@ -112,6 +113,16 @@ def build(ENV):
 					layouts = list(layouts)
 				self.__snap_data__['layouts'] = layouts
 				self.changed(layouts=layouts)
+
+		@ENV.SnapProperty
+		class settings:
+
+			def get(self, MSG):
+				"()->SnapProjectSettings"
+				s = self.__snap_data__['settings']
+				if not s:
+					s = self.__snap_data__['settings'] = SnapProjectSettings()
+				return s
 		
 
 		@ENV.SnapProperty

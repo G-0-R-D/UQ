@@ -4,16 +4,23 @@ import os
 
 from snap.SnapEnv import SnapEnv
 
-ENV = SnapEnv(gui='QT5', engine='QT5') # TODO sys.argv will take precedence over these
+class UQEnv(SnapEnv):
 
-ENV.__register_import_path__(os.path.dirname(os.path.realpath(__file__))) # 'UQ'
+	def __init__(self, *a, **k):
+		SnapEnv.__init__(self, *a, **k)
+
+		self.__register_import_path__(os.path.dirname(os.path.realpath(__file__))) # 'UQ'
+
+		self.__build__('UQ.app') # builds everything except UQApplication
+
+def main(ENV):
+
+	ENV.__run_gui__('UQ.app.UQApplication')
 
 if __name__ == '__main__':
 
-	# TODO init args, allow passing json descriptions to initialize a module?  or just use a recipe file?  json - save/load TODO
+	main(UQEnv(gui='QT5', engine='QT5')) # TODO sys.argv will take precedence over these)
 
-	ENV.__build__('UQ.app') # builds everything except UQApplication
-	
-	ENV.__run_gui__('UQ.app.UQApplication')
+
 
 

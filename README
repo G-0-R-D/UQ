@@ -47,13 +47,10 @@ INSTALL:
 	using your version of python (with pip already installed), run:
 		"python -m pip install numpy PyQt5"
 
-		* I'm not sure if the Qt5 version matters much, any version might work?  The plan is
-			to phase out this dependency later on anyway...
-
 	then install gcc and clang:
 		"sudo apt-get install gcc clang"
 
-	then make sure the "../UQ/snap" folder is visible to your python install so that "from snap.SnapEnv import SnapEnv"
+	- make sure the "../UQ/snap" folder is visible to your python install so that "from snap.SnapEnv import SnapEnv"
 		works from anywhere you call it.  I do this by just adding a symlink to the snap folder in my python main directory:
 			"ln -s ../snap ../python<x>/snap"
 				** ^^ but be sure to use absolute (full) paths!  relative paths don't work in symlinks...!
