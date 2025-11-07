@@ -11,28 +11,16 @@ def build(ENV):
 
 		__slots__ = []
 
-		@ENV.SnapProperty
-		class render_itemsX:
-			def get(self, MSG):
-
-				# TODO return list with HUD, ..., and then actual render items...
-
-				return []
-
 		def load(self, MSG):
 
-			print('load')
+			GFX = ENV.GRAPHICS
 
-			n = ENV.__build__('UQ.TestNode')()
-			self.set(item=n)
-
-
-			win = ENV.GUI['windows'][0]
-			ENV.snap_out('win', win)
-			#win.fit_to_user_content()
-			#win.center()
-
-
+			text = GFX.Text(text='sorry, not implemented yet...')
+			w,h = text['size']
+			ENV.snap_out('text size', w,h)
+			rect = GFX.Spline(description=['L', 0,0, w,0, w,h, 0,h, 'C'], stroke=GFX.Color(0,0,0,1))
+			
+			self['children'] = [rect, text]
 
 		def __init__(self):
 			UQWindow.__init__(self)

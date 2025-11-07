@@ -34,21 +34,17 @@ def build(ENV):
 			filename = os.path.basename(FILEPATH)
 			split = filename.split('.')
 			if len(split) > 1:
-				# instead of '.' in filename pre-check, must have a '.' to have an extension...
 				return split[-1]
 			return None
 
 		def uses_extension(self, EXT):
-			return EXT in self.__EXTENSIONS__
+			return EXT in self.__EXTENSIONS__ if self.__EXTENSIONS__ else None
 
 		def is_module(self, FILEPATH):
 			return self.uses_extension(self.get_extension(FILEPATH))
 
-		def decode_file(self, FILEPATH):
-			'' # XXX or put this on project?
 
-
-		def list_modules(self, *ROOTS):
+		def list_modulesXXX(self, *ROOTS):
 			modules = []
 			for root in ROOTS:
 				if os.path.isfile(root):
@@ -62,7 +58,7 @@ def build(ENV):
 					ENV.snap_warning('invalid path:', repr(root))
 			return modules
 
-		def analyze(self, *ROOTS):
+		def analyzeXXX(self, *ROOTS):
 			'build a dict report of the modules in all of the paths, and their dependencies between eachother, both what they access from others and export to others'
 
 			modules = self.list_modules(*ROOTS)
@@ -75,12 +71,11 @@ def build(ENV):
 
 			# TODO missing modules (something is imported but not found)
 
+		def get_module_info(self, FILEPATH, *ALL_FILES):
 
-		def get_module_info(self, PROJECT, PROJECT_FILE):
+			# will match all viable dependencies if there are more than one...
 
-			filepath = PROJECT_FILE['filepath']
-
-			if not self.is_module(filepath):
+			if not self.is_module(FILEPATH):
 				return None
 
 			# TODO implement a general decode() handling, where we find import and import_from, and other structures of interest...

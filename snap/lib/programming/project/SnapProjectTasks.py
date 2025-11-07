@@ -15,7 +15,8 @@ def build(ENV):
 			def wrapper(self, *a, **k):
 				timer = SnapTimer(None)
 				gen = FUNC(self, self.__project__(), timer, *a, **k)
-				self.__tasks__[FUNC.__name__] = self.__tasks__.get(FUNC.__name__, []) + [timer]
+				existing = [t for t in self.__tasks__.get(FUNC.__name__, []) if t['running']] # housekeeping
+				self.__tasks__[FUNC.__name__] = existing + [timer]
 				timer.start(gen, seconds=0, repeat=True)
 				return timer#FUNC(self, PROJECT, TIMER)
 			return wrapper
@@ -33,8 +34,7 @@ def build(ENV):
 
 				# TODO maybe in the future for large projects it might make sense not to do a full reload when packages change...?
 				#	-- should accumulate the paths for os.walk() first into lists of the paths, and then check the differences...?
-				package['regular_files'] = []
-				package['modules'] = []
+				package['files'] = []
 
 				if not os.path.isdir(package_path):
 					ENV.snap_warning('invalid package:', repr(package_path))
@@ -59,28 +59,30 @@ def build(ENV):
 						if not lang:
 							# NOTE: layouts could apply colors for regular files based on mimetype
 							# or something, and that would store with the layout, we'll just store the path
-							package['regular_files'] = package.get('regular_files', []) + [filepath]
+							package['files'] = package.get('files', []) + [{'filepath':filepath, 'stat':os.stat(filepath)}]
 						else:
 							#ENV.snap_out('module', filepath)
-							module = {'filepath':filepath, 'language':lang, 'stat':os.stat(filepath)}
+							module = {'filepath':filepath, 'module_info':{'language':lang}, 'stat':os.stat(filepath)}
 							modules.append(module)
-							package['modules'] = package.get('modules', []) + [module]
+							package['files'] = package.get('files', []) + [module]
+
+							# TODO lang.get_imports(module['filepath']) -> c can scan for includes
+
+						PROJECT['layout'].register_file(package['files'][-1])
 
 						#ENV.snap_out('load', fname)
 						yield
 
-			graphics = []
 
-			x_offset = 0
+			all_files = [f['filepath'] for f in package['files'] for package in PROJECT.__snap_data__['__packages__']]
+
 			for module in modules:
-				ENV.snap_debug('add module to scene', module['filepath'])
-				#d = SnapProjectFile(self, filepath=filepath)
-				#graphics.append(d)
-				#d['matrix'] = ENV.snap_matrix_t(1,0,0,x_offset, 0,1,0,0, 0,0,1,0, 0,0,0,1)
-				#x_offset += d['width'] + 100
-				#ENV.snap_out("step", d['width'], x_offset)
+				module_info = module['module_info']
+				
 
-			PROJECT['children'] = graphics
+			PROJECT['layout'].update()
+
+			# TODO and now query the dependency structure: lang.get_imports(filepath) -> c can just scan for #include directives...?
 
 			# TODO also initialize display?  load shaders, assign them to dict, have shaders for each of the file states...
 			# TODO do lookup result as the dict, in the shader...
@@ -133,6 +135,11 @@ def build(ENV):
 		def dismiss(self, PROJECT, TIMER, *DISMISS):
 			'remove the FILES, maybe do an animation / fade out / or pop?'
 
+			for layout in PROJECT['layouts']:
+				layout.dismiss(*DISMISS)
+
+			yield
+			"""
 			for x in DISMISS:
 				assert isinstance(x, dict), 'invalid dismiss type: {}'.format(type(x))
 				if 'path' in x:
@@ -148,7 +155,7 @@ def build(ENV):
 				#x.clear() # XXX presumably the caller already discarded the reference...
 
 			yield
-
+			"""
 		def __init__(self, PROJECT):
 
 			assert PROJECT is not None

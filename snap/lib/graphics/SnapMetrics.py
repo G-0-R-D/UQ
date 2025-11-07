@@ -116,7 +116,7 @@ def build(ENV):
 				"""()->snap_extents_t"""
 				e = self.__snap_data__['extents']
 				if e is None:
-					e = snap_extents_t(0,0,0, 0,0,0)
+					''#e = snap_extents_t(0,0,0, 0,0,0)
 				#	e = self.__snap_data__['extents'] = snap_extents_t(0,0,0, 1,1,1)
 				#return e
 				return e

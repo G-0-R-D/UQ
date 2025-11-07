@@ -18,9 +18,6 @@ def build(ENV):
 
 		__slots__ = ['__tasks__']
 
-		# TODO HUD: {'origin(declaration)':..., 'file_list':..., 'upstream':..., 'dowstream':..., 'minimap':..., 'commandline':...}
-		# TODO make window_event() (or even parent_event())?  and support emit by listener...
-
 		@ENV.SnapProperty
 		class packages:
 
@@ -63,12 +60,24 @@ def build(ENV):
 					self.changed(packages=paths)
 
 		@ENV.SnapProperty
+		class modules:
+
+			def get(self, MSG):
+				"()->dict[]"
+				return [m for p in (self.__snap_data__['__packages__'] or []) for m in p['modules']]
+
+			set = None
+
+		@ENV.SnapProperty
 		class layout:
 			# current / active layout
 
 			def get(self, MSG):
 				"()->SnapProjectLayout"
-				return self.__snap_data__['layout']
+				layout = self.__snap_data__['layout']
+				if layout is None:
+					layout = self.__snap_data__['layout'] = SnapProjectLayout(self)
+				return layout
 
 			def set(self, MSG):
 				"(SnapProjectLayout!)"
@@ -98,7 +107,30 @@ def build(ENV):
 					layouts = list(layouts)
 				self.__snap_data__['layouts'] = layouts
 				self.changed(layouts=layouts)
-				
+		
+
+		@ENV.SnapProperty
+		class HUD:
+
+			# TODO HUD: {'origin(declaration)':..., 'file_list':..., 'upstream':..., 'dowstream':..., 'minimap':..., 'commandline':...}
+			# TODO make window_event() (or even parent_event())?  and support emit by listener...
+
+			def get(self, MSG):
+				"()->SnapContainer"
+				# TODO
+
+			def set(self, MSG):
+				"(SnapContainer!)"
+				# TODO
+
+
+		@ENV.SnapProperty
+		class children:
+
+			def get(self, MSG):
+				return [self['layout']]
+
+			set = None
 
 
 		@ENV.SnapProperty
@@ -150,6 +182,12 @@ def build(ENV):
 			''
 			# save json info as project working file
 			raise NotImplementedError()
+
+		@ENV.SnapChannel
+		def parent_event(self, MSG):
+			"()"
+			action = MSG.unpack('action', None)
+			ENV.snap_out('action', action)
 
 
 		@ENV.SnapChannel

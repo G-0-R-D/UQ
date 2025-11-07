@@ -21,8 +21,15 @@ def build(ENV):
 				return "python"
 
 
-		def get_module_info(self, PROJECT, PROJECT_FILE):
-			''
+		def get_module_info(self, FILEPATH, *ALL_FILES):
+
+			if not self.is_module(FILEPATH):
+				return None
+
+			with open(FILEPATH, 'r') as openfile:
+				ast = self.decode(openfile.read())
+
+			'find imports, turn the names into paths'
 
 
 		#def reset(self):

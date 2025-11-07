@@ -33,7 +33,7 @@ def build(ENV):
 			return SnapShader.update(self, MSG)
 
 		def draw(self, CTX):
-			''
+			'' # TODO just colored block for extents with filename?
 
 		def lookup(self, CTX):
 			'register the module as subelement -- and the component that is clicked if it is open and has components...'

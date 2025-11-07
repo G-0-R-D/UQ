@@ -27,8 +27,10 @@ def build(ENV):
 				"()->str"
 				return 'c'
 
-		def get_module_info(self, PROJECT, PROJECT_FILE):
-			'' # TODO
+		def get_module_info(self, FILEPATH, *ALL_FILES):
+
+			if not self.is_module(FILEPATH):
+				return None
 
 			# TODO list modules as single-name paths relative to project paths...
 
@@ -40,8 +42,9 @@ def build(ENV):
 					line = line.strip('\n\t ')
 					match = include_pattern.match(line)
 					if match:
+						# TODO disregard <> includes, just get the string ones, or maybe note them separately?
 						name = match.group(1)
-						print('found include', name)
+						ENV.snap_warning('found include', name)
 
 		def decode(self, *a, **k):
 			return ENV.SnapCLanguageDecoder().decode(*a, **k)

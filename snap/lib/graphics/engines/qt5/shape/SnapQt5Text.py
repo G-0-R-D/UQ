@@ -192,6 +192,11 @@ def build(ENV):
 			#qtext.setTextCursor(cursor)
 
 			ext = self['extents']
+			if ext is None:
+				qtext.document().adjustSize()
+				size = qtext.document().size()
+				ext = self.__snap_data__['extents'] = snap_extents_t(0,0,0, size.width(), size.height(), 0)
+
 			if 0:#snap_extents_are_null(ext):
 				# TODO set unbounded
 				qtext.setLineWrapMode(Qt5.QTextEdit.NoWrap) # TODO always?  we'll do wrap ourself?
@@ -274,7 +279,7 @@ def build(ENV):
 
 				#ENV.snap_out('geo', geo, geo.height() / h, len(text), 'x', metrics.xHeight())
 
-				#ENV.snap_out('size', w,h)
+				ENV.snap_out('size', w,h)
 				#ENV.snap_out('geo', geo, geo.x(), geo.y(), geo.width(), geo.height())
 				ext = self.__snap_data__['extents'] = self.__snap_data__['text_extents'] = self.__snap_data__['ink_extents'] = snap_extents_t(0, 0, 0, w, h, 0)
 				#ENV.snap_out('ext', ext[:], h, 'size', size)

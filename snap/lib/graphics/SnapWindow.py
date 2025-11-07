@@ -96,7 +96,9 @@ def build(ENV):
 					user = d[0]
 					parent_event = getattr(user, 'parent_event', None)
 					if parent_event:
+						# TODO ignore parent_event
 						# TODO hang onto the fg/bg until user clears them?  so they can animate their exit?
+						# or we can notify the user of where the window was at unassign and they could do an animation in their own scene...
 						parent_event(action='window_focus', state=False, window=self, **d[1])
 
 				user = MSG.args[0]
@@ -108,16 +110,17 @@ def build(ENV):
 						# locally assigned elements
 						'fg':[],
 						'bg':[],
-						'camera':None, # TODO assign a special camera proxy the user can user for camera refocus requests!
+						#'camera':None, # TODO assign a special camera proxy the user can user for camera refocus requests!
 						})
 					# TODO when window extents change we need to notify user, do it through fg/bg lists on the items directly?
 					parent_event = getattr(user, 'parent_event', None)
 					if parent_event:
-						parent_event(action='window_focus', state=True, window=self, **d[1])
+						# NOTE: window_id allows element to be focus in multiple windows and have different displays in each...
+						parent_event(action='window_focus', state=True, window_id=id(self), **d[1])
 
 					# TODO validate what user assigns to fg/bg?
 
-					# TODO listen to user -- maybe user can emit parent_event to set a camera focal point in local coordinates?
+					# TODO listen to user parent_event -- maybe user can emit parent_event to set a camera focal point in local coordinates?
 
 				else:
 					d = None
@@ -177,6 +180,7 @@ def build(ENV):
 
 				focus = self.__snap_data__['focus']
 				if focus:
+					focus = focus[1]
 					return fg + focus['fg'] + [self['camera']] + focus['bg'] + bg
 
 				return fg + [self['camera']] + bg

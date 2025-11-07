@@ -1,10 +1,5 @@
 # symlink to this file: # ln -s "this file" "path file"
 
-# TODO make it possible to re-select graphics engine for a program (with program restart), including main one!
-
-#from SnapEnv import SnapEnv, MAIN_PROGRAM
-
-
 import os
 
 from snap.SnapEnv import SnapEnv

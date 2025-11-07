@@ -3,12 +3,11 @@ import os
 
 def build(ENV):
 
-	SnapContainer = ENV.SnapContainer
+	SnapNode = ENV.SnapNode
 
-	class SnapProjectPackage(SnapContainer):
+	class SnapProjectPackage(SnapNode):
 
 		__slots__ = []
-
 
 		@ENV.SnapProperty
 		class rootpath:
@@ -126,8 +125,8 @@ def build(ENV):
 
 			
 
-		def __init__(self, **SETTINGS):
-			SnapContainer.__init__(self, **SETTINGS)
+		def __init__(self, ROOTPATH, **SETTINGS):
+			SnapNode.__init__(self, **SETTINGS)
 
 	ENV.SnapProjectPackage = SnapProjectPackage
 
