@@ -326,10 +326,10 @@ def build(ENV):
 			TEXT['__engine_data__'].render(self['engine_context'])
 
 
-		def cmd_fill_path(self, PAINT, PATH):
+		def cmd_fill_spline(self, PAINT, PATH):
 			self['engine_context'].fillPath(PATH['__engine_data__'], QBrush(PAINT['__engine_data__']))
 
-		cmd_fill_shape = cmd_fill_path
+		cmd_fill_shape = cmd_fill_spline
 
 		def cmd_fill_mesh(self, PAINT, MESH):
 			raise NotImplementedError()
@@ -348,10 +348,10 @@ def build(ENV):
 			raise NotImplementedError()
 
 
-		def cmd_stroke_path(self, PAINT, PATH):
+		def cmd_stroke_spline(self, PAINT, PATH):
 			self['engine_context'].strokePath(PATH['__engine_data__'], QPen(PAINT['__engine_data__']))
 
-		cmd_stroke_shape = cmd_stroke_path
+		cmd_stroke_shape = cmd_stroke_spline
 
 		def cmd_stroke_mesh(self, PAINT, MESH):
 			raise NotImplementedError()

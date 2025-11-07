@@ -457,8 +457,8 @@ def build(ENV):
 		def __init__(self, text=None, **SETTINGS):
 			SnapShape.__init__(self, text=text, **SETTINGS)
 
-			if text is None:
-				self['text'] = ''
+			#if text is None:
+			#	self['text'] = ''
 
 			#self['format'] = None # hint of text encoding (assumed "UTF8" if not defined)
 			self.__snap_data__['needs_update'] = True # True|False flag to update before render (when engine data is accessed if true it will update then submit for render)

@@ -382,7 +382,15 @@ def build(ENV):
 		def rotate(self, MSG):
 			"""(angle=float|int?, x=float|int?, y=float|int?, z=float|int?, parent=SnapMatrix?)"""
 
+			# NOTE: angle is in degrees # TODO support keywords for degrees and radians?
+			# degrees = radians * (180/pi)
+			# radians = degrees * (pi/180)
+
 			angle,x,y,z,parent = MSG.unpack('angle',0, 'x',0, 'y',0, 'z',0, 'parent',None)
+
+			#ENV.snap_debug('rotate', angle, x,y,z, parent)
+			if not (x or y or z):
+				z = 1 # 2D user friendly, so just calling rotate(angle) will do something...
 
 			s = self['matrix']
 			p = parent['matrix'] if parent else None

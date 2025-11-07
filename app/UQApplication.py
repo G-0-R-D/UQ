@@ -15,12 +15,14 @@ def build(ENV):
 
 			GFX = ENV.GRAPHICS
 
-			text = GFX.Text(text='sorry, not implemented yet...')
+			text = GFX.Text(text='sorry, not implemented yet...', extents=self['extents'])
 			w,h = text['size']
-			ENV.snap_out('text size', w,h)
+			ENV.snap_out('text size', w,h, self['extents'][:])
 			rect = GFX.Spline(description=['L', 0,0, w,0, w,h, 0,h, 'C'], stroke=GFX.Color(0,0,0,1))
+
+			#demo = ENV.__build__('UQ.demo.SnapGraphicsDemo')
 			
-			self['children'] = [rect, text]
+			self['children'] = [rect, text]#, demo()]
 
 		def __init__(self):
 			UQWindow.__init__(self)

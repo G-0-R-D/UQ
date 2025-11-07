@@ -375,13 +375,13 @@ def main(ENV):
 			GFX = ENV.GRAPHICS
 
 			text = """
-		one day
-		I looked up at the sky
-		and...
-				*SPLAT*!
+								one day
+								I looked up at the sky
+								and...
+										*SPLAT*!
 			"""
 
-			self['text'] = GFX.Text(text=text, extents=snap_extents_t(0,0,0, 800,480,0))
+			self['text'] = GFX.Text(text=text, extents=snap_extents_t(0,0,0, 200,480,0))
 
 			ENV.snap_out('text extents', self['text']['extents'][:])
 

@@ -140,7 +140,8 @@ def build(ENV):
 
 					try:
 						item_matrix = c['render_matrix']
-					except:
+					except Exception as e:
+						ENV.snap_debug_print_exception(e)
 						item_matrix = None
 
 					if item_matrix is not None:
