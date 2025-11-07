@@ -8,6 +8,7 @@
 
 def build(ENV):
 
+	SnapGuiDummyWindow = ENV.SnapGuiDummyWindow
 
 	SNAP_DEBUGGING_GUI = True
 	if SNAP_DEBUGGING_GUI:
@@ -44,98 +45,13 @@ def build(ENV):
 	#TIMERS = getattr(ENV, 'TIMERS', None)
 	SnapTimer = ENV.SnapTimer
 
-	class SnapGuiWindowBase_DummyWindow(SnapWindow):
-
-		# XXX instead of this, we just need to create a SnapContext for the ENV.GRAPHICS and then pass that to the user to use, with own blit image connected into it!
-
-		__slots__ = []
-
-		@ENV.SnapProperty
-		class extents:
-
-			def get(self, MSG):
-				"()->snap_extents_t"
-				return SnapWindow.extents.get(self, MSG)
-
-			def set(self, MSG):
-				"(snap_extents_t!)"
-
-				# TODO this needs to be nicer...
-				cam_matrix = snap_matrix_t(*self['camera']['matrix'])
-				ext = snap_extents_t(*MSG.args[0])
-				#snap_matrix_invert(cam_matrix, cam_matrix)
-				#snap_matrix_map_extents(cam_matrix, ext, 0, ext)
-				self['item']['extents'] = ext
-
-				SnapWindow.extents.set(self, MSG)
-
-		@ENV.SnapProperty
-		class children:
-
-			def set(self, MSG):
-				"list(SnapNode)"
-				SnapWindow.children.set(self, MSG)
-
-				ENV.snap_out('now resize child to self?')
-
-		@ENV.SnapProperty
-		class matrixXXX:
-
-			def get(self, MSG):
-				"()->snap_matrix_t"
-				return SnapWindow.matrix.get(self, MSG)
-
-			def set(self, MSG):
-				"(snap_matrix_t!)"
-
-				SnapWindow.matrix.set(self, MSG)
-
-				m = MSG.args[0]
-				self['item']['matrix'] = m
-
-
-		@ENV.SnapChannel
-		def device_event(self, MSG):
-			# TODO forward to user?
-			user = self['item']
-			if user is not None:
-				#ENV.snap_debug('unhandled device event', MSG.kwargs.keys())
-				_return = user.device_event.__direct__(MSG)
-				if _return is True:
-					return True
-			return SnapWindow.device_event(self, MSG)
-
-		@ENV.SnapChannel
-		def allocateXXX(self, MSG):
-			ENV.snap_debug("allocate", MSG)
-
-			# there will only be one item; user
-			items = self['items']
-			if items:
-				for item in items:
-					item.allocate.__direct__(MSG)
-
-			return SnapWindow.allocate(self, MSG)
-
-		def __init__(self, **SETTINGS):
-			SnapWindow.__init__(self, **SETTINGS)
-
-			self.__snap_data__['__extents_needs_set__'] = True # so we can just resize user once
-
-
-	ENV.SnapGuiWindowBase_DummyWindow = SnapGuiWindowBase_DummyWindow
-
-
-
-
-
-#### WINDOW
-
 	class SnapGuiWindowBase(SnapContainer):
 
 		__slots__ = []
 
 		#__slots__ = ['_user_', '_user_window_', '_gui_window_extents_', '_blit_texture_', '_fps_', '__render_forced__', 'interactive']
+
+		GUI = None
 
 		@ENV.SnapProperty
 		class extents:
@@ -214,12 +130,12 @@ def build(ENV):
 					data['__user_window__'] = USER
 				else:
 					debug_gui('user is NOT a Window')
-					if not isinstance(self['__user_window__'], SnapGuiWindowBase_DummyWindow):
+					if not isinstance(self['__user_window__'], SnapGuiDummyWindow):
 						# TODO where to init size?  from user window?  if it is a window?
 						# problem: gui window won't be resized when user resizes implicitly,
 						# and init size is often 1 pixel, so we would likely end up with 1 pixel
 						# gui window to init that won't rescale as user does...
-						data['__user_window__'] = SnapGuiWindowBase_DummyWindow(items=[USER], size=[640,480])
+						data['__user_window__'] = SnapGuiDummyWindow(items=[USER], size=[640,480])
 					else:
 						data['__user_window__'].set(items=[USER])
 
@@ -634,6 +550,10 @@ def build(ENV):
 
 		def __init__(self, items=None, user=None, **SETTINGS):
 			SnapContainer.__init__(self, **SETTINGS)
+
+			GUI = self.GUI
+			assert GUI is not None, 'gui not assigned in gui window'
+			GUI.__snap_data__['__open_windows__'] = (GUI.__snap_data__['__open_windows__'] or []) + [self]
 
 			data = self.__snap_data__
 

@@ -26,6 +26,56 @@ def build(ENV):
 	snap_list_add_items = ENV.snap_list_add_items
 	snap_list_insert_items = ENV.snap_list_insert_items
 
+	def snap_get_full_extents(CONTAINER, max_depth=None):
+
+		if max_depth is None:
+			max_depth = 1000 # TODO
+		elif max_depth < 1:
+			return None
+
+		# if extents are locally assigned it means the extents are known/cached, so just return them
+		#extents = SnapMetrics.extents.get(self, SnapMessage())
+		extents = CONTAINER.__snap_data__['extents']
+		if extents is not None:
+			return extents
+
+		for item in CONTAINER['children'] or []:
+			#ENV.snap_out('check item', self.__class__.__name__, item.__class__.__name__)
+
+			try:
+				e = snap_get_full_extents(item, max_depth=max_depth-1)
+			except Exception as e:
+				ENV.snap_print_exception(e)
+				continue
+
+			# TODO also attempt to get from shader?
+
+			if e is None or snap_extents_are_null(e):
+				continue
+
+			offset = snap_matrix_t(*(item['matrix'] or SNAP_IDENTITY_MATRIX))
+
+			e = snap_extents_t(*e)
+
+			snap_matrix_map_extents(offset, e, 0, e)
+
+			if extents is None:
+				# here's the problem: extents don't have to be at 0, so we want the min and max of what IS assigned
+				# which might not be 0.  If we start with 0 then SNAP_MIN(0, 1) will choose the 0, but the 1 would be
+				# the real min if < 1 was never encountered... SO we allocate extents once they are used to know they
+				# have been assigned (they exist completely or not at all; assigned as a set)
+				extents = e
+			else:
+				snap_extents_mix(e, extents, extents)
+
+		if extents is None:
+			extents = snap_extents_t(0,0,0, 0,0,0)
+
+		return extents
+
+	ENV.snap_get_full_extents = snap_get_full_extents
+		
+
 	class SnapContainer(SnapMetrics):
 
 		__slots__ = []
@@ -179,7 +229,7 @@ def build(ENV):
 		class render_items: pass
 
 		@children.shared
-		class lookup_items: pass # TODO just implement get for this and render_items, set shouldn't be allowed!
+		class lookup_items: pass
 
 		@ENV.SnapProperty
 		class item:
@@ -247,50 +297,9 @@ def build(ENV):
 
 			def get(self, MSG):
 				"""(next_depth=int)->snap_extents_t"""
+				return snap_get_full_extents(self)
 
-				next_depth = 1000 # TODO
-				if MSG is not None:
-					next_depth = MSG.unpack('max_depth', next_depth) - 1
-				if next_depth < 0:
-					return None
-
-				# if extents are locally assigned it means the extents are known/cached, so just return them
-				#extents = SnapMetrics.extents.get(self, SnapMessage())
-				extents = self.__snap_data__['extents']
-				if extents is not None:
-					return extents
-
-				for item in self['children']:
-					#ENV.snap_out('check item', self.__class__.__name__, item.__class__.__name__)
-
-					try:
-						e = item['extents', SnapMessage(max_depth=next_depth)]
-					except Exception as e:
-						ENV.snap_print_exception(e)
-						continue
-
-					if e is None or snap_extents_are_null(e):
-						continue
-
-					offset = snap_matrix_t(*(item['matrix'] or SNAP_IDENTITY_MATRIX))
-
-					e = snap_extents_t(*e)
-
-					snap_matrix_map_extents(offset, e, 0, e)
-
-					if extents is None:
-						# here's the problem: extents don't have to be at 0, so we want the min and max of what IS assigned
-						# which might not be 0.  If we start with 0 then SNAP_MIN(0, 1) will choose the 0, but the 1 would be
-						# the real min if < 1 was never encountered... SO we allocate extents once they are used to know they
-						# have been assigned (they exist completely or not at all; assigned as a set)
-						extents = e
-					else:
-						snap_extents_mix(e, extents, extents)
-
-				if extents is None:
-					extents = snap_extents_t(0,0,0, 0,0,0)
-
-				return extents
+			# set just assigns locally as normal
 
 		@ENV.SnapProperty
 		class visible_extents: # TODO rename to 'frustrum_culling'? or 'visible_frustrum' or something like that?

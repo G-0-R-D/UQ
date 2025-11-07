@@ -213,6 +213,8 @@ def build(ENV):
 
 		__slots__ = []
 
+		Window = SnapSDLWindow
+
 		@ENV.SnapProperty
 		class running:
 
@@ -450,7 +452,7 @@ def build(ENV):
 		def __init__(self, *args, **kwargs):
 			SnapGuiBase.__init__(self, *args, **kwargs)
 
-			self.__snap_data__['__window_type__'] = SnapSDLWindow
+			#self.__snap_data__['__window_type__'] = SnapSDLWindow
 
 			# https://www.geeksforgeeks.org/sdl-library-in-c-c-with-examples/
 

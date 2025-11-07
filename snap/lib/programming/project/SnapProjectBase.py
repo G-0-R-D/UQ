@@ -10,9 +10,16 @@ def build(ENV):
 
 	SnapTimer = ENV.SnapTimer
 
+	SnapProjectTasks = ENV.SnapProjectTasks
+
+	SnapProjectLayout = ENV.SnapProjectLayout
+
 	class SnapProjectBase(SnapContainer):
 
-		__slots__ = []
+		__slots__ = ['__tasks__']
+
+		# TODO HUD: {'origin(declaration)':..., 'file_list':..., 'upstream':..., 'dowstream':..., 'minimap':..., 'commandline':...}
+		# TODO make window_event() (or even parent_event())?  and support emit by listener...
 
 		@ENV.SnapProperty
 		class packages:
@@ -24,117 +31,75 @@ def build(ENV):
 			def set(self, MSG):
 				"(str[])"
 				paths = MSG.args[0]
+				changed = False
 				if paths is None:
+					if self.__snap_data__['__packages__']:
+						changed = True
 					del self.__snap_data__['__packages__']
 				else:
-					packages = self.__snap_data__['__packages__'] or []
-					# TODO check new/old
 
-				self.changed(packages=paths)
-				
-				
-				
-				
+					assert all([isinstance(s, str) for s in paths]), 'packages must be strings'
 
+					existing = {p['path']:p for p in (self.__snap_data__['__packages__'] or [])}
+
+					packages = []
+
+					for path in paths:
+						fullpath = os.path.realpath(path)
+						try:
+							p = existing.pop(fullpath)
+						except:
+							changed = True
+							p = {'path':fullpath, 'regular_files':[], 'modules':[]}
+						packages.append(p)
+
+					self.__snap_data__['__packages__'] = packages
+					self.__tasks__.refresh()
+					if existing:
+						changed = True
+						self.__tasks__.dismiss(*existing.values())
+
+				if changed:
+					self.changed(packages=paths)
 
 		@ENV.SnapProperty
-		class packages:
+		class layout:
+			# current / active layout
 
 			def get(self, MSG):
-				"()->list(str)"
-				return self.__snap_data__['packages'] or []
+				"()->SnapProjectLayout"
+				return self.__snap_data__['layout']
 
 			def set(self, MSG):
-				"(list(str))"
-				packages = MSG.args[0]
-				if packages is not None:
-					packages = [os.path.realpath(p) for p in packages]
-					for p in packages:
-						assert os.path.exists(p), 'invalid path: {}'.format(repr(p))
-				self.__snap_data__['packages'] = packages
+				"(SnapProjectLayout!)"
+				layout = MSG.args[0]
+				if layout is None:
+					layout = SnapProjectLayout(self) # default, must always have a layout to display!
 
-				existing = {m['filepath']:m for m in (self.__snap_data__['modules'] or [])}
-				if existing:
-					modules = []
-					for filepath in self['files']:
-						ex = existing.get(filepath)
-						if ex is not None:
-							del existing[filepath]
-							modules.append(ex)
-							self._add_op(ex, 'RELOAD')
-						else:
-							modules.append({'filepath':filepath})
-					for module in existing.values():
-						self._add_op(module, 'DISMISS') # not using "DELETE" to be clear we don't delete source files!
-				else:
-					modules = [{'filepath':f, '__pending_ops__':['RELOAD']} for f in self['files']]
-					#del self.__snap_data__['modules'] # TODO could do a more refined difference check cause this could have been a lot of processing on large projects!  just clear the filepaths that are different?
-				# TODO we should store the stat time and size and use that for difference checks too...
+				assert isinstance(layout, SnapProjectLayout)
 
-				self.__snap_data__['modules'] = modules
-
-				# TODO we need to remove missing, add new, and also remove the info for any module that was referencing what was removed...  (if it imported a now missing module that info needs to be cleared)
-				self.changed(packages=packages)
+				previous = self.__snap_data__['layout']
+				self.__snap_data__['layout'] = layout
+				layout.update(from_layout=previous)
+				self.changed(layout=layout)
 
 		@ENV.SnapProperty
-		class files:
+		class layouts:
 
 			def get(self, MSG):
-				"()->list[](str)"
-				files = []
-				packages = self['packages'] or []
-
-				for root in packages:
-					if os.path.isfile(root):
-						files.append(root)
-					elif os.path.isdir(root):
-						for r,s,f in os.walk(root):
-							for fname in f:
-								files.append(os.path.join(r,fname))
-					else:
-						ENV.snap_debug('invalid package path:', repr(root))
-
-				return files
-
-			set = None
-
-		@ENV.SnapProperty
-		class tasks:
-
-			def get(self, MSG):
-				"()->dict(str:SnapTimer)"
-				return self.__snap_data__['__tasks__'] or {}
+				"()->SnapProjectLayout[]"
+				return self.__snap_data__['layouts'] or []
 
 			def set(self, MSG):
-				"(dict(str:SnapTimer))"
-				d = MSG.args[0]
-				if d is not None:
-					assert isinstance(d, dict)
-				self.__snap_data__['__tasks__'] = d.copy()
-				self.changed(tasks=d)
+				"(SnapProjectLayout[])"
+				layouts = MSG.args[0]
+				if layouts is not None:
+					assert isinstance(layouts, (list, tuple))
+					layouts = list(layouts)
+				self.__snap_data__['layouts'] = layouts
+				self.changed(layouts=layouts)
 				
 
-		@ENV.SnapProperty
-		class modules:
-
-			# dicts of info about each module, including graphic info and any other information
-			# update() will process this list one at a time
-
-			def get(self, MSG):
-				"()-list(*dict)"
-				# NOTE: these will be maintained in draw order...
-				return self.__snap_data__['modules'] or []
-
-			set = None # assigned in update call if there are none but there are files
-
-		@ENV.SnapProperty
-		class languages:
-
-			def get(self, MSG):
-				"()->list(*str)"
-				return list(set([m['language']['name'] for m in self['modules'] if 'language' in m]))
-
-			set = None
 
 		@ENV.SnapProperty
 		class build_targets:
@@ -241,19 +206,15 @@ def build(ENV):
 		@ENV.SnapChannel
 		def changed(self, MSG):
 			#ENV.TASKS.callback(self.update)
-			if 'packages' in MSG.kwargs:
-				self.update()
+			#if 'packages' in MSG.kwargs:
+			#	self.update()
 			return SnapContainer.changed(self, MSG)
-
-
-		def _add_op(self, MODULE, OP):
-			assert isinstance(OP, str), 'op must be string'
-			pending = MODULE.get('__pending_ops__', [])
-			if OP not in pending:
-				MODULE['__pending_ops__'] = pending + [OP]
 			
 
 		def __init__(self, **SETTINGS):
+
+			self.__tasks__ = SnapProjectTasks(self)
+
 			SnapContainer.__init__(self, **SETTINGS)
 
 

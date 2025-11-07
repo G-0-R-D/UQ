@@ -24,6 +24,13 @@ def build(ENV):
 	snap_matrix_invert = ENV.snap_matrix_invert
 	snap_matrix_multiply = ENV.snap_matrix_multiply
 
+	class SnapWindowUserContainer(SnapContainer):
+		# used for foreground/background when control is given to a subgraphic (so we can distinguish whether we gave control or not)
+		pass
+
+	ENV.SnapWindowUserContainer = SnapWindowUserContainer
+		
+
 	class SnapWindowSettings(SnapNode):
 
 		__slots__ = []
@@ -72,20 +79,112 @@ def build(ENV):
 				return self['camera'].children.set(*MSG.args, **MSG.kwargs)
 
 		@ENV.SnapProperty
+		class focus:
+
+			def get(self, MSG):
+				"()->SnapNode"
+				d = self.__snap_data__['focus'] # (user, {...})
+				if d is not None:
+					d = d[1]['user']
+				return d
+
+			def set(self, MSG):
+				"(SnapNode)"
+				d = self.__snap_data__['focus'] # (user, {...})
+				self.__snap_data__['focus'] = None
+				if d is not None:
+					user = d[0]
+					parent_event = getattr(user, 'parent_event', None)
+					if parent_event:
+						# TODO hang onto the fg/bg until user clears them?  so they can animate their exit?
+						parent_event(action='window_focus', state=False, window=self, **d[1])
+
+				user = MSG.args[0]
+				if user is not None:
+					assert isinstance(user, SnapNode), 'user must be a SnapNode for window focus (or even a SnapContainer) not: {}'.format(type(user))
+					d = (user,
+						{
+						# NOTE: this is a separate foreground and background for the user to use, and will be under/over any
+						# locally assigned elements
+						'fg':[],
+						'bg':[],
+						'camera':None, # TODO assign a special camera proxy the user can user for camera refocus requests!
+						})
+					# TODO when window extents change we need to notify user, do it through fg/bg lists on the items directly?
+					parent_event = getattr(user, 'parent_event', None)
+					if parent_event:
+						parent_event(action='window_focus', state=True, window=self, **d[1])
+
+					# TODO validate what user assigns to fg/bg?
+
+					# TODO listen to user -- maybe user can emit parent_event to set a camera focal point in local coordinates?
+
+				else:
+					d = None
+
+				self.__snap_data__['focus'] = d
+				self.changed(focus=user)
+
+		@ENV.SnapProperty
+		class foreground_items:
+
+			def get(self, MSG):
+				"()->SnapContainer"
+				return self.__snap_data__['foreground_items'] or []
+
+			def set(self, MSG):
+				"(list(SnapNode)!)"
+				items = MSG.args[0]
+				if items is not None:
+					assert isinstance(items, (list,tuple)) and all([isinstance(i, SnapNode) for i in items])
+					items = list(items)
+
+				#if container:
+				#	container['extents'] = self['extents']
+
+				self.__snap_data__['foreground_items'] = items
+				self.changed(foreground=user)
+
+		@ENV.SnapProperty
+		class background_items:
+
+			def get(self, MSG):
+				"()->SnapContainer"
+				return self.__snap_data__['background_items'] or []
+
+			def set(self, MSG):
+				"(list(SnapNode)!)"
+				items = MSG.args[0]
+				if items is not None:
+					assert isinstance(items, (list,tuple)) and all([isinstance(i, SnapNode) for i in items])
+					items = list(items)
+
+				#if container:
+				#	container['extents'] = self['extents']
+
+				self.__snap_data__['background_items'] = items
+				self.changed(foreground=user)
+				
+
+		@ENV.SnapProperty
 		class render_items:
 
 			def get(self, MSG):
-				"()->list(SnapNode*)"
-				# TODO HUD, camera, background?
-				return [self['camera']]
+				"()->list(SnapNode)"
 
-		@ENV.SnapProperty
-		class lookup_items:
+				fg = self['foreground_items']
+				bg = self['background_items']
 
-			def get(self, MSG):
-				"()->list(SnapNode*)"
-				# TODO HUD, camera, background?
-				return [self['camera']]
+				focus = self.__snap_data__['focus']
+				if focus:
+					return fg + focus['fg'] + [self['camera']] + focus['bg'] + bg
+
+				return fg + [self['camera']] + bg
+
+			set = None
+
+		@render_items.alias
+		class lookup_items: pass
 
 
 		@ENV.SnapProperty
@@ -95,9 +194,7 @@ def build(ENV):
 				"()->SnapImage"
 				return self.__snap_data__['image'] # XXX TODO get from texture?
 
-			def set(self, MSG):
-				" " # disabled
-				raise NotImplementedError('window cannot set image')
+			set = None
 
 			"""
 			def set(self, MSG):
@@ -115,6 +212,8 @@ def build(ENV):
 			def get(self, MSG):
 				"()->SnapTexture"
 				return self.__snap_data__['texture']
+
+			set = None
 
 		#def engine(self, MSG):
 		#	return getattr(ENV, 'GRAPHICS', None)
@@ -184,6 +283,7 @@ def build(ENV):
 						self['camera'].scale(scale,scale,scale, parent=SnapMatrix(matrix=mat))
 						
 					#ENV.snap_out('after transform', self['camera']['matrix'][:])
+						return True
 
 				elif action in ('press', 'release') and source in (device.get('buttons') or []) and source['name'] == 'middle':
 
@@ -203,6 +303,8 @@ def build(ENV):
 
 					#ENV.snap_out('got drag!')
 					'' # TODO camera.translate(x,y, parent=camera)
+
+					return True
 
 			return SnapContainer.device_event(self, MSG)
 
@@ -358,7 +460,7 @@ def build(ENV):
 			# clipping and sub-render done by shader
 			# TODO window serves as mediator between engines?  so we can create a window for an engine, add the items of the engine in to the window, and then this will check if the engine is different and if so do the buffer transfer and draw that?  TODO but we'd like to keep the buffer around for efficiency...
 
-			# TODO if buffered then we just draw the window (maybe call render to make sure it is current?)
+			# TODO if buffered then we just draw the image (maybe call render to make sure it is current?)
 			# otherwise we can draw the scene
 
 			CTX.cmd_save()

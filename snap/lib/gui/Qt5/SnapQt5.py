@@ -163,6 +163,7 @@ def build(ENV):
 				self['__event_filterer__']._window_ = None
 				self['__event_filterer__'] = None
 				#snap_emit(SNAP_CH_QUIT, "QUIT") # XXX TODO only if no windows left!  TODO this should just emit close/quit to gui
+				#ENV.snap_out("close event")
 
 			elif etype == QEvent.DragEnter:
 				# The cursor enters a widget during a drag and drop operation ( QDragEnterEvent ).
@@ -842,10 +843,12 @@ def build(ENV):
 
 		#__slots__ = ['_timer_'] # XXX can't create weak reference error if this is enabled?
 
+		Window = SnapQt5Window
+
 		@ENV.SnapProperty
 		class name:
 			def get(self, MSG):
-				"""()->str"""
+				"()->str"
 				return "QT5"
 
 			"""
@@ -877,13 +880,25 @@ def build(ENV):
 		def start_mainloop(self):
 			# TODO if not ENV.MAINLOOP, make one?  TODO ENV.MAINLOOP = SnapProperty(ENV, ENV.SnapMainloop(SNAP))
 
+			ENV.__PRIVATE__['__MAINLOOP_NODE__'].__class__.OWNED = True
+
 			# https://doc.qt.io/qtforpython-5/PySide2/QtCore/QTimer.html#PySide2.QtCore.PySide2.QtCore.QTimer.setInterval
 			# "A QTimer with a timeout interval of 0 will time out as soon as all the events ... have been processed."
 			self['__timer__'].start(0)
 			Qt5._app_.exec()
 
 		def stop_mainloop(self):
-			'' # TODO
+			self['__timer__'].stop()
+			open_windows = self.__snap_data__['__open_windows__'] or []
+			del self.__snap_data__['__open_windows__']
+			for window in open_windows:
+				'' # TODO close event?
+
+			# TODO send quit event to user...
+
+			ENV.__PRIVATE__['__MAINLOOP_NODE__'].__class__.OWNED = False
+
+			Qt5._app_.quit() # TODO send quit event to user?
 
 		#def timeout(self, MSG):
 		#	'' # ENV.MAINLOOP.next() # XXX UQ.UQ_APP.next() # on main task...
@@ -895,19 +910,13 @@ def build(ENV):
 
 			data = self.__snap_data__
 
-			data['__window_type__'] = SnapQt5Window # logic is in SnapGuiBase, just requires the assign
+			#data['__window_type__'] = SnapQt5Window # logic is in SnapGuiBase, just requires the assign
 
-			data['__timer__'] = Qt5.QTimer()
-			data['__timer__'].setTimerType(Qt.PreciseTimer) # Qt.CoarseTimer
+			t = data['__timer__'] = Qt5.QTimer()
+			t.setTimerType(Qt.PreciseTimer) # Qt.CoarseTimer
 
-			msg = SnapMessage()
-			#MAINPROGRAM_next = ENV.__MAIN_PROGRAM__.next.__direct__
 			ENV.mainloop # touch to create
-			MAINLOOP_next = ENV.__PRIVATE__['__MAINLOOP_NODE__'].next
-			def timeout():
-				return MAINLOOP_next() # return True to keep going
-				#return True
-			data['__timer__'].timeout.connect(timeout)#self._timeout)
+			t.timeout.connect(ENV.__PRIVATE__['__MAINLOOP_NODE__'].next) # # return True to keep going
 
 			#self.screen_size = SnapProperty(self, None, setters=[], getters=[SnapQt5_get_screen_size])
 

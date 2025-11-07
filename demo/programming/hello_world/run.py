@@ -40,15 +40,19 @@ RETURN_CONST 1 None 90 Positions(lineno=5, end_lineno=5, col_offset=0, end_col_o
 
 def build(ENV):
 
-	proj = ENV.SnapProject(packages=[os.path.join(THISDIR, 'project')])
+	SnapProject = ENV.SnapProject
 
 	# TODO perform generic project operations to compile the test project
+	class Project(SnapProject):
 
-	return proj
+		def __init__(self, **SETTINGS):
+			SnapProject.__init__(self, **SETTINGS)
+
+	return Project
 
 
 def main(ENV):
-	ENV.__run_gui__(build, rootpath=os.path.join(THISDIR, 'project'))
+	ENV.__run_gui__(build, packages=[os.path.join(THISDIR, 'project')])
 
 if __name__ == '__main__':
 

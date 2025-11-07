@@ -6,7 +6,7 @@ THISDIR = os.path.realpath(os.path.dirname(__file__))
 
 def build(ENV):
 
-	SnapContainer = ENV.SnapContainer
+	SnapProjectFileShader = ENV.SnapProjectFileShader
 
 	GFX = ENV.GRAPHICS
 
@@ -43,7 +43,7 @@ def build(ENV):
 			return color
 		return UNKNOWN # TODO unknown draw with just a line, not a fill?
 
-	class SnapProjectOpenFileShader(SnapContainer):
+	class SnapProjectOpenFileShader(SnapProjectFileShader):
 
 		__slots__ = []
 
@@ -108,8 +108,16 @@ def build(ENV):
 		def lookup(self, CTX):
 			'' # TODO device_event highlight color under mouse...
 
-		def __init__(self, text=None, ast_node=None, **SETTINGS):
-			SnapContainer.__init__(self, text=text, ast_node=ast_node, **SETTINGS)
+		@ENV.SnapChannel
+		def update(self, MSG):
+			"()"
+
+			
+
+			pass
+
+		def __init__(self, **SETTINGS):
+			SnapProjectFileShader.__init__(self, **SETTINGS)
 
 			# TODO we can use binary search with the spans to find a random point in a file!  like visible lines...
 			#	-- just add the extents info for each node?  or atleast the main ones, with a body or expression?

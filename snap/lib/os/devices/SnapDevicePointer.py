@@ -13,6 +13,9 @@ def build(ENV):
 	SnapDeviceInputButton = ENV.SnapDeviceInputButton
 	SnapDeviceGroup = ENV.SnapDeviceGroup
 
+	snap_vector_t = ENV.snap_vector_t
+	snap_matrix_transform_point = ENV.snap_matrix_transform_point
+
 
 	# TODO use this for each axis, call it SnapDeviceInputWheelAxis
 	class SnapDeviceInputWheelAxis(SnapDeviceInputAxis): # TODO make a generalized input of an axis that always returns to 0 after each value change...  (SnapDeviceInputAxisLever?)
@@ -84,6 +87,31 @@ def build(ENV):
 			Input("PRESSURE") // and parented to left button
 
 		"""
+
+		def remap_event(self, MESSAGE, MATRIX):
+
+			msg = SnapMessage()
+			msg.source = MESSAGE.source
+			msg.channel = MESSAGE.channel
+
+			vec = snap_vector_t(0,0,0,0)
+			source_matrix = MATRIX['matrix']
+
+			kwargs = msg.kwargs
+			for attr,value in MESSAGE.kwargs.items():
+				if attr == 'local_position':
+					vec[:2] = value	
+					snap_matrix_transform_point(source_matrix, vec, 0, vec)
+					kwargs[attr] = vec[:2]
+
+				elif attr == 'local_delta':
+					vec[:2] = value
+					snap_matrix_transform_point(source_matrix, vec, 1, vec)
+					kwargs[attr] = vec[:2]
+					
+				else:
+					kwargs[attr] = value
+			return msg
 
 		@ENV.SnapChannel
 		def generate_eventXXX(self, MSG):

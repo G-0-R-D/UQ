@@ -1,9 +1,9 @@
 
 def build(ENV):
 
-	SnapNode = ENV.SnapNode
+	SnapEngineData = ENV.SnapEngineData
 
-	class SnapShader(SnapNode):
+	class SnapShader(SnapEngineData):
 
 		__slots__ = []
 
@@ -31,7 +31,7 @@ def build(ENV):
 			CTX.cmd_render_subitems()
 
 		def __init__(self, **SETTINGS):
-			SnapNode.__init__(self, **SETTINGS)
+			SnapEngineData.__init__(self, **SETTINGS)
 
 	ENV.SnapShader = SnapShader
 

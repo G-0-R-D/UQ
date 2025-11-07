@@ -54,7 +54,7 @@ def purge_pycache(ROOT):
 			rmtree(cache)
 			s.remove('__pycache__')
 assert os.path.basename(os.path.dirname(THISDIR)) == 'UQ'
-purge_pycache(os.path.dirname(THISDIR))
+#purge_pycache(os.path.dirname(THISDIR))
 
 class SnapEnv(object):
 
@@ -68,11 +68,15 @@ class SnapEnv(object):
 
 	def mainloop_next(self):
 		# this is in user space, for if the user wants to pump the mainloop themselves
-		M = self.__PRIVATE__['__MAINLOOP_NODE__']
-		# TODO make sure mainloop not already running, then start to call mainloop.next() and yield
-		
-		#	-- maybe implement this as a generator?  just yield after each pump?  then we can initialize the mainloop...
-		raise NotImplementedError()
+		M = self.__PRIVATE__.get('__MAINLOOP_NODE__')
+		if M is None:
+			self.mainloop
+			M = self.__PRIVATE__['__MAINLOOP_NODE__']
+		assert not M.OWNED, 'mainloop already in use'
+		return M.next()
+
+	def mainloop_start(self):
+		''
 
 	@property
 	def mainloop(self):
@@ -95,28 +99,19 @@ class SnapEnv(object):
 
 				__slots__ = []
 
+				OWNED = False # claim mainloop by assigning here, if assigned then user cannot call mainloop_next()
+
+				@LOCAL_ENV.SnapProperty
+				class running:
+
+					def get(self, MSG):
+						"()->bool"
+						return bool(self.__snap_data__['__running__']) # XXX or assign the owner of the mainloop process?  like gui?
+
 				@LOCAL_ENV.SnapChannel
 				def mainloop(self, MSG):
-
-					raise NotImplementedError()
-
-					# TODO calling this will start a mainloop if not already running...
-					if 'seconds' in MSG.kwargs:
-						current = LOCAL_ENV.snap_time_since_epoch()
-						timeout = MSG.kwargs['seconds'] + current
-						while 1:
-							self.next()
-							if not current < timeout:
-								break
-							current = LOCAL_ENV.snap_time_since_epoch()
-						LOCAL_ENV.snap_out('timeout reached')
-					else:
-						while 1:
-							self.next()
-					"""
-					while self['__running__']:
-						self.next()
-					"""
+					""
+					raise NotImplementedError('use ENV.mainloop_start()')
 
 				# not a SnapChannel so it can't be connected into, as that would be crazy
 				def next(self):

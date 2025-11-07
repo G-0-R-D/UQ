@@ -3,6 +3,9 @@
 
 def build(ENV):
 
+	ENV.__build__('snap.lib.gui.events')
+	ENV.__build__('snap.lib.gui.SnapGuiDummyWindow')
+	ENV.__build__('snap.lib.gui.SnapGuiWindowBase')
 	ENV.__build__('snap.lib.gui.SnapGuiBase')
 
 	class SnapGui(object): # TODO SnapNode?
