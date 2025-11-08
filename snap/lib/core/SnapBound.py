@@ -9,6 +9,10 @@ def build(ENV):
 
 	SnapMessage = ENV.SnapMessage
 
+	# XXX deprecated concept: (would be too confusing)
+	# "silence" and "aggregation" can be easily achieved using a listener to
+	# listen/ignore to silence, or accumulate the messages to aggregate...
+	"""
 	class SilentLock(object):
 		# https://book.pythontips.com/en/latest/context_managers.html
 
@@ -95,6 +99,7 @@ def build(ENV):
 				#'__emit__':SnapMessage(),
 				#'__send__':SnapMessage(),
 			}
+	"""
 		
 	class SnapBoundChannel(object):
 		# thinking of the method as more of a "channel" of communication which basically means same name = same channel
@@ -110,17 +115,17 @@ def build(ENV):
 
 		# TODO def check_compat(BoundChannel()) to check if connection is valid?
 
-		def aggregate(self):
-			return AggregatorLock(*self.__data__)
+		#def aggregate(self):
+		#	return AggregatorLock(*self.__data__)
 
-		def aggregator(self):
-			return self.aggregate()
+		#def aggregator(self):
+		#	return self.aggregate()
 
-		def silent(self):
-			return SilentLock(*self.__data__)
+		#def silent(self):
+		#	return SilentLock(*self.__data__)
 
-		def silence(self):
-			return self.silent()
+		#def silence(self):
+		#	return self.silent()
 
 		def __negotiate__XXX(self, SOURCE, OUTPUT_CHANNEL, LISTENER, INPUT_CHANNEL):
 			'access and get the docstring if spec is not defined for each method, make SnapArgConverter if necessary to remap arguments otherwise just pass back None?'
@@ -147,7 +152,7 @@ def build(ENV):
 			SOURCE,OUTPUT_CHANNEL,METHOD = self.__data__
 
 			assert isinstance(OUTPUT_CHANNEL, str) and isinstance(INPUT_CHANNEL, str), 'channels must be strings'
-			assert isinstance(SOURCE, ENV.SnapNode) and isinstance(LISTENER, ENV.SnapNode), 'listeners must be SnapNode type'
+			#assert isinstance(SOURCE, ENV.SnapNode) and isinstance(LISTENER, ENV.SnapNode), 'listeners must be SnapNode type'
 			
 			'verify self.output is compatible with LISTENER.input...' # TODO NOTE: still allow incompatibles to connect, but make it clear they aren't compatible
 
@@ -208,17 +213,26 @@ def build(ENV):
 
 		def listen(self, LISTENER_BOUND_CHANNEL, converter=None):
 
-			assert isinstance(LISTENER_BOUND_CHANNEL, SnapBoundChannel), 'requires SnapBoundChannel (access the channel as an attribute first)'
+			if isinstance(LISTENER_BOUND_CHANNEL, SnapBoundChannel):
+			#assert isinstance(LISTENER_BOUND_CHANNEL, SnapBoundChannel), 'requires SnapBoundChannel (access the channel as an attribute first)'
 
-			LISTENER,INPUT_CHANNEL,METHOD = LISTENER_BOUND_CHANNEL.__data__
+				LISTENER,INPUT_CHANNEL,METHOD = LISTENER_BOUND_CHANNEL.__data__
+			else:
+				assert hasattr(LISTENER_BOUND_CHANNEL, '__call__'), 'listen(callable) must implement __call__() method'
+				LISTENER = LISTENER_BOUND_CHANNEL
+				INPUT_CHANNEL = self.__data__[1] # own channel, this is a hard connection to this channel
+				METHOD = None
 
 			return self.__connect__(LISTENER, INPUT_CHANNEL, converter=converter)
 
 		def ignore(self, LISTENER_BOUND_CHANNEL):
 
-			assert isinstance(LISTENER_BOUND_CHANNEL, SnapBoundChannel), 'requires SnapBoundChannel'
-
-			LISTENER,INPUT_CHANNEL,METHOD = LISTENER_BOUND_CHANNEL.__data__
+			if isinstance(LISTENER_BOUND_CHANNEL, SnapBoundChannel):
+			#assert isinstance(LISTENER_BOUND_CHANNEL, SnapBoundChannel), 'requires SnapBoundChannel'
+				LISTENER,INPUT_CHANNEL,METHOD = LISTENER_BOUND_CHANNEL.__data__
+			else:
+				LISTENER = LISTENER_BOUND_CHANNEL
+				INPUT_CHANNEL = self.__data__[1]
 
 			return self.__disconnect__(LISTENER, INPUT_CHANNEL)
 
@@ -279,14 +293,18 @@ def build(ENV):
 			assert '.' not in ATTR, 'sub channels are only one layer down'
 			return SnapBoundChannel(INSTANCE, ATTR + '.deleted', None)
 
+		# XXX the idea of a detachable property is deprecated, properties are hardcoded into the class definition (and should be)
+		#	-- attachment is set(<data>), detachment is set(None)
+		"""
 		@property
 		def attachable(self):
 			INSTANCE,ATTR,CALLABLE = self.__data__
 			return getattr(CALLABLE, 'attached', None) is not None
+		"""
 
-		def attached(self):
-			INSTANCE,ATTR,CALLABLE = self.__data__
-			return CALLABLE.attached(INSTANCE)
+		#def attached(self):
+		#	INSTANCE,ATTR,CALLABLE = self.__data__
+		#	return CALLABLE.attached(INSTANCE)
 
 		def get(self, *a, **k):
 			# TODO should this call __getitem__ and then __getitem__ calls self.__get__? XXX __getitem__ would forward to CALLABLE directly if it has the method, otherwise assumes it is a passthrough...
@@ -295,7 +313,9 @@ def build(ENV):
 				KEY = (ATTR, SnapMessage(*a, **k))
 			else:
 				KEY = ATTR
-			return INSTANCE.__getitem__(KEY) # -> goes to CALLABLE.__HANDLERS__['get'] (if it has one), or to default access (if permitted)
+			_return = INSTANCE.__getitem__(KEY) # -> goes to CALLABLE.__HANDLERS__['get'] (if it has one), or to default access (if permitted)
+			self.accessed.emit()
+			return _return
 
 		#def __get__(self, MSG):
 		#	INSTANCE,ATTR,CALLABLE = self.__data__
@@ -307,7 +327,9 @@ def build(ENV):
 				KEY = (ATTR, SnapMessage(*a, **k))
 			else:
 				KEY = ATTR
-			return INSTANCE.__setitem__(KEY, VALUE) # -> goes to CALLABLE.__HANDLERS__['set'] or default access
+			_return = INSTANCE.__setitem__(KEY, VALUE) # -> goes to CALLABLE.__HANDLERS__['set'] or default access
+			self.assigned.emit()
+			return _return
 
 		def delete(self, *a, **k):
 			INSTANCE,ATTR,CALLABLE = self.__data__
@@ -315,7 +337,9 @@ def build(ENV):
 				KEY = (ATTR, SnapMessage(*a, **k))
 			else:
 				KEY = ATTR
-			return INSTANCE.__delitem__(KEY) # -> goes to CALLABLE.__HANDLERS__['delete'] or default access
+			_return = INSTANCE.__delitem__(KEY) # -> goes to CALLABLE.__HANDLERS__['delete'] or default access
+			self.deleted.emit()
+			return _return
 
 		def __call__(self, *a, **k):
 			return self.__direct__(SnapMessage(*a, **k))

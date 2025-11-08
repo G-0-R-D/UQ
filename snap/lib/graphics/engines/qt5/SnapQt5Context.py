@@ -11,6 +11,8 @@ def build(ENV):
 	QPen = Qt5.QPen
 	QRect = Qt5.QRect
 	QRectF = Qt5.QRectF
+	QPoint = Qt5.QPoint
+	QPointF = Qt5.QPointF
 
 	IntersectClip = Qt5.Qt.IntersectClip # ReplaceClip, IntersectClip, NoClip
 
@@ -345,6 +347,12 @@ def build(ENV):
 			# POS_RADIUS is (x,y,radius)
 			# other shapes use path, this one is supported just because a perfect/smooth circle requires a lot of points...!
 			# drawEllipse after ptr.setBrush()?
+			ptr = self['engine_context']
+			#ptr.qp.setPen(QPen(Qt.black, 3, Qt.DashLine))
+			ptr.setBrush(QBrush(PAINT['__engine_data__']))
+			ptr.drawEllipse(QPointF(x,y), radius, radius)
+
+		def cmd_fill_ellipse(self, PAINT, x,y, w,h):
 			raise NotImplementedError()
 
 
@@ -366,6 +374,9 @@ def build(ENV):
 
 		def cmd_stroke_circle(self, PAINT, x,y, radius):
 			# drawArc()?
+			raise NotImplementedError()
+
+		def cmd_stroke_ellipse(self, PAINT, x,y, w,h):
 			raise NotImplementedError()
 
 

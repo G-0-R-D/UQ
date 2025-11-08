@@ -77,6 +77,8 @@ def build(ENV):
 					mode = mode.upper()
 					assert mode in ('NODE','VIEWER'), 'unsupported view mode: {}'.format(repr(mode))
 
+				# XXX instead of 'VIEWER' render borderless...  always allow selection by intercepting lookup event, show as highlighted or bordered when clicked... (mode switch could be done by HUD properties panel...)
+
 				self.__snap_data__['view_mode'] = mode
 				self.changed(view_mode=mode)
 

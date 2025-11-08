@@ -420,13 +420,13 @@ def build(ENV):
 			stroke_data = self.__snap_data__['stroke']
 			if stroke_data:
 				paint = stroke_data['paint']
-				CTX.cmd_stroke_path(paint, self)
+				CTX.cmd_stroke_spline(paint, self)
 
 			fill_data = self.__snap_data__['fill']
 			if fill_data:
 				paint = fill_data['paint']
 				#ENV.snap_out('fill', paint, paint['__engine_data__'], self['description'])
-				CTX.cmd_fill_path(paint, self)
+				CTX.cmd_fill_spline(paint, self)
 
 		def lookup(self, CTX):
 			'' # TODO just draw with black, and register self as sub-element of result...

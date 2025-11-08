@@ -69,19 +69,19 @@ def build(ENV):
 
 	class SnapNodeListeners(object):
 
-		__slots__ = ['channels', 'blocking']
+		__slots__ = ['channels']#, 'blocking']
 
 		def send(self, INSTANCE, CHANNEL, MSG):
 
 			# TODO check if blocked, and if so then do the appropriate action...
-			if self.blocking:
+			#if self.blocking:
 				# TODO blocking is a count, type, and handler?  handler registers the type string uniquely?  only one handler to filter the messages...
 				#for wk in blocked:
 				#	ref = wk()
 				#	if ref is not None:
 				#		ref.handle('__send__', MSG)
-				raise NotImplementedError()
-				return None
+			#	raise NotImplementedError()
+			#	return None
 
 			listeners = self.channels.get(CHANNEL)
 			if not listeners:
@@ -106,13 +106,21 @@ def build(ENV):
 				except:
 					continue
 
+				#print('ref', ref)
+
 				# just in case message was re-used...
 				msg.source = INSTANCE
 				msg.channel = CHANNEL
+
+				# TODO if return value is a generator then call it to completion?  or just don't do that here...
 				#try:
-				bound = getattr(ref, channel, None)
-				if bound is not None and bound.__data__[-1] is not None:
-					bound.__data__[-1].__direct__(bound.__data__[0], msg)
+				if isinstance(ref, SnapNode):
+					bound = getattr(ref, channel, None)
+					if isinstance(bound, SnapBoundChannel) and bound.__data__[-1] is not None:
+						bound.__data__[-1].__direct__(bound.__data__[0], msg)
+				else:
+					ref(msg)
+
 				#target._(target, l.channel, msg)
 				#except Exception as e:
 					# TODO internally capture lineinfo when emit or send is called, and on error report where the actual call occurred from! XXX not in python
@@ -126,15 +134,15 @@ def build(ENV):
 
 			#ENV.__SNAP_RECURSION_GUARD__ += 1
 
-		def silence(self, CHANNEL):
-			raise NotImplementedError()
+		#def silence(self, CHANNEL):
+		#	raise NotImplementedError()
 
-		def aggregate(self, CHANNEL):
-			raise NotImplementedError()
+		#def aggregate(self, CHANNEL):
+		#	raise NotImplementedError()
 
-		def register_block(self, **CHANNEL_OP):
-			'channel=silence|aggregate' # put the logic internally?
-			raise NotImplementedError()
+		#def register_block(self, **CHANNEL_OP):
+		#	'channel=silence|aggregate' # put the logic internally?
+		#	raise NotImplementedError()
 
 		def unused(self):
 			# TODO also consider blocking status?
@@ -148,7 +156,13 @@ def build(ENV):
 
 		def connect(self, OUTPUT_CHANNEL, LISTENER, INPUT_CHANNEL, CONVERTER):
 
-			L = (weakref_ref(LISTENER), INPUT_CHANNEL, CONVERTER)
+			if isinstance(LISTENER, ENV.SnapNode):
+				_L = weakref_ref(LISTENER)
+			else:
+				def fake_weakref():
+					return LISTENER
+				_L = fake_weakref
+			L = (_L, INPUT_CHANNEL, CONVERTER)
 
 			if OUTPUT_CHANNEL not in self.channels:
 				self.channels[OUTPUT_CHANNEL] = [L]
@@ -174,12 +188,12 @@ def build(ENV):
 
 		def __init__(self):
 			self.channels = {}
-			self.blocking = None # when channel is silenced or aggregated it is registered here
+			#self.blocking = None # when channel is silenced or aggregated it is registered here
 			# TODO do the blocked like a refcount system...  once released then the action is taken (like aggregate event sent)
 
 	ENV.SnapNodeListeners = SnapNodeListeners
 
-
+	"""
 	def snap_handle_item_access(self, KEY, VALUE, MODE, DEFAULT_HANDLER):
 
 		assert MODE in ('get','set','delete'), 'unrecognized mode: {}'.format(repr(MODE))
@@ -224,8 +238,9 @@ def build(ENV):
 		# TODO send numerical slices and indexing to a different set of properties?  or make a special property for data streams?
 
 		raise KeyError('{}[{}]'.format(self.__class__.__name__, KEY))
+	"""
 
-
+	"""
 	def SnapNode_get_property(self, NAME, ATTR):
 		bound_prop = getattr(self, NAME, None)
 		if isinstance(bound_prop, SnapBoundProperty):
@@ -237,13 +252,13 @@ def build(ENV):
 		return None,None
 
 	ENV.SnapNode_get_property = SnapNode_get_property
+	"""
 
 	class SnapNode(object):
 
 		__slots__ = ['__snap_data__', '__snap_listeners__', '__snap_init__', '__weakref__']
 
-		# SNAP_STRICT_PROPERTIES = True|False # properties must be declared (otherwise we can just assign any value at any time)
-		# SNAP_SLOTS = ['name'] # slots for valid properties?  or just declare?		
+		# __SNAP_STRICT_PROPERTIES__ = True|False # properties must be declared (otherwise we can just assign any value at any time)
 
 		def __snap_save__(self):
 
@@ -263,58 +278,41 @@ def build(ENV):
 
 
 		def __getitem__(self, KEY):
-
-			KEY,MSG = snap_unpack_msg_from_key(KEY) # XXX TODO get rid of this!  this isn't a useful thing and adds a lot of unnecessary overhead...
+			# this access is argumentless, and we're gonna keep it that way
+			# if you want to access with arguments use: node.prop.get(*args) (instead of node['prop'])
 
 			if isinstance(KEY, str):
 
-				# TODO if property is provided then ALL handling goes through property?  ie. if set/get/delete is not defined or declared then it is disabled not bypassed?
-				"""
 				bound_prop = getattr(self, KEY, None)
 				if isinstance(bound_prop, SnapBoundProperty):
 					callable = bound_prop.__data__[-1]
 					if callable is not None:
-						call = getattr(callable, MODE, None)
-						if call:
-							_return = call(self, MSG)
-							getattr(bound_prop, 'accessed').emit()
-							return _return
+						get = getattr(callable, 'get', None)
+						if get is not None:
+							return get(self, SnapMessage())
 
-					return None # get is soft
-				"""
-				bound_prop, call = SnapNode_get_property(self, KEY, 'get')
-				if bound_prop:
-					if call is not None:
-						_return = call(self, MSG)
-						getattr(bound_prop, 'accessed').emit()
-						return _return
-
-					return None # get is soft					
+					if getattr(self, '__SNAP_STRICT_PROPERTIES__', None):
+						raise KeyError('{}["{}"]'.format(self.__class__.__name__, KEY))
+					else:
+						# if bound property exists but a get() doesn't, then we forbid access quietly; return None
+						return None
 
 				return self.__snap_data__[KEY]
 
-			raise KeyError('{}[{}]'.format(self.__class__.__name__, KEY))
+			raise KeyError('{}["{}"]'.format(self.__class__.__name__, KEY))
+
 
 		def __setitem__(self, KEY, VALUE):
 
-			KEY,MSG = snap_unpack_msg_from_key(KEY)
-
 			if isinstance(KEY, str):
 
-				bound_prop, call = SnapNode_get_property(self, KEY, 'set')
-				if bound_prop:
-					if call is not None:
-
-						if MSG.args or MSG.kwargs:
-							if MSG.args:
-								# existing args is kind of ambiguous...
-								ENV.snap_warning('args already in {}.{}.set call'.format(self.__class__.__name__, KEY))
-							MSG = SnapMessage(VALUE, *MSG.args, **MSG.kwargs)
-						else:
-							MSG = SnapMessage(VALUE)
-						call(self, MSG)
-						getattr(bound_prop, 'assigned').emit()
-						return
+				bound_prop = getattr(self, KEY, None)
+				if isinstance(bound_prop, SnapBoundProperty):
+					callable = bound_prop.__data__[-1]
+					if callable is not None:
+						set = getattr(callable, 'set', None)
+						if set is not None:
+							return set(self, SnapMessage(VALUE))
 				else:
 					self.__snap_data__[KEY] = VALUE
 					return
@@ -323,22 +321,21 @@ def build(ENV):
 
 		def __delitem__(self, KEY):
 
-			KEY,MSG = snap_unpack_msg_from_key(KEY)
-
 			if isinstance(KEY, str):
 
-				bound_prop, call = SnapNode_get_property(self, KEY, 'delete')
-				if bound_prop:
-					if call is not None:
-						_return = call(self, MSG)
-						getattr(bound_prop, 'deleted').emit()
-						return _return
+				bound_prop = getattr(self, KEY, None)
+				if isinstance(bound_prop, SnapBoundProperty):
+					callable = bound_prop.__data__[-1]
+					if callable is not None:
+						delete = getattr(callable, 'delete', None)
+						if delete is not None:
+							return delete(self, SnapMessage())
 
-					raise KeyError('{}[{}]'.format(self.__class__.__name__, KEY))
+					raise KeyError('del {}["{}"]'.format(self.__class__.__name__, KEY))
 
 				del self.__snap_data__[KEY]
 
-			raise KeyError('{}[{}]'.format(self.__class__.__name__, KEY))
+			raise KeyError('del {}["{}"]'.format(self.__class__.__name__, KEY))
 
 		# add: self['prop'] = self['prop'] + [new]
 		# remove: self['prop'] = self['prop'].remove(new) (or self['prop'] = [x for x in self['prop'] if x not y]
@@ -346,30 +343,28 @@ def build(ENV):
 		@ENV.SnapChannel
 		def changed(self, MSG):
 			"""()"""
+			# NOTE: property changes go through node.changed channel, rather than the individual properties
+			# this is because the properties belong to the node, and don't stand on their own,
+			# and it makes it easier for the interested party to just listen to node.changed rather than each
+			# property individually...
+			# ALSO NOTE: it is still possible to emit through properties though...
 			self.changed.__emit__(MSG)
 
 		@ENV.SnapChannel
 		def set(self, MSG):
 			"""()"""
-			# TODO with self.changed: (radio silence on changed, but changed will still flag and accumulate the messages?  then after it will emit once)  set flag on the class channel...
-			# TODO put the block in self.__snap_data__['__listeners__']?  or maybe make new category temporarily?  then it's on self...
-			# self.__snap_data__['__silent__'] = {'name':accum messages?  or just replace args,kwargs with latest?  then send that}
-
-			# TODO either use self.channel.aggregate to merge the messages into one to be sent at the end, or use self.channel.silent to ignore messages completely until released...
-			# (just remove the listeners and put one of ourself in there?) XXX no, put self.__snap_data__['__blocked__'] = {'channel':[handler(), ...]} where each handler is from a context manager hold...
 
 			if MSG.args:
 				ENV.snap_warning('SnapNode.set(*args) does nothing')
 
-			#with self.changed.aggregate():
 			for attr,value in MSG.kwargs.items():
-				# set() requires properties to actually exist or it's an error (use __setitem__ ... directly to use default private handling)
-				try:
-					assert isinstance(getattr(self, attr), SnapBoundProperty)
-				except:
+
+				bound_prop = getattr(self, attr, None)
+				if isinstance(bound_prop, SnapBoundProperty):
+					bound_prop.set(value)
+				else:
 					raise KeyError('{}.set() missing property: {}'.format(self.__class__.__name__, repr(attr)))
 
-				self.__setitem__(attr, value)
 
 		def __repr__(self):
 			return '<{} {}>'.format(self.__class__.__name__, hex(id(self)))
@@ -382,6 +377,10 @@ def build(ENV):
 
 			# __snap_listeners__ created when needed
 
+			# NOTE: this is for the decorators to be able to perform their own mro search to lookup
+			# superclass properties...  (might be a better way...)
+			#	-- if I recall, I couldn't find a way to access the class from inside the channel
+			#	so this assigns the base to each channel...
 			#ENV.snap_debug('init', [c.__name__ for c in self.__class__.mro()])
 			for base in self.__class__.mro():
 				if base == object: continue
@@ -400,6 +399,9 @@ def build(ENV):
 
 
 	ENV.SnapNode = SnapNode
+
+
+
 
 def main(ENV):
 
@@ -461,17 +463,18 @@ def main(ENV):
 			return User.channel(self, MSG)
 
 
+		"""
 		@ENV.SnapProperty
 		class attachable:
 
 			# TODO add attachable property to BoundProperty, which just checks if this is on callable...
 			def attached(self):
 				# TODO this is get?  returns the attachment if assigned?
-				"""(int)""" # if missing then set() must describe a single type
+				"(int)" # if missing then set() must describe a single type
 				return self.__snap_data__['attachable'] is not None
 
 			def set(self, MSG):
-				"""(int)"""
+				"(int)"
 				# TODO set would do attachment, set to None to 'detach'
 				num = MSG.args[0]
 				if num is not None:
@@ -481,9 +484,10 @@ def main(ENV):
 					del self.__snap_data__['attachable']
 
 			def get(self, MSG):
-				"""()->type"""
+				"()->type"
 				# this is normal get behaviour, just return the attachment if assigned
 				return self.__snap_data__['attachable']
+		"""
 
 
 	user = Subclass()
@@ -505,17 +509,20 @@ def main(ENV):
 	except:
 		test_out('my prop del key error')
 
-	test_out(user.attachable.attachable is True)#.attached)
-	test_out(user.attachable.attached() is False)
+	#test_out(user.attachable.attachable is True)#.attached)
+	#test_out(user.attachable.attached() is False)
 
+	"""
 	try:
 		user.myprop.attached()
 		test_out('myprop attached() called!' == 'x')
 	except AttributeError:
 		test_out('my prop has no attached()')
+	"""
 
-	test_out(Subclass.attachable.attached(user) is False)
+	#test_out(Subclass.attachable.attached(user) is False)
 
+	"""
 	try:
 		Subclass.myprop.attached(user)
 		test_out('myprop attached() called' == 'x')
@@ -532,8 +539,26 @@ def main(ENV):
 	user['attachable'] = None
 	test_out(user['attachable'] is None)
 	test_out(user.attachable.attached() is False)
+	"""
 
 
+	# test non-channel listeners
+
+	called = [False]
+	def weaktest():
+		def callback(MSG):
+			ENV.snap_out('hello from callback!', MSG)
+			called[0] = True
+
+		user.channel.listen(callback)
+		return callback
+	callback = weaktest()
+	user.channel.send(1,2,3,a=1,b=2,c=3)
+	test_out(called[0] == True)
+	user.channel.ignore(callback)
+	called[0] = False
+	user.channel.send('ok?')
+	test_out(called[0] == False)
 
 	#user.channel()
 

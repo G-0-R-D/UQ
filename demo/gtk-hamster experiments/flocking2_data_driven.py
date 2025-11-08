@@ -1,4 +1,20 @@
 
+# - coding: utf-8 -
+# Copyright (C) 2010 Toms Bauģis <toms.baugis at gmail.com>
+
+"""
+ Flocking 2 - based on flocking and added the bin-latice spatial clustering
+ with all the optimizations we are still way behind the processing version.
+ Help me fixing the slow parts!
+
+ * An implementation of Craig Reynold's Boids program to simulate
+ * the flocking behavior of birds. Each boid steers itself based on
+ * rules of avoidance, alignment, and coherence.
+ *
+ Parts of code ported from opensteer (http://sourceforge.net/projects/opensteer/)
+ Other parts ported from processing (http://processing.org)
+"""
+
 # since my graphic library is designed for a data-driven approach, rather than realtime drawing on-demand,
 # I thought I would also make an example showing a more optimal approach for how I would do this in snap...
 

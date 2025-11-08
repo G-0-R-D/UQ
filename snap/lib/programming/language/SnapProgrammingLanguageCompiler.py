@@ -1,6 +1,24 @@
 
 import os
 
+# NOTE:
+"""
+the output of this will be a module that looks kinda like this:
+
+void <MODULE>_MAINBODY(SnapObject_t* ENV){
+
+	// TODO add/append this program to ENV.__program__ (and add indexing offsets, based on last instruction of existing program)
+	ENV.__program__ = {
+		{OP, ARGS},
+		{OP, ARGS},
+		...
+	};
+}
+
+which represents the program for this module, and uses the typing backend to define new types dynamically
+
+"""
+
 def build(ENV):
 
 	'' # TODO move SnapCCompiler into here, add all the python stuff, then once we know what is python-only we'll move it into the python specific compiler...
