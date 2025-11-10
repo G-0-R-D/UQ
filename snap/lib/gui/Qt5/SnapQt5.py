@@ -1,6 +1,8 @@
 
 from weakref import ref as weakref_ref
 
+import sys
+
 def build(ENV):
 
 	Qt5 = ENV.extern.Qt5 # from lib.extern
@@ -820,6 +822,7 @@ def build(ENV):
 			SnapGuiWindowBase.__init__(self, **SETTINGS)
 
 			window = self['__qt_window__'] = Qt5.QWidget()
+			window.setWindowTitle(sys.argv[0])#' ')
 
 			self['__event_filterer__'] = _EventFilterer(self)
 			window.setMouseTracking(True)

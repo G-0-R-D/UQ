@@ -108,7 +108,7 @@ def build(ENV):
 						{
 						# NOTE: this is a separate foreground and background for the user to use, and will be under/over any
 						# locally assigned elements
-						'fg':[],
+						'fg':[], # TODO these should be weakrefs...  ideally user should just pass back a single container...
 						'bg':[],
 						#'camera':None, # TODO assign a special camera proxy the user can user for camera refocus requests!
 						})

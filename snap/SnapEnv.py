@@ -245,6 +245,7 @@ class SnapEnv(object):
 		# XXX most of the functionality of the program will be implemented by parsing and compiling other code, in which case the namespace and the env for that will be very customizable...  so we don't really need this to be so fully featured!  treat this one as just one big shared namespace...
 
 		module_name = STRING
+		# TODO support importing by full absolute path as well...
 
 		if 0:
 			try:
@@ -350,12 +351,13 @@ class SnapEnv(object):
 			if _return is not None:
 				self.snap_warning('main() returned: ', _return)
 
-		elif isinstance(X, type) and issubclass(X, SnapNode):
-			instance = X(*user_args, **user_kwargs)
 		elif isinstance(X, FunctionType) and getattr(X, '__name__', None) == 'build':
 			loaded = X(self)
-			assert isinstance(loaded, type) and issubclass(loaded, SnapNode), 'snap can only run SnapNode instances'
+			assert isinstance(loaded, type)
 			instance = loaded(*user_args, **user_kwargs)
+
+		elif isinstance(X, type):# and issubclass(X, self.SnapNode):
+			instance = X(*user_args, **user_kwargs)
 		else:
 			assert X is None, 'must provide string path, type, or callable to run'
 

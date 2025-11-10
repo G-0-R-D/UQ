@@ -54,7 +54,7 @@ def build(ENV):
 				if m is None:
 					m = snap_matrix_t(*SNAP_IDENTITY_MATRIX)
 					self.__snap_data__['matrix'] = m
-				return m
+				return snap_matrix_t(*m)
 
 			def set(self, MSG):
 				"""(snap_matrix_t|SnapMatrix)"""
@@ -65,7 +65,7 @@ def build(ENV):
 					if isinstance(m, SnapMatrix):
 						m = m['matrix']
 					assert isinstance(m, snap_matrix_t), 'not a matrix type? {}'.format(type(m))
-					self.__snap_data__['matrix'] = m
+					self.__snap_data__['matrix'] = snap_matrix_t(*m)
 
 				try:
 					self.cmd_apply_matrix()
@@ -74,6 +74,21 @@ def build(ENV):
 						pass
 					else:
 						raise Exception('unable to apply matrix.set() to context', self.__class__.__name__)
+
+		@ENV.SnapProperty
+		class local_matrix:
+
+			def set(self, MSG):
+				"(snap_matrix_t!)"
+				m = MSG.args[0]
+				if m is not None:
+					matrix = self.__snap_data__['matrix']
+					if matrix is not None:
+						'multiply'
+					'assign new matrix to engine context (not to self!)'
+
+			get = None
+				
 
 		@ENV.SnapProperty
 		class current_container:
@@ -106,7 +121,7 @@ def build(ENV):
 				render_mode = data['render_mode']
 				items_attr = data['items_attr']
 
-				CTX_matrix = self['matrix']
+				CTX_matrix = self.__snap_data__['matrix']
 
 				saved_offset = snap_matrix_t(*CTX_matrix)
 
@@ -132,7 +147,8 @@ def build(ENV):
 						i += direction
 						continue
 
-					CTX_matrix[:] = saved_offset
+					CTX_matrix[:] = saved_offset # XXX what if context matrix is reassigned during a render?
+					#self['matrix'] = saved_offset
 
 					data['current_container'] = c
 					#data['current_items'] = getattr(c, items_attr)() # render_items()|lookup_items()
@@ -141,7 +157,7 @@ def build(ENV):
 					try:
 						item_matrix = c['render_matrix']
 					except Exception as e:
-						ENV.snap_debug_print_exception(e)
+						ENV.snap_print_exception(e)
 						item_matrix = None
 
 					if item_matrix is not None:
@@ -293,6 +309,7 @@ def build(ENV):
 
 
 		def cmd_save(self):
+			# TODO accept **kwargs, and only save those?  also, return a dict to send back to restore(**k)?
 			# self._config_['cmd_save'] = self._config_ ?  self._config_ = self._config_.copy()?
 			raise NotImplementedError()
 

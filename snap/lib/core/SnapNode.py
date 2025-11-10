@@ -118,8 +118,10 @@ def build(ENV):
 					bound = getattr(ref, channel, None)
 					if isinstance(bound, SnapBoundChannel) and bound.__data__[-1] is not None:
 						bound.__data__[-1].__direct__(bound.__data__[0], msg)
-				else:
+				elif ref:
 					ref(msg)
+				#else:
+				#	ENV.snap_debug('null listener', INSTANCE.__class__.__name__, CHANNEL)
 
 				#target._(target, l.channel, msg)
 				#except Exception as e:
@@ -145,7 +147,6 @@ def build(ENV):
 		#	raise NotImplementedError()
 
 		def unused(self):
-			# TODO also consider blocking status?
 			return bool(not self.channels)
 
 		def has_node(self, NODE):
@@ -287,9 +288,19 @@ def build(ENV):
 				if isinstance(bound_prop, SnapBoundProperty):
 					callable = bound_prop.__data__[-1]
 					if callable is not None:
-						get = getattr(callable, 'get', None)
-						if get is not None:
-							return get(self, SnapMessage())
+						# need to catch "get = None" as a block
+						has = False
+						try:
+							get = getattr(callable, 'get')
+							has = True
+						except AttributeError:
+							pass
+
+						if has:
+							if get is not None:
+								return get(self, SnapMessage())
+							else:
+								raise ValueError(self.__class__.__name__, KEY, 'get() disabled')
 
 					if getattr(self, '__SNAP_STRICT_PROPERTIES__', None):
 						raise KeyError('{}["{}"]'.format(self.__class__.__name__, KEY))
@@ -310,9 +321,19 @@ def build(ENV):
 				if isinstance(bound_prop, SnapBoundProperty):
 					callable = bound_prop.__data__[-1]
 					if callable is not None:
-						set = getattr(callable, 'set', None)
-						if set is not None:
-							return set(self, SnapMessage(VALUE))
+						# need to catch "set = None" as a block
+						has = False
+						try:
+							set = getattr(callable, 'set')
+							has = True
+						except AttributeError:
+							pass
+
+						if has:
+							if set is not None:
+								return set(self, SnapMessage(VALUE))
+							else:
+								raise ValueError(self.__class__.__name__, KEY, 'set() disabled')
 				else:
 					self.__snap_data__[KEY] = VALUE
 					return
@@ -327,9 +348,20 @@ def build(ENV):
 				if isinstance(bound_prop, SnapBoundProperty):
 					callable = bound_prop.__data__[-1]
 					if callable is not None:
-						delete = getattr(callable, 'delete', None)
-						if delete is not None:
-							return delete(self, SnapMessage())
+						# need to catch "delete = None" as a block
+						has = False
+						try:
+							delete = getattr(callable, 'delete')
+							has = True
+						except AttributeError:
+							pass
+
+						if has:
+							if delete is not None:
+								return delete(self, SnapMessage())
+							else:
+								raise ValueError(self.__class__.__name__, KEY, 'delete() disabled')
+						
 
 					raise KeyError('del {}["{}"]'.format(self.__class__.__name__, KEY))
 
@@ -435,6 +467,15 @@ def main(ENV):
 		class default:
 			pass
 
+		@ENV.SnapProperty
+		class no_get:
+
+			def set(self, MSG):
+				ENV.snap_out('no_get.set()', MSG)
+			#set = None
+
+			get = None
+
 		def __init__(self):
 			ENV.SnapNode.__init__(self)
 
@@ -453,7 +494,6 @@ def main(ENV):
 				# NOTE: in here we don't want to call __getitem__ of the same name, either call the superclass property or use SnapNode_get_prop() to get prop directly
 				return User.myprop.get(self, MSG)
 
-			# NOTE: if this weren't defined the default would be SnapNode_set_prop(), not a super call!
 			#def set(self, MSG):
 			#	return User.myprop.set(self, MSG)
 
@@ -559,6 +599,13 @@ def main(ENV):
 	called[0] = False
 	user.channel.send('ok?')
 	test_out(called[0] == False)
+
+	user['no_get'] = 1
+	try:
+		user['no_get']
+		test_out(False)
+	except ValueError:
+		test_out(True)
 
 	#user.channel()
 

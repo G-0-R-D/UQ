@@ -1,40 +1,40 @@
 
 def build(ENV):
 
-	B = ENV.__build__
+	ENV.__build__('snap.lib.graphics.event')
 
-	B('snap.lib.graphics.SnapMatrix')
-	B('snap.lib.graphics.SnapMetrics')
+	ENV.__build__('snap.lib.graphics.SnapMatrix')
+	ENV.__build__('snap.lib.graphics.SnapMetrics')
 	#SnapSpace, XXX SnapTask will fill this role
 
-	B('snap.lib.graphics.SnapEngineData')
+	ENV.__build__('snap.lib.graphics.SnapEngineData')
 
 	# paint
-	B('snap.lib.graphics.paint.SnapPaint')
-	B('snap.lib.graphics.paint.SnapColor')
-	B('snap.lib.graphics.paint.SnapGradient')
-	B('snap.lib.graphics.paint.SnapTexture')
+	ENV.__build__('snap.lib.graphics.paint.SnapPaint')
+	ENV.__build__('snap.lib.graphics.paint.SnapColor')
+	ENV.__build__('snap.lib.graphics.paint.SnapGradient')
+	ENV.__build__('snap.lib.graphics.paint.SnapTexture')
 
 	# shape
-	B('snap.lib.graphics.shape.SnapShape')
-	B('snap.lib.graphics.shape.SnapImage')
-	B('snap.lib.graphics.shape.SnapMesh')
-	B('snap.lib.graphics.shape.SnapSpline')
-	B('snap.lib.graphics.shape.text.SnapTextMetrics')
-	B('snap.lib.graphics.shape.text.SnapTextMarkups')
-	B('snap.lib.graphics.shape.SnapText')
+	ENV.__build__('snap.lib.graphics.shape.SnapShape')
+	ENV.__build__('snap.lib.graphics.shape.SnapImage')
+	ENV.__build__('snap.lib.graphics.shape.SnapMesh')
+	ENV.__build__('snap.lib.graphics.shape.SnapSpline')
+	ENV.__build__('snap.lib.graphics.shape.text.SnapTextMetrics')
+	ENV.__build__('snap.lib.graphics.shape.text.SnapTextMarkups')
+	ENV.__build__('snap.lib.graphics.shape.SnapText')
 
-	B('snap.lib.graphics.shader.SnapShader')
+	ENV.__build__('snap.lib.graphics.shader.SnapShader')
 	# TODO composite, particle, ... TODO implemented as containers with specific shader programs
 
-	B('snap.lib.graphics.SnapContext')
+	ENV.__build__('snap.lib.graphics.SnapContext')
 
-	B('snap.lib.graphics.SnapEngine')
+	ENV.__build__('snap.lib.graphics.SnapEngine')
 
 	#imp('snap.lib.graphics.SnapTransformable')
-	B('snap.lib.graphics.SnapContainer')
-	B('snap.lib.graphics.SnapCamera')
-	B('snap.lib.graphics.SnapWindow')
+	ENV.__build__('snap.lib.graphics.SnapContainer')
+	ENV.__build__('snap.lib.graphics.SnapCamera')
+	ENV.__build__('snap.lib.graphics.SnapWindow')
 
 	# NOTE: engine is initialized separately as it must be selected
 
@@ -57,10 +57,10 @@ def build(ENV):
 				return init
 
 			if name == 'QT5':
-				engine = B('snap.lib.graphics.engines.qt5.SnapQt5Engine')
+				engine = ENV.__build__('snap.lib.graphics.engines.qt5.SnapQt5Engine')
 
 			elif name == 'OPENGL':
-				engine = B('snap.lib.graphics.engines.opengl.SnapOpenGLEngine')
+				engine = ENV.__build__('snap.lib.graphics.engines.opengl.SnapOpenGLEngine')
 
 			else:
 				raise NotImplementedError(name)

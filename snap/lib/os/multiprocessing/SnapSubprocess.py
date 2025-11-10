@@ -33,6 +33,7 @@ from os import (
 	)
 
 from signal import (
+	# TODO ENV start should catch SystemExit, KeyboardInterrupt, etc... and emit through ENV to be handled?  then subprocess can always shutdown properly...
 	SIGSTOP,
 	SIGCONT,
 	SIGTERM,
@@ -259,6 +260,17 @@ def build(ENV):
 				"""()->bool"""
 				return not self['running']
 
+
+		@ENV.SnapChannel
+		def next(self, MSG):
+			"()"
+
+			# TODO make this the non-blocking one, make communicate() blocking so it behaves the way it did in python...
+
+			# for now just use this one for immediate comms...
+
+			return SnapSubprocess.communicate(self, MSG)
+
 		@ENV.SnapChannel
 		def communicate(self, MSG):#stdin=None, **SETTINGS):
 			"""(stdin=bool?, buffer_size=int?)"""
@@ -349,7 +361,9 @@ def build(ENV):
 
 			#ENV.snap_out("communicate complete")
 
-			return _return
+			# TODO don't return size of in, assign that to a local or something?  just return stdout,stderr like python does
+
+			return _return[1:]
 
 		@ENV.SnapChannel
 		def poll(self, MSG):
@@ -835,7 +849,7 @@ def main(ENV):
 	#while (snap_event_noargs(&sub, "running") == (any)"TRUE"){
 	while ENV.snap_time() < timeout:
 
-		stdin_size, stdout, stderr = sub.communicate()
+		stdout, stderr = sub.communicate()
 
 		if stdout or stderr:
 			#snap_out("received(%li): \"%s\"", processed_size, read_buffer);

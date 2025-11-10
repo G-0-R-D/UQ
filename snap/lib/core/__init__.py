@@ -9,9 +9,6 @@ def build(ENV):
 	B('snap.lib.core.snap_core')
 	B('snap.lib.core.util.snap_binary_search')
 
-	#B('snap.lib.core.parsing.parseq') # doesn't include grammars
-	#B('snap.lib.core.parsing.parseq.grammars.ebnf')
-
 	B('snap.lib.core.SnapMessage')
 	B('snap.lib.core.SnapBound')
 	B('snap.lib.core.snap_decorator')

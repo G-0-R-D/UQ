@@ -15,7 +15,15 @@ def build(ENV):
 
 	ENV.PARSEQ_MATCH_FAIL = PARSEQ_MATCH_FAIL = -199999990039393
 
-	ENV.PARSEQ_TYPE_SEQUENCE = PARSEQ_TYPE_SEQUENCE =1
+	ENV.PARSEQ_TYPE_SEQUENCE = PARSEQ_TYPE_SEQUENCE = 1
+
+	class DebugDummy(object):
+
+		def fake_call(self, *a, **k):
+			pass	
+
+		def __getattr__(self, ATTR):
+			return self.fake_call
 
 	class ParseqSequence(object):
 		# NOTE: SnapDataStream is source() not superclass!  (this is buffering of SnapDataStream? TODO)
@@ -190,7 +198,7 @@ def build(ENV):
 			self.MATCH_START = PARSEQ_MATCH_FAIL
 			self.MATCH_END = PARSEQ_MATCH_FAIL
 
-			self.DEBUGGER = None
+			self.DEBUGGER = DebugDummy() # assign a real one to gather debug info
 
 			#if 'step' not in kwargs:
 			#	kwargs['step'] = 1

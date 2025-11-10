@@ -413,9 +413,15 @@ def build(ENV):
 			if MSG.kwargs:
 				self.set(**MSG.kwargs)
 
+			self.resume()
+			self.start.emit()
+
+		@ENV.SnapChannel
+		def resume(self, MSG):
+			"()"
 			del self.__snap_data__['paused']
 			ENV.mainloop.listen(self.__timeout__)
-			self.start.emit()
+			self.resume.emit()
 
 		@ENV.SnapChannel
 		def pause(self, MSG):

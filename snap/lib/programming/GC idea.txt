@@ -5,3 +5,5 @@ for recursive (when we assign an object into it's own hierarchy), add the parent
 	-- if dependency is detected then we use a weakref (just don't change the refcount up or down)... simple?
 	-- XXX but a class can appear without the instance referencing the object...  so it might have to be per-instance (full list of each parent, and walk it to find ourself, and if found don't change refcount)
 
+	-- we need list of parent instances, but if the same instance occurs then do a count (meaning that the parent is used in multiple assigns of the same object -- ie. a.b = x and a.c = x where a is now a parent of x twice)
+		-- maybe we can indicate along with the assign the information of whether the assign was recursive?  then we only have to check once...

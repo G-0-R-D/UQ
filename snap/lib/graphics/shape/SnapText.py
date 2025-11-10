@@ -81,6 +81,14 @@ def build(ENV):
 				return bool(self.__snap_data__['needs_update'])
 
 		@ENV.SnapProperty
+		class extents:
+
+			def set(self, MSG):
+				"(snap_extents_t!)"
+				SnapShape.extents.set(self, MSG)
+				#self.__snap_data__['needs_update'] = True
+
+		@ENV.SnapProperty
 		class ink_extents:
 			def get(self, MSG):
 				"""()->snap_extents_t"""
@@ -110,19 +118,19 @@ def build(ENV):
 				return None
 
 		@ENV.SnapProperty
-		class wrap_width:
+		class word_wrap_width:
 
 			def get(self, MSG):
 				"()->float"
-				v = self.__snap_data__['wrap_width']
+				v = self.__snap_data__['word_wrap_width']
 				if v is None:
 					ext = self['extents']
 					if ext is None or ext[3]-ext[0] < 1:
 						#v = 300 # TODO or get extents width?  problem is if extents width is 0...
 						return None
-					else:
-						v = ext[3]-ext[0]
-				return float(v)
+					#else:
+					#	v = ext[3]-ext[0]
+				return v#float(v)
 
 			def set(self, MSG):
 				"(float|int!)"
@@ -130,8 +138,12 @@ def build(ENV):
 				if v is not None:
 					assert isinstance(v, (float,int)), 'wrong type: {}'.format(type(v))
 					v = float(v)
-				self.__snap_data__['wrap_width'] = v
+				self.__snap_data__['word_wrap_width'] = v
+				self.__snap_data__['needs_update'] = True
 				self.changed(wrap_width=v)
+
+		@word_wrap_width.alias
+		class wrap_width: pass
 
 		@ENV.SnapProperty
 		class metrics:
@@ -488,8 +500,12 @@ def main(ENV):
 
 	ENV.snap_out(t.previous_markup('bold', index=1))
 
+	matrix = ENV.SnapMatrix()
+	matrix.translate(100,100)
+	matrix.rotate(25, z=1, parent=matrix)
+
 	ENV.graphics.load('QT5')
-	ENV.__run_gui__(ENV.GRAPHICS.Text, text='hello world')
+	ENV.__run_gui__(ENV.GRAPHICS.Text, text='hello world', matrix=matrix['matrix'])
 
 	ENV.snap_out('ok')
 

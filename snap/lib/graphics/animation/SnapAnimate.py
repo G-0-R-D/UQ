@@ -13,6 +13,14 @@ def build(ENV):
 		# TODO can animate matrix, float or int...?
 		#	-- maybe it's more that this drives the time/value with a curve and then we can map that separately?  but this makes it easy to quickly animate a transformable?
 
+		# TODO SOURCE is any SnapNode, and then SETTINGS are the settings to animate to
+		# like: (SnapMatrix(), location=[x,y,z], rotation=[...], scale=[x,y,z])
+		#	-- rotate_euler_xyz...?
+		#	-- a SnapMatrix would then be wrapped in a SnapAnimationMatrix() and decomposed?  or we just apply the change as a local transform...
+
+		# then if it's a color:
+		# (SnapColor(), rgb=[...])
+
 		def __init__(self, SOURCE, TARGET, **SETTINGS):
 			SnapNode.__init__(self, **SETTINGS)
 

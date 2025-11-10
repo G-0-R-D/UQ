@@ -1,3 +1,0 @@
-
-print('inside b.py')
-

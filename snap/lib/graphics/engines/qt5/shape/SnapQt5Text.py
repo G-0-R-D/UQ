@@ -3,6 +3,8 @@ def build(ENV):
 
 	Qt5 = ENV.extern.Qt5
 
+	QSizeF = Qt5.QSizeF
+
 	SnapText = ENV.SnapText
 
 	snap_extents_are_null = ENV.snap_extents_are_null
@@ -191,6 +193,127 @@ def build(ENV):
 			#cursor.clearSelection()
 			#qtext.setTextCursor(cursor)
 
+			# TODO:
+			"""
+			if word_wrap
+			"""
+
+			if 0:
+				document = qtext.document()
+
+				word_wrap_width = self['word_wrap_width']
+				ext = self['extents']
+
+				qtext.setLineWrapMode(Qt5.QTextEdit.NoWrap)
+
+				FULL_W = document.size().width()
+
+				if word_wrap_width is not None:
+					'set word wrap to wrap_width'
+					qtext.setLineWrapMode(Qt5.QTextEdit.FixedPixelWidth)
+					qtext.setLineWrapColumnOrWidth(max(1, word_wrap_width))
+					# setPageSize?
+
+
+				if ext is not None:
+					'set document size to extents'
+					x = ext[0]
+					y = ext[1]
+					w = ext[3]-ext[0]
+					h = ext[4]-ext[1]
+				else:
+					'set document size to text size'
+					size = document.size()
+					x = y = 0
+					w = size.width()
+					h = size.height()
+
+				#ext = self.__snap_data__['text_extents'] = self.__snap_data__['ink_extents'] = snap_extents_t(0, 0, 0, w, h, 0)
+					#ENV.snap_out('ext', ext[:], h, 'size', size)
+					#qtext.document().adjustSize()
+					#doc_size = qtext.document().size()
+					#ENV.snap_out('text geometry set', int(ext[0]), int(ext[1]), int(doc_size.width()), int(doc_size.height()))
+					#qtext.setGeometry(int(ext[0]), int(ext[1]), int(doc_size.width()), int(doc_size.height())) # TODO why is this size not correct?
+
+					#print('used size before', qtext.geometry(), qtext.document().size())
+				ENV.snap_out('set geo', x, y, w, h)
+				document.setPageSize(QSizeF(w, h))
+				qtext.setGeometry(int(x), int(y), int(w), int(h))
+
+				return None
+
+
+			elif 1:
+				document = qtext.document()
+
+				# find the actual text size
+				qtext.setLineWrapMode(Qt5.QTextEdit.NoWrap)
+				full_size = document.size()
+				
+				word_wrap_width = self['word_wrap_width']
+				if word_wrap_width is not None:
+					WRAP_WIDTH = max(0, word_wrap_width)
+				else:
+					WRAP_WIDTH = document.size().width()
+
+				ext = self['extents']
+				if ext is None:
+					DOC_WIDTH = WRAP_WIDTH
+					DOC_HEIGHT = document.size().height()
+				else:
+					DOC_WIDTH = ext[3]-ext[0]
+					DOC_HEIGHT = ext[4]-ext[1]
+
+				qtext.setLineWrapMode(Qt5.QTextEdit.FixedPixelWidth)
+				qtext.setLineWrapColumnOrWidth(int(WRAP_WIDTH))
+				document.setTextWidth(WRAP_WIDTH)
+
+				document.setPageSize(QSizeF(WRAP_WIDTH, DOC_HEIGHT))
+
+				doc_size = document.size()
+				qtext.setGeometry(0, 0, int(DOC_WIDTH), int(DOC_HEIGHT))
+
+			else:
+
+				document = qtext.document()
+
+				FULL_W = 1200
+
+				ext = self['extents']
+				if ext is None:
+					''#document.setTextWidth(FULL_W)
+					#document.adjustSize()
+
+					#size = qtext.document().size()
+					#ext = self.__snap_data__['extents'] = snap_extents_t(0,0,0, size.width(), size.height(), 0)
+				else:
+					''#document.setTextWidth(int(ext[3]-ext[0]))
+					#document.adjustSize()
+
+
+				qtext.setLineWrapMode(Qt5.QTextEdit.NoWrap)
+				desired_size = qtext.document().size()
+				FULL_W = desired_size.width() #max(1000, desired_size.width()) # TODO use extents as width...
+
+				ENV.snap_out('width', FULL_W)
+				qtext.setLineWrapMode(Qt5.QTextEdit.FixedPixelWidth)
+				qtext.setLineWrapColumnOrWidth(int(FULL_W))#int(ext[3]-ext[0]))
+				document.setTextWidth(FULL_W)
+				document.setPageSize(QSizeF(FULL_W, document.size().height()))
+
+				size = document.size()
+
+				w = size.width()
+				h = size.height() # this is the correct height of each line...
+
+				#ext = snap_extents_t(0, 0, 0, w, h, 0)
+				doc_size = document.size()
+				qtext.setGeometry(0, 0, int(FULL_W), int(doc_size.height()))
+
+			return None
+
+# XXX REMOVE VVV ################################################################################################
+
 			ext = self['extents']
 			if ext is None:
 				qtext.document().setTextWidth(800)
@@ -210,8 +333,19 @@ def build(ENV):
 			else:
 				#qtext.setLineWrapMode(Qt5.QTextEdit.WidgetWidth)
 				#ENV.snap_out('text extents for wrap', ext[:], int(ext[3]-ext[0]))
+
+				qtext.setLineWrapMode(Qt5.QTextEdit.NoWrap)
+				desired_size = qtext.document().size()
+				FULL_W = desired_size.width() #max(1000, desired_size.width()) # TODO use extents as width...
+
 				qtext.setLineWrapMode(Qt5.QTextEdit.FixedPixelWidth)
-				qtext.setLineWrapColumnOrWidth(int(ext[3]-ext[0]))
+				qtext.setLineWrapColumnOrWidth(int(FULL_W))#int(ext[3]-ext[0]))
+				qtext.document().setTextWidth(FULL_W)
+				qtext.document().setPageSize(QSizeF(FULL_W, qtext.document().size().height()))
+
+				#print('desired size', desired_size, FULL_W, qtext.document().size())
+				
+
 				#pango_layout_set_width(layout, int(ext[3]-ext[0]))
 				#pango_layout_set_height(layout, int(ext[4]-ext[1]))
 				#qtext.setGeometry(int(ext[0]), int(ext[1]), int(ext[3]-ext[0]), int(ext[4]-ext[1]))
@@ -261,7 +395,7 @@ def build(ENV):
 				ext = self.__snap_data__['extents'] = self.__snap_data__['text_extents'] = self.__snap_data__['ink_extents'] = snap_extents_t(geo.x(), geo.y(), 0, geo.x() + size.width(), geo.y() + size.height(), 0)
 				qtext.setGeometry(int(ext[0]), int(ext[1]), int(ext[3]-ext[0]), int(ext[4]-ext[1]))
 			else:
-				qtext.document().adjustSize()
+				#qtext.document().adjustSize() # XXX this was causing the problem, it tries to minimize the text area rather than filling the window...
 				size = qtext.document().size()
 				geo = qtext.geometry()
 
@@ -291,7 +425,12 @@ def build(ENV):
 				#qtext.document().adjustSize()
 				doc_size = qtext.document().size()
 				#ENV.snap_out('text geometry set', int(ext[0]), int(ext[1]), int(doc_size.width()), int(doc_size.height()))
-				qtext.setGeometry(int(ext[0]), int(ext[1]), int(doc_size.width()), int(doc_size.height())) # TODO why is this size not correct?
+				#qtext.setGeometry(int(ext[0]), int(ext[1]), int(doc_size.width()), int(doc_size.height())) # TODO why is this size not correct?
+
+				#print('used size before', qtext.geometry(), qtext.document().size())
+				qtext.setGeometry(int(ext[0]), int(ext[1]), int(FULL_W), int(doc_size.height()))
+
+				#print('used size', qtext.geometry(), qtext.document().size())
 
 
 			#self.changed() XXX changed should have gone out separate from update() call...  (what triggered the update?) # TODO args?

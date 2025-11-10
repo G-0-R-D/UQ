@@ -60,7 +60,7 @@ def build(ENV):
 		if start >= end:
 			return ext
 
-		ENV.snap_warning('start', start, 'end', end)
+		#ENV.snap_warning('start', start, 'end', end)
 
 		xs = []
 		ys = []
@@ -311,6 +311,8 @@ def main(ENV):
 
 	snap_extents_t = ENV.snap_extents_t
 
+	GFX = ENV.GRAPHICS
+
 	class Test(SnapContainer):
 
 		# TODO update extents to resize the graphic and metric display...
@@ -336,9 +338,38 @@ def main(ENV):
 				self.__snap_data__['text'] = text
 				self.changed(text=text)
 
-		def timer_tester(self):
-			while 1:
-				yield
+		@ENV.SnapChannel
+		def device_event(self, MSG):
+			"()"
+
+			action,device,source = MSG.unpack('action', None, 'device', None, 'source', None)
+			if isinstance(device, ENV.SnapDevicePointer):
+				if action == 'press':
+					local_position = MSG.kwargs['local_position']
+					buttons = device.get('buttons')
+					if source == buttons.get('left'):
+						ENV.snap_out('left click')
+						# set max extents corner of text (or set to min if below)
+						#text = self['text']
+						#ext = text['extents']
+						x,y = local_position
+						self['text']['extents'] = snap_extents_t(0,0,0, max(0, x), max(0, y),0)
+					elif source == buttons.get('right'):
+						ENV.snap_out('right click')
+						# set wrap width (and draw line above)
+						self['text']['word_wrap_width'] = local_position[0]
+					elif source == buttons.get('middle'):
+						ENV.snap_out('middle click')
+						# clear extents and word wrap
+						self['text']['word_wrap_width'] = self['text']['extents'] = None
+			
+
+		def draw(self, CTX):
+			ext = self['text']['extents']
+			if ext:
+				CTX.cmd_stroke_extents(GFX.Color(0,0,0,1.), ext)
+			return SnapContainer.draw(self, CTX) # text is rendered after
+
 
 		def animated_outlines(self):
 
@@ -362,7 +393,7 @@ def main(ENV):
 					x2,y2 = ext[3],ext[4]
 					outline = GFX.Spline(description=['S',x1,y1, x2,y1, x2,y2, x1,y2, 'C'], stroke=GFX.Color(.5,.5,.5,1.))
 
-					self['children'] = [text, outline]
+					self['children'] = [text, outline] # TODO better approach would be to make render_items return text and outline properties...
 
 					yield
 				
@@ -375,15 +406,16 @@ def main(ENV):
 			GFX = ENV.GRAPHICS
 
 			text = """
-								one day
-								I looked up at the sky
-								and...
-										*SPLAT*!
+					one day
+					I looked up at the sky
+					and...
+							*SPLAT*!
+left
 			"""
 
-			self['text'] = GFX.Text(text=text, extents=snap_extents_t(0,0,0, 200,480,0))
+			self['text'] = GFX.Text(text=text)#, extents=snap_extents_t(0,0,0, 100,480,0))
 
-			ENV.snap_out('text extents', self['text']['extents'][:])
+			#ENV.snap_out('text extents', self['text']['extents'][:])
 
 			self['children'] = [self['text']]
 

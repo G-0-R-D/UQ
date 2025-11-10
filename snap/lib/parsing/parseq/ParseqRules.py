@@ -44,9 +44,11 @@ def build(ENV):
 
 	def ParseqRule___return_results__(self, SEQUENCE, subresults):#, MATCH_START, MATCH_END):
 
-		if SEQUENCE.DEBUGGER is not None:
-			#assert SEQUENCE.MATCH_START != PARSEQ_MATCH_FAIL and SEQUENCE.MATCH_END != PARSEQ_MATCH_FAIL
-			SEQUENCE.DEBUGGER.register_closest_match(SEQUENCE, self, SEQUENCE.MATCH_START,SEQUENCE.MATCH_END) # >>DEBUG
+		#ENV.snap_debug('match', [SEQUENCE.MATCH_START, SEQUENCE.MATCH_END], self)
+
+		#if SEQUENCE.DEBUGGER is not None:
+		#	#assert SEQUENCE.MATCH_START != PARSEQ_MATCH_FAIL and SEQUENCE.MATCH_END != PARSEQ_MATCH_FAIL
+		SEQUENCE.DEBUGGER.register_closest_match(SEQUENCE, self, SEQUENCE.MATCH_START,SEQUENCE.MATCH_END) # >>DEBUG
 
 		# TODO turn this into ParseqRule method so it can be overridden with custom behaviour!  we could possibly decode directly into a tree by returning subresults of the target type!
 
@@ -116,6 +118,8 @@ def build(ENV):
 
 	def ParseqRule___perform_match_actual__(self, SEQUENCE, first_match_is_success):
 
+		SEQUENCE.DEBUGGER.match_enter(SEQUENCE, self)
+
 		# first_match_is_success == rule is OR logic (only one matches to succeed),
 		# otherwise it is AND logic (all items must match to succeed)
 
@@ -180,12 +184,9 @@ def build(ENV):
 					# if skip before first item we advance start of overall rule
 					match_start = START = SEQUENCE.position()
 
-			if SEQUENCE.DEBUGGER is not None:
-				SEQUENCE.DEBUGGER.incr()
-				subresults = items[item_idx].__match__(SEQUENCE)
-				SEQUENCE.DEBUGGER.decr()
-			else:
-				subresults = items[item_idx].__match__(SEQUENCE)
+			#SEQUENCE.DEBUGGER.match_enter(SEQUENCE, items[item_idx])
+			subresults = items[item_idx].__match__(SEQUENCE)
+			#SEQUENCE.DEBUGGER.match_exit(SEQUENCE, items[item_idx], success=SEQUENCE.MATCH_END != PARSEQ_MATCH_FAIL)
 
 			item_idx += 1
 
@@ -195,8 +196,7 @@ def build(ENV):
 				#SEQUENCE.set(position=match_start)
 
 				if subresults:
-					if SEQUENCE.DEBUGGER is not None:
-						SEQUENCE.DEBUGGER.warning("subresults received on fail")
+					SEQUENCE.DEBUGGER.warning("subresults received on fail")
 
 				if first_match_is_success:
 					# OR can fail as long as one item matches
@@ -238,6 +238,8 @@ def build(ENV):
 
 		#SEQUENCE.decr_depth()
 
+		SEQUENCE.DEBUGGER.match_exit(SEQUENCE, self, success=SEQUENCE.MATCH_END != PARSEQ_MATCH_FAIL)
+
 		if SEQUENCE.MATCH_END != PARSEQ_MATCH_FAIL:
 
 			#snap_out("match success", [(r,r.value()) for r in results])
@@ -268,9 +270,7 @@ def build(ENV):
 		while 1:
 
 			#print('>>> reset match')
-			if SEQUENCE.DEBUGGER is not None:
-				#SEQUENCE.DEBUGGER.reset_closest_match() # >>DEBUG
-				SEQUENCE.DEBUGGER.reset()
+			SEQUENCE.DEBUGGER.reset()
 
 			START = SEQUENCE.position() # NOTE: on success SEQUENCE.position() will be same as SEQUENCE.MATCH_END
 
@@ -321,8 +321,7 @@ def build(ENV):
 				return subresults
 			else:
 				if subresults:
-					if SEQUENCE.DEBUGGER is not None:
-						SEQUENCE.DEBUGGER.warning("subresults with no match")
+					SEQUENCE.DEBUGGER.warning("subresults with no match")
 
 				SEQUENCE.set(position=START)#+SEQUENCE.step())
 
@@ -624,7 +623,7 @@ def build(ENV):
 			def swap(ITEMS):
 				return [swapdict.get(id(r),r) for r in ITEMS]
 
-			return self.filter_rules(swap)
+			return self.filter_for(swap)
 
 			"""
 			SEEN = []
@@ -671,7 +670,7 @@ def build(ENV):
 
 		def __repr__(self):
 
-			type_name = type(self).__qualname__.replace('Parseq','')
+			type_name = type(self).__qualname__.replace('Parseq','').split('.')[-1]
 
 			extras = []
 
@@ -898,8 +897,7 @@ def build(ENV):
 				subresults = ParseqRule___perform_match__(self, SEQUENCE, False)
 				if SEQUENCE.MATCH_END == PARSEQ_MATCH_FAIL:
 					if subresults:
-						if SEQUENCE.DEBUGGER is not None:
-							SEQUENCE.DEBUGGER.warning("subresults returned on fail")
+						SEQUENCE.DEBUGGER.warning("subresults returned on fail")
 					break
 
 				if subresults:

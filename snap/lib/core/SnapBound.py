@@ -306,6 +306,14 @@ def build(ENV):
 		#	INSTANCE,ATTR,CALLABLE = self.__data__
 		#	return CALLABLE.attached(INSTANCE)
 
+		#def __getattr__(self, ATTR):
+		#	INSTANCE,A,CALLABLE = self.__data__
+		# this returns classmethod... just use self['prop'].call() and assign another type to handle the call
+		#	return CALLABLE.__getattr__(ATTR)
+		#	#return getattr(getattr(INSTANCE, ATTR), ATTR)
+		#	#ENV.snap_out('callable getattr', ATTR, CALLABLE, CALLABLE.__getattr__(ATTR))
+		#	#raise AttributeError(ATTR)
+
 		def get(self, *a, **k):
 			# TODO should this call __getitem__ and then __getitem__ calls self.__get__? XXX __getitem__ would forward to CALLABLE directly if it has the method, otherwise assumes it is a passthrough...
 			INSTANCE,ATTR,CALLABLE = self.__data__

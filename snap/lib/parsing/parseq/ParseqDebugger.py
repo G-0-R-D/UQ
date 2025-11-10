@@ -20,25 +20,64 @@ def build(ENV):
 		def out(self, *a):
 			''
 
-		def test_out(self, TEST):
+
+		def match_enter(self, SEQUENCE, RULE, *a, **k):
+			''
+			# implied incref
+			# sequence position and direction
+			# store rootpath
+
+			self.__depth__ += 1
+
+			try:
+				item = SEQUENCE._source_[SEQUENCE._position_]
+			except:
+				item = None
+			seq_info = '[{}]'.format(SEQUENCE._position_)
+			rule_i = (RULE.__class__.__name__, RULE.name(), repr(getattr(RULE, '_value_', None)))
+			print('.' * self.__depth__, 'match enter:', seq_info, rule_i, repr(item))
+
+		def match_exit(self, SEQUENCE, RULE, success=None, *a, **k):
+			''
+			# implied decref
+			# sequence position and direction
+			# store rootpath
+			try:
+				item = SEQUENCE._source_[SEQUENCE._position_] # XXX this is the end, record end and success status, then print once...
+			except:
+				item = None
+			seq_info = '[{}]'.format(SEQUENCE._position_)
+			rule_i = (RULE.__class__.__name__, RULE.name(), repr(getattr(RULE, '_value_', None)))
+			print('.' * self.__depth__, 'match exit: ', seq_info, rule_i, success, repr(item))
+
+			self.__depth__ -= 1
+
+		#def match_result(self, SEQUENCE, RULE, ITEM, STATUS, *a, **k):
+		#	''
+		#	# store with copy of rootpath, add sequence position and direction...
+
+
+
+		def reset(self):
 			''
 
-		def reset(self, **SETTINGS):
-			'reset'
-			if 'closest_match' in SETTINGS:
-				'reset closest_match only?'
 
+
+# XXX OLD VVV ################################################################################################
 
 		def debug_level(self):
 			return self.__debug_level__
 
 		def register_closest_match(self, SEQUENCE, RULE, START, END):
+
+			#ENV.snap_out('register', RULE)
+
 			if self.debug_level() < 0:
 				return
 			assert SEQUENCE is not None
 			CLOSEST_MATCH = self.__closest_match__
 			if SEQUENCE not in CLOSEST_MATCH:
-				CLOSEST_MATCH[SEQUENCE] = {'level':len(CLOSEST_MATCH), 'span':[START,END]}
+				CLOSEST_MATCH[SEQUENCE] = {'level':len(CLOSEST_MATCH), 'span':[START,END], 'rule':RULE}
 			else:
 				span = CLOSEST_MATCH[SEQUENCE]['span']
 				if span[-1] < END: # TODO backwards?

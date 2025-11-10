@@ -4,9 +4,6 @@ def build(ENV):
 
 	#ENV.__build__('snap.lib.core.parsing.parseq.ParseqLayer')
 
-	snap_warning = ENV.snap_warning
-	snap_error = ENV.snap_error
-
 	ParseqSequence = ENV.ParseqSequence
 	ParseqLayer = ENV.ParseqLayer
 
@@ -20,7 +17,7 @@ def build(ENV):
 			'if string then use result.line_info() else use repr()?'
 			if not RESULT:
 				'just print general error, notify that something happened but we dont know what'
-				snap_error('bad result', RESULT)
+				ENV.snap_error('bad result', RESULT)
 				return
 			try:
 				lineno,colno,line = RESULT.line_info()
@@ -55,13 +52,16 @@ def build(ENV):
 			"""
 
 		def decode_result(self, RESULT, **SETTINGS):
-			raise NotImplementedError(SNAP_FUNCTION_NAME())
+			raise NotImplementedError('decode_result')
 
 		def decode(self, sequence=None, **SETTINGS):
 
+			if isinstance(sequence, str):
+				sequence = ParseqSequence(source=sequence)
+			# TODO bytes?  convert rules into bytes format?
 			assert isinstance(sequence, ParseqSequence), 'input must be ParseqSequence'
 
-			if not sequence._source_:
+			if sequence._source_ is None:
 				raise ValueError('no source on sequence')
 			#if not sequence._source_.endswith('\n'):
 			#	sequence._source_ += '\n'
@@ -92,14 +92,14 @@ def build(ENV):
 					break
 
 				if result.name() == 'ERROR':
-					snap_error(result, result.line_info())
+					ENV.snap_error(result, result.line_info())
 
 				else:
 					decoded = self.decode_result(result)
 					if decoded:
 						yield decoded
 					else:
-						snap_warning('no decoded result', result)
+						ENV.snap_warning('no decoded result', result)
 
 				"""
 				if 0:
@@ -108,7 +108,7 @@ def build(ENV):
 					#result.print_tree()
 					''#print(result.name(), result.line_info(), result.span())
 				if result.rule() == ERROR:
-					snap_warning("parse error", result.line_info())
+					ENV.snap_warning("parse error", result.line_info())
 				else:
 					out('parse success', result.name(), result.line_info())
 				if 0:
@@ -123,20 +123,6 @@ def build(ENV):
 				"""
 
 			return
-
-
-		def decode_text(self, TEXT, **SETTINGS):
-			sequence = ParseqSequence(source=TEXT)
-			return self.decode(sequence=sequence, **SETTINGS)
-
-		def decode_string(self, *args, **kwargs):
-			return self.decode_text(*args, **kwargs)
-				
-
-		def decode_file(self, FILEPATH, **SETTINGS):
-			with open(FILEPATH, 'r') as openfile:
-				# TODO use a SnapFile once it's api allows __getattr__ and __setattr__ functionality...
-				return self.decode_text(openfile.read(), **SETTINGS)
 
 		def __init__(self, *args, **kwargs):
 			ParseqLayer.__init__(self, *args, **kwargs)

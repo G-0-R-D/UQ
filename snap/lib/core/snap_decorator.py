@@ -3,71 +3,6 @@
 
 from types import FunctionType
 
-EBNF = """
-NAME: 'A-Za-z_ 0-9'
-INT: !'0' '0-9'*
-ERROR: 'pass'
-
-identifier: NAME ['|' NAME]*
-required: '!'
-optional: '?'
-# support for: (6 * type) (type * 6) (*type)
-premultiplied: (INT '*'|'*') type
-postmultiplied: type '*' INT
-type: identifier ['(' (premultiplied | postmultiplied | type) [',' type]* ')']
-keyword_argument: identifier '=' (type | ERROR)
-argument: type
-term: (keyword_argument | argument) [required | optional]
-set: '(' term [',' term]* (')' | ERROR)
-return_value: type
-return: '->' (return_value | ERROR)
-statement: ('(' set [',' set]* ')' | set) [return]
-"""
-
-EBNF_C = """
-WHITESPACE: *ignore in layer 1*
-NAME: 'A-Za-z_ 0-9'
-INT: 1-9 0-9*
-
-slice: ':' INT | INT [':' INT]
-enumerated: '[' [slice] ']'
-nested: '(' type* ')'
-type: NAME [enumerated] [nested] ['|' type]*
-argument: type [NAME] ['!' | '?']
-return_value: type
-declaration: '(' [argument [',' argument]*] ')' ['->', return_value]
-"""
-
-"""
-following c style:
-
-type name, -> identified (by name)
-type, -> positional
-
-type can be:
-
-type|type|... -> alternative types for name or position
-type[int] -> a specific count of type (maybe even can be a range? [start:end]?) or [int+] to mean more than a number or [int-] to mean less than?
-	-- like: "list[3](subtype)" but "list[3](*subtype)" would also be permissable?
-type* -> which would mean a list of type, unidentified types cannot follow this declaration
-	-- NOTE: like: "list(*subtype)" not "list*(subtype)"
-	-- XXX don't use *, just use [] to mean any number of args?
-		-- instead of list(*int|float) use int|float[] where list is implied... (and could be a tuple)
-	TODO also support initializers like dict(keytype:valuetype)
-
-	-- list(type) for when we actually care about it being a list, otherwise use type[]
-
-type can also be complex?:
-list(int,int)
-list[int+](int|float|bool)
-
-? -> means optional like: int var?
-! -> means required like: int var!
-	- neither means it will have a default if not provided, or can accept None as a value without issue
-
-TODO put channel emit() docstring into the declaration itself?  SnapProperty|SnapChannel('(type name, ...)')
-"""
-
 def build(ENV):
 
 	SnapMessage = ENV.SnapMessage
@@ -230,6 +165,7 @@ def build(ENV):
 						if SUPERDECORATOR:
 							assert isinstance(SUPERDECORATOR, SnapChannelType), 'superdecorator is not a channel type? {}'.format(FULLNAME, ATTR)
 							return getattr(SUPERDECORATOR, ATTR)
+
 					#if SUPERTYPE and SUPERDECORATOR:
 					#	if SUPERDECORATOR is not SUPERTYPE:
 					#		ENV.snap_error('superdecorator != supertype', SUPERDECORATOR, SUPERTYPE, FULLNAME)

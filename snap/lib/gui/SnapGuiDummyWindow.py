@@ -9,6 +9,8 @@ def build(ENV):
 	snap_extents_t = ENV.snap_extents_t
 	snap_matrix_map_extents = ENV.snap_matrix_map_extents
 
+	SnapBoundChannel = ENV.SnapBoundChannel
+
 	class SnapGuiDummyWindow(SnapWindow):
 
 		# XXX instead of this, we just need to create a SnapContext for the ENV.GRAPHICS and then pass that to the user to use, with image already connected into it!
@@ -77,9 +79,13 @@ def build(ENV):
 					msg = device.remap_event(MSG, cam)
 				else:
 					msg = MSG
-				_return = user.device_event.__direct__(msg)
-				if _return is True:
-					return True
+				device_event = getattr(user, 'device_event', None)
+				if isinstance(device_event, SnapBoundChannel):
+					if device_event.__direct__(msg) is True:
+						return True
+				elif device_event is not None:
+					if device_event(msg) is True:
+						return True
 
 			return SnapWindow.device_event(self, MSG)
 
