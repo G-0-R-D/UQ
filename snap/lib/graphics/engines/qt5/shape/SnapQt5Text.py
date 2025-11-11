@@ -69,12 +69,8 @@ def build(ENV):
 			text = self['text']
 			markups = self['markups']
 			if text is not None:
-				if not markups:
-					qtext.setPlainText(text)
-				else:
-					#qtext.setHtml(''.join(list(markup_text(text, markups))))
-					# TODO how to set text?
-					qtext.setPlainText(text)
+				qtext.setPlainText(text)
+				if markups:
 
 					# https://doc.qt.io/qt-5/qtextformat.html#Property-enum
 
@@ -193,276 +189,37 @@ def build(ENV):
 			#cursor.clearSelection()
 			#qtext.setTextCursor(cursor)
 
-			# TODO:
-			"""
-			if word_wrap
-			"""
 
-			if 0:
-				document = qtext.document()
+			document = qtext.document()
 
-				word_wrap_width = self['word_wrap_width']
-				ext = self['extents']
-
-				qtext.setLineWrapMode(Qt5.QTextEdit.NoWrap)
-
-				FULL_W = document.size().width()
-
-				if word_wrap_width is not None:
-					'set word wrap to wrap_width'
-					qtext.setLineWrapMode(Qt5.QTextEdit.FixedPixelWidth)
-					qtext.setLineWrapColumnOrWidth(max(1, word_wrap_width))
-					# setPageSize?
-
-
-				if ext is not None:
-					'set document size to extents'
-					x = ext[0]
-					y = ext[1]
-					w = ext[3]-ext[0]
-					h = ext[4]-ext[1]
-				else:
-					'set document size to text size'
-					size = document.size()
-					x = y = 0
-					w = size.width()
-					h = size.height()
-
-				#ext = self.__snap_data__['text_extents'] = self.__snap_data__['ink_extents'] = snap_extents_t(0, 0, 0, w, h, 0)
-					#ENV.snap_out('ext', ext[:], h, 'size', size)
-					#qtext.document().adjustSize()
-					#doc_size = qtext.document().size()
-					#ENV.snap_out('text geometry set', int(ext[0]), int(ext[1]), int(doc_size.width()), int(doc_size.height()))
-					#qtext.setGeometry(int(ext[0]), int(ext[1]), int(doc_size.width()), int(doc_size.height())) # TODO why is this size not correct?
-
-					#print('used size before', qtext.geometry(), qtext.document().size())
-				ENV.snap_out('set geo', x, y, w, h)
-				document.setPageSize(QSizeF(w, h))
-				qtext.setGeometry(int(x), int(y), int(w), int(h))
-
-				return None
-
-
-			elif 1:
-				document = qtext.document()
-
-				# find the actual text size
-				qtext.setLineWrapMode(Qt5.QTextEdit.NoWrap)
-				full_size = document.size()
-				
-				word_wrap_width = self['word_wrap_width']
-				if word_wrap_width is not None:
-					WRAP_WIDTH = max(0, word_wrap_width)
-				else:
-					WRAP_WIDTH = document.size().width()
-
-				ext = self['extents']
-				if ext is None:
-					DOC_WIDTH = WRAP_WIDTH
-					DOC_HEIGHT = document.size().height()
-				else:
-					DOC_WIDTH = ext[3]-ext[0]
-					DOC_HEIGHT = ext[4]-ext[1]
-
-				qtext.setLineWrapMode(Qt5.QTextEdit.FixedPixelWidth)
-				qtext.setLineWrapColumnOrWidth(int(WRAP_WIDTH))
-				document.setTextWidth(WRAP_WIDTH)
-
-				document.setPageSize(QSizeF(WRAP_WIDTH, DOC_HEIGHT))
-
-				doc_size = document.size()
-				qtext.setGeometry(0, 0, int(DOC_WIDTH), int(DOC_HEIGHT))
-
+			# first find the actual text size
+			qtext.setLineWrapMode(Qt5.QTextEdit.NoWrap)
+			full_size = document.size()
+			
+			# word wrap is set separately from extents
+			# (extents represent bounds of document, and can crop)
+			word_wrap_width = self['word_wrap_width']
+			if word_wrap_width is not None:
+				WRAP_WIDTH = max(0, word_wrap_width)
 			else:
-
-				document = qtext.document()
-
-				FULL_W = 1200
-
-				ext = self['extents']
-				if ext is None:
-					''#document.setTextWidth(FULL_W)
-					#document.adjustSize()
-
-					#size = qtext.document().size()
-					#ext = self.__snap_data__['extents'] = snap_extents_t(0,0,0, size.width(), size.height(), 0)
-				else:
-					''#document.setTextWidth(int(ext[3]-ext[0]))
-					#document.adjustSize()
-
-
-				qtext.setLineWrapMode(Qt5.QTextEdit.NoWrap)
-				desired_size = qtext.document().size()
-				FULL_W = desired_size.width() #max(1000, desired_size.width()) # TODO use extents as width...
-
-				ENV.snap_out('width', FULL_W)
-				qtext.setLineWrapMode(Qt5.QTextEdit.FixedPixelWidth)
-				qtext.setLineWrapColumnOrWidth(int(FULL_W))#int(ext[3]-ext[0]))
-				document.setTextWidth(FULL_W)
-				document.setPageSize(QSizeF(FULL_W, document.size().height()))
-
-				size = document.size()
-
-				w = size.width()
-				h = size.height() # this is the correct height of each line...
-
-				#ext = snap_extents_t(0, 0, 0, w, h, 0)
-				doc_size = document.size()
-				qtext.setGeometry(0, 0, int(FULL_W), int(doc_size.height()))
-
-			return None
-
-# XXX REMOVE VVV ################################################################################################
+				WRAP_WIDTH = document.size().width()
 
 			ext = self['extents']
 			if ext is None:
-				qtext.document().setTextWidth(800)
-				qtext.document().adjustSize()
-
-				size = qtext.document().size()
-				ext = self.__snap_data__['extents'] = snap_extents_t(0,0,0, size.width(), size.height(), 0)
-				#ENV.snap_out('no extents set', ext[:], text)
+				DOC_WIDTH = WRAP_WIDTH
+				DOC_HEIGHT = document.size().height()
 			else:
-				#ENV.snap_out('extents exist', ext[:], text)
-				qtext.document().setTextWidth(int(ext[3]-ext[0]))
-				qtext.document().adjustSize()
+				DOC_WIDTH = ext[3]-ext[0]
+				DOC_HEIGHT = ext[4]-ext[1]
 
-			if 0:#snap_extents_are_null(ext):
-				# TODO set unbounded
-				qtext.setLineWrapMode(Qt5.QTextEdit.NoWrap) # TODO always?  we'll do wrap ourself?
-			else:
-				#qtext.setLineWrapMode(Qt5.QTextEdit.WidgetWidth)
-				#ENV.snap_out('text extents for wrap', ext[:], int(ext[3]-ext[0]))
+			qtext.setLineWrapMode(Qt5.QTextEdit.FixedPixelWidth)
+			qtext.setLineWrapColumnOrWidth(int(WRAP_WIDTH))
+			document.setTextWidth(WRAP_WIDTH)
+			document.setPageSize(QSizeF(WRAP_WIDTH, DOC_HEIGHT))
 
-				qtext.setLineWrapMode(Qt5.QTextEdit.NoWrap)
-				desired_size = qtext.document().size()
-				FULL_W = desired_size.width() #max(1000, desired_size.width()) # TODO use extents as width...
-
-				qtext.setLineWrapMode(Qt5.QTextEdit.FixedPixelWidth)
-				qtext.setLineWrapColumnOrWidth(int(FULL_W))#int(ext[3]-ext[0]))
-				qtext.document().setTextWidth(FULL_W)
-				qtext.document().setPageSize(QSizeF(FULL_W, qtext.document().size().height()))
-
-				#print('desired size', desired_size, FULL_W, qtext.document().size())
-				
-
-				#pango_layout_set_width(layout, int(ext[3]-ext[0]))
-				#pango_layout_set_height(layout, int(ext[4]-ext[1]))
-				#qtext.setGeometry(int(ext[0]), int(ext[1]), int(ext[3]-ext[0]), int(ext[4]-ext[1]))
-				#geo = qtext.geometry()
-				#qtext.setGeometry(geo.x(), geo.y(), max(300, geo.width()), geo.height())
-				#ENV.snap_out('ext', qtext.geometry())
-
-			# TODO use a cursor to find the text size?
-				
-			"""
-			# TODO update matrix get_pixel_extents()
-
-			# https://developer.gnome.org/pango/stable/pango-Layout-Objects.html#pango-layout-get-pixel-extents
-			#pango_layout_get_pixel_extents(layout);
-			# https://developer.gnome.org/pango/stable/pango-Layout-Objects.html#pango-layout-get-extents
-			# "Logical extents are usually what you want for positioning things."
-			inkext = PangoRectangle()
-			textext = PangoRectangle()
-			pango_layout_get_pixel_extents(layout, inkext, textext) # TODO this needs to be implemented as byref
-			#pango_layout_get_extents(layout, &inkext, &textext);
-			#pext.x /= PANGO_SCALE;
-			#pext.y /= PANGO_SCALE;
-			#pext.width /= PANGO_SCALE;
-			#pext.height /= PANGO_SCALE;
-			#double text_ext[] = {(double)textext.x, (double)textext.y, 0., (double)(textext.x + textext.width), (double)(textext.y + textext.height), 0.};
-			self.text_extents = snap_extents_t(textext.x, textext.y, 0., textext.x + textext.width, textext.y + textext.height, 0.)
-			#double ink_ext[] = {(double)inkext.x, (double)inkext.y, 0., (double)(inkext.x + inkext.width), (double)(inkext.y + inkext.height), 0.};
-			self.ink_extents = snap_extents_t(inkext.x, inkext.y, 0., inkext.x + inkext.width, inkext.y + inkext.height, 0.)
-
-			# TODO if extents is 0 then make it fit the text?  self._extents_ is designated by user, use ink_extents or text_extents for text metrics...
-			# TODO make it easier by storing all the extents on the class and updating them all on each change... much easier
-			# if self.text_extents or self.ink_extents are null, then use self.extents by default
-			# TODO layout size will be set to self.extents, use "GET" to get ink and text extents, and update if dirty beforehand
-
-			# TODO store text and ink extents as x,y,w,h bounds relative to extents, but return as proper extents when queried
-			"""
-
-			if 0:
-				geo = qtext.geometry()
-				#qtext.setMaximumWidth(50)
-				qtext.document().adjustSize()
-				size = qtext.document().size()
-
-				#ENV.snap_out('doc size', geo, size.width(), size.height())
-
-				# TODO better font metrics?  for now we're just going to set the full text visible...
-				ext = self.__snap_data__['extents'] = self.__snap_data__['text_extents'] = self.__snap_data__['ink_extents'] = snap_extents_t(geo.x(), geo.y(), 0, geo.x() + size.width(), geo.y() + size.height(), 0)
-				qtext.setGeometry(int(ext[0]), int(ext[1]), int(ext[3]-ext[0]), int(ext[4]-ext[1]))
-			else:
-				#qtext.document().adjustSize() # XXX this was causing the problem, it tries to minimize the text area rather than filling the window...
-				size = qtext.document().size()
-				geo = qtext.geometry()
-
-				#metrics = qtext.fontMetrics()
-				#t = 'hello world'
-				#print('rect', metrics.boundingRect(t), metrics.tightBoundingRect(t))
-
-				#height = metrics.xHeight()
-				#height = metrics.ascent() + metrics.descent()
-				#width = metrics.lineWidth()
-				#size = metrics.size(0, text)
-
-				#bnd = metrics.boundingRect(text)
-
-				#ENV.snap_out('leading', metrics.leading(), 'height', height, size, 'line', metrics.lineSpacing(), 'advance', metrics.horizontalAdvance(text))
-				#ENV.snap_out('bound', bnd.width(), bnd.height(), 'size', size.width(), size.height())
-
-				w = size.width()
-				h = size.height() # this is the correct height of each line...
-
-				#ENV.snap_out('geo', geo, geo.height() / h, len(text), 'x', metrics.xHeight())
-
-				#ENV.snap_out('size', w,h)
-				#ENV.snap_out('geo', geo, geo.x(), geo.y(), geo.width(), geo.height())
-				ext = self.__snap_data__['extents'] = self.__snap_data__['text_extents'] = self.__snap_data__['ink_extents'] = snap_extents_t(0, 0, 0, w, h, 0)
-				#ENV.snap_out('ext', ext[:], h, 'size', size)
-				#qtext.document().adjustSize()
-				doc_size = qtext.document().size()
-				#ENV.snap_out('text geometry set', int(ext[0]), int(ext[1]), int(doc_size.width()), int(doc_size.height()))
-				#qtext.setGeometry(int(ext[0]), int(ext[1]), int(doc_size.width()), int(doc_size.height())) # TODO why is this size not correct?
-
-				#print('used size before', qtext.geometry(), qtext.document().size())
-				qtext.setGeometry(int(ext[0]), int(ext[1]), int(FULL_W), int(doc_size.height()))
-
-				#print('used size', qtext.geometry(), qtext.document().size())
+			qtext.setGeometry(0, 0, int(DOC_WIDTH), int(DOC_HEIGHT))
 
 
-			#self.changed() XXX changed should have gone out separate from update() call...  (what triggered the update?) # TODO args?
-
-			#self['extents'] = self['text_extents'] # TODO nicer way?
-
-
-			# https://stackoverflow.com/questions/47038001/get-wrapped-lines-of-qtextedit
-
-			# TODO make a 'metrics' property of text, implement in engine, return lines block, lines have sublines (for wrap), you can get text_extents and ink_extents for each?
-			"""
-			font_metrics = qtext.fontMetrics()
-			line_height = font_metrics.size(0, text).height() # TODO get this per line section...? line.height()!
-			text_block = qtext.document().begin()
-			while 1:
-				layout = text_block.layout()
-				if not layout:
-					break
-				num_lines = layout.lineCount()
-				idx = 0
-				while idx < num_lines:
-					line = layout.lineAt(idx)
-					span = [line.textStart(), line.textStart()+line.textLength()]
-					line_text = text_block.text()[span[0]:span[1]]
-					#print('line start', line.textStart(), repr(line_text))
-					#ENV.snap_out('line', font_metrics.size(0, line_text), line.height(), span, repr(line_text))
-					idx += 1
-				#ENV.snap_out('text block', num_lines, text_block.text())#, text_block.size())
-				text_block = text_block.next()
-			"""
-
-			#ENV.snap_out('updated')
 			return None
 
 

@@ -370,7 +370,8 @@ def build(ENV):
 			CTX = self['engine_context']
 			CTX.setPen(PAINT['__engine_data__'])
 			#self['engine_context'].drawRect(QRectF(E[0], E[1], E[3]-E[0], E[4]-E[1]), QBrush(PAINT['__engine_data__']))
-			CTX.drawRect(int(E[0]), int(E[1]), int(E[3]-E[0]), int(E[4]-E[1]))
+			#CTX.drawRect(int(E[0]), int(E[1]), int(E[3]-E[0]), int(E[4]-E[1]))
+			CTX.drawRect(QRectF(E[0], E[1], E[3]-E[0], E[4]-E[1]))
 
 		def cmd_stroke_circle(self, PAINT, x,y, radius):
 			# drawArc()?

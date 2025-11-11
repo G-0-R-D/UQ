@@ -9,11 +9,121 @@ def build(ENV):
 
 	snap_extents_t = ENV.snap_extents_t
 
+	"""
+	def get_glyph_metrics_with_markup(html_text):
+		doc = QTextDocument()
+		doc.setHtml(html_text)
+		
+		# QTextDocument performs the rich text parsing
+		# We then iterate through the document structure to access layout details
+
+		# The document is composed of blocks (paragraphs)
+		block = doc.begin()
+		while block.isValid():
+		    # Get the layout for the block
+		    layout = block.layout()
+		    if layout is None:
+		        block = block.next()
+		        continue
+
+		    layout.createLine() # Ensure lines are created if not already
+		    
+		    # Iterate through the lines in the block
+		    line = layout.createLine()
+		    while line.isValid():
+		        # Iterate through the glyphs/characters in the line
+		        for i in range(line.textLength()):
+		            char_index_in_block = line.textStart() + i
+		            # Get the format at this character position to know the applied font
+		            char_format = block.charFormat(char_index_in_block)
+		            font = char_format.font()
+		            
+		            # Get character/glyph position relative to the line's start
+		            char_pos = line.cursorToX(i)
+		            # Get horizontal advance (width) of the character/glyph
+		            advance = line.horizontalAdvance(i, 1) # width of 1 character from index i
+
+		            # Bounding rectangle for the glyph
+		            # Note: line.naturalTextRect covers the line's bounding box
+		            # Calculating the exact glyph bounding box is complex due to bearings,
+		            # but horizontalAdvance gives the layout width.
+		            
+		            # For practical purposes, the advance is often what is needed for layout
+		            print(f"Char: '{line.text()[i]}', Font: {font.family()}, Size: {font.pointSize()}, Width: {advance}")
+		            
+		        line = layout.createLine() # Move to the next line
+		    block = block.next()
+	"""
+
+	def glyph_extents_qt6(BLOCK, LINE, local_start, local_end):
+
+		if not LINE.isValid():
+			return
+
+		i = 0
+		while i < LINE.textLength():
+
+			font = BLOCK.charFormat(LINE.textStart() + i).font()
+			pos = LINE.cursorToX(i)
+			advance = LINE.horizontalAdvance(i, 1)
+
+			print('advance', advance, font.pointSize())
+
+			i += 1
+
+	def glyph_extents_qt5(DOCUMENT, TEXT, LINE, start, end):
+
+		i = start
+		x_offset = 0
+		while i < end:
+
+			font = DOCUMENT.characterAt(i).charFormat().font()
+			metrics = Qt5.QFontMetrics(font)
+			char = TEXT[i]
+			if char != '\n':
+				width = metrics.horizontalAdvance(char)
+				rect = [x_offset+LINE.position().x(), y_offset + LINE.position().y(), width, metrics.height()]
+				x_offset += width
+			else:
+				'use full line size'
+
+			i += 1
+
+		"""
+		glyph_data = []
+		y_offset = 0
+		for line in lines:
+			x_offset = 0
+			for i in range(line.textLength()):
+				char_index = line.textStart() + i
+				char_format = doc.characterAt(char_index).charFormat()
+				font = char_format.font()
+				fm = QFontMetrics(font)
+				char = line.text()[i]
+				if char != '\n':
+					width = fm.horizontalAdvance(char)
+					# The position relative to the whole document
+					rect = QRectF(QPointF(x_offset + line.position().x(), y_offset + line.position().y()), QSizeF(width, fm.height()))
+					glyph_data.append({'char': char, 'rect': rect, 'font': font})
+					x_offset += width # This is a simplified advance, ignores kerning/ligatures
+			y_offset += fm.height() # Simplified line height
+
+		# The most accurate method involves using line.glyphRuns() and run.boundingRects()
+		# This requires a QPainter context
+
+		return glyph_data
+		"""
+
 	def text_extents_using_glyphruns(self, start=None, end=None):
 		
 
 		text = self.__parent__['text']
 		qtext = self.__parent__['__engine_data__']
+
+		font_metrics = Qt5.QFontMetricsF(qtext.font())
+		space_width = font_metrics.horizontalAdvance(' ')
+		tab_width = qtext.tabStopDistance()
+		print('tab_width', tab_width, 'space', space_width)
 
 		#print(dir(qtext))
 
@@ -97,49 +207,121 @@ def build(ENV):
 			#y_offset += layout.boundingRect().height()
 			#print('y_offset', y_offset)
 
-			if 1:
+			num_lines = layout.lineCount()
+			idx = 0
+			while idx < num_lines:
+				
+				line = layout.lineAt(idx)
+				line_text = text_block.text()[line.textStart():line.textStart()+line.textLength()]
 
-				num_lines = layout.lineCount()
-				idx = 0
-				while idx < num_lines:
+				#print('line', idx, repr(line_text), layout.boundingRect(), line.naturalTextWidth(), line.height())
+
+				line_start, line_end = block_start+line.textStart(), block_start+line.textStart()+line.textLength()
+
+				if start > line_end:
+					y_offset += line.height()
+
+				elif line_start > end:
+					break
+
+				elif start >= (line_start-1) and line_start < end:
+					print('in range?', line_start, line_end, line_end-line_start, repr(line_text))
+
+					#print(dir(qtext.document()))
 					
-					line = layout.lineAt(idx)
-					line_text = text_block.text()[line.textStart():line.textStart()+line.textLength()]
 
-					#print('line', idx, repr(line_text), layout.boundingRect(), line.naturalTextWidth(), line.height())
+					local_start = max(0, start - line_start)
+					local_end = end - line_start
+					print('local start', local_start, 'local end', local_end, repr(line_text))
 
-					line_start, line_end = block_start+line.textStart(), block_start+line.textStart()+line.textLength()
+					if 0:
+						positions = [p for run in (line.glyphRuns(-1,-1) or []) for p in run.positions()]
+						print('positions', positions)
 
-					if start > line_end:
-						y_offset += line.height()
+						x_offset = 0
+						positions_idx = glyph_idx = 0
+						for glyph in line_text:
+							if glyph_idx < local_start or glyph_idx >= local_end:
+								if glyph != '\t':
+									positions_idx += 1
+							else:
+								if glyph == '\t':
+									'add tab size'
+									# TODO where to get position?  has to be from previous glyph or line start...
+									
+								else:
+									'add position size'
+									pt = positions[positions_idx]
+									print(pt.x(), pt.y())
+									xs.append(pt.x())
+									ys.append(pt.y())
+									#ys.append(line.height())
+									positions_idx += 1
+								print('check', repr(line_text[glyph_idx]))
+							glyph_idx += 1
+					elif 1:
 
-					elif line_start > end:
-						break
+						ys.append(y_offset)
+						ys.append(y_offset+line.height())
 
-					elif start >= (line_start-1) and line_start < end:
-						#print('in range?', line_start, line_end, line_end-line_start, repr(line_text))
-
-						local_start = max(0, start - line_start)
-						local_end = end - line_start
-						#print('local start', local_start, 'local end', local_end)
-						runs = line.glyphRuns(local_start,local_end)
-						if 0:#runs:
+						sizes = []
+						runs = line.glyphRuns(-1, -1)
+						if runs:
 							for run in runs:
-								rect = run.boundingRect()
-								xs.append(rect.x())
-								xs.append(rect.x() + rect.width())
-								#ys.append(y_offset + rect.y())
-								ys.append(y_offset + rect.y() + rect.height())
-								#print('rect', rect, xs, ys)
-						else:
-							#rect = line.rect()
-							rect = layout.boundingRect()
+								rawfont = run.rawFont()
+								sizes.extend([rawfont.boundingRect(i) for i in run.glyphIndexes()])
+
+						x_offset = 0
+						sizes_idx = glyph_idx = 0
+						for glyph in line_text:
+
+							if glyph == '\t':
+								width = tab_width
+							elif glyph == ' ':
+								width = space_width
+							else:
+								rect = sizes[sizes_idx]
+								width = rect.width()
+								if width == 0:
+									ENV.snap_error('0 width', repr(glyph), glyph_idx, rect, repr(line_text))
+								sizes_idx += 1
+
+							if glyph_idx < local_start or glyph_idx >= local_end:
+								pass
+							else:
+								xs.append(x_offset)
+								xs.append(x_offset+width)
+
+							x_offset += width
+							glyph_idx += 1
+								
+
+
+					"""
+					#runs = line.glyphRuns(local_start,local_end)
+					runs = line.glyphRuns(-1, -1)
+					if runs:
+						for run in runs:
+							rect = run.boundingRect()
+							# TODO runs are just visible, tabs are not included...  so we'll have to manage that...
+							print('run', rect, run.positions())
+							#print('run', dir(run))
 							xs.append(rect.x())
 							xs.append(rect.x() + rect.width())
+							#ys.append(y_offset + rect.y())
 							ys.append(y_offset + rect.y() + rect.height())
-							#print('rect', rect)
+							#print('rect', rect, xs, ys)
+					else:
+						# TODO if tabs then get the full bounds and divide it by the chars in the line...
+						#rect = line.rect()
+						rect = layout.boundingRect()
+						xs.append(rect.x())
+						xs.append(rect.x() + rect.width())
+						ys.append(y_offset + rect.y() + rect.height())
+						#print('rect', rect)
+					"""
 
-					idx += 1
+				idx += 1
 
 			text_block = text_block.next()
 
@@ -377,25 +559,49 @@ def main(ENV):
 
 			GFX = ENV.GRAPHICS
 
-			while 1:
+			line_outline = GFX.Spline(stroke=GFX.Color(.5,.5,.5,1.))
+			glyph_outline = GFX.Spline(stroke=GFX.Color(0., .8, .3, 1.))
+
+			text = self['text']
+			m = text['metrics']
+
+			self['children'] = [text, line_outline, glyph_outline]
+
+
+			def animate_newlines():
 
 				#ENV.snap_out('loop')
 
-				text = self['text']
-				if text is None:
-					break
+				while 1:
 
-				m = text['metrics']
+					for start,end in m.newlines():
+						#ext = m.text_extents(max(0, start-1),end)
+						ext = m.text_extents(max(0, start-1),end)
+						x1,y1 = ext[0],ext[1]
+						x2,y2 = ext[3],ext[4]
+						line_outline['description'] = ['S',x1,y1, x2,y1, x2,y2, x1,y2, 'C']
+						yield
 
-				for start,end in m.newlines():
-					ext = m.text_extents(start,end)
-					x1,y1 = ext[0],ext[1]
-					x2,y2 = ext[3],ext[4]
-					outline = GFX.Spline(description=['S',x1,y1, x2,y1, x2,y2, x1,y2, 'C'], stroke=GFX.Color(.5,.5,.5,1.))
+			def animate_glyphs():
 
-					self['children'] = [text, outline] # TODO better approach would be to make render_items return text and outline properties...
+				while 1:
 
-					yield
+					idx = 0
+					while idx < len(text['text']):
+						ENV.snap_out(idx, repr(text['text'][idx:idx+1]))
+						ext = m.text_extents(idx, idx+1)
+						x1,y1 = ext[0],ext[1]
+						x2,y2 = ext[3],ext[4]
+						glyph_outline['description'] = ['S',x1,y1, x2,y1, x2,y2, x1,y2, 'C']
+						idx += 1
+						yield
+
+			animations = [animate_newlines(), animate_glyphs()]
+
+			while 1:
+				for anim in animations:
+					next(anim)
+				yield
 				
 
 		def __init__(self, *a, **k):
@@ -410,8 +616,11 @@ def main(ENV):
 					I looked up at the sky
 					and...
 							*SPLAT*!
+					
 left
 			"""
+			#text = "\t\thello\t\tthere"
+			#text = 'abc'
 
 			self['text'] = GFX.Text(text=text)#, extents=snap_extents_t(0,0,0, 100,480,0))
 
