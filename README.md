@@ -1,23 +1,28 @@
-# UQ - Universal Queue
-
-> **Note:** This is intended as just a FYI for now, since I'm not at the point of a 'user release', nor would I know how to make one at the moment...
+# UQ - "You" Queue
 
 ## About
 
-Think of this project as **'technological glue'**. The goal is to be able to connect code elements together that were not originally designed to connect together. *Easily.* 
+Think of this project as **'technological glue'**. The goal is to be able to connect code elements together that were not originally designed to connect together, *easily.* By unifying programming languages into one central form (in c), and by presenting a generic communications interface/protocol (SnapNode protocol) that can be used to connect code elements together arbitrarily (even at runtime).  With this ability, code from different projects (and even different languages) can be made to connect together to create new behaviours and programs...
 
-By unifying programming languages into one central form, and by presenting a generic communications interface/protocol (SnapNode protocol) that can be used to connect code elements together at runtime. With this ability, code from different projects (and even different languages) can be made to connect together to create new behaviours and programs...
+The primary focus was to make a gui/graphics library that was easy to use and maintain, while also being fully featured and fast.  The graphical concepts are abstract and general (like: image, texture, color, spline, mesh, ...), which protects against changes in the backend (opengl->vulkan?) impacting user code for features that aren't engine specific (*"draw a red rectangle"* should do the same thing with *any* backend!).
+
+The idea of pulling in existing code and integrating it is new, but it's a natural extension to what this project has evolved into (this started as trying to make a paint program 15 years ago XD).  There is no need to write all the features and functionality alone, as there already exist so many amazing open source programs with the code components necessary to get the desired behaviour.  There just needs to be a way to integrate those projects designed with different languages into one easy to use common form...  well here it is! (maybe...)
+
+Honestly if this just ends up being a nice python-based coding and visual programming api that compiles into c, I'm quite happy!  Integrating other languages and projects would just be a bonus, though a nice one!
+
+>*for an in-depth technical explanation of how multiple programming languages can integrate into one common form, see **ATTEMPT TO CLARIFY WITH AN EXAMPLE** below...*
+
 
 ### UQ
 
-**"You Queue"** - meaning you queue up program elements and then run them. This is a GUI-based end-user program intended to be used to connect SnapNode components together in a drag-and-drop fashion.
+**"You Queue"** - meaning you queue up program elements and then run them. This is a GUI-based end-user program intended to be used to connect SnapNode components together visually in a drag-and-drop fashion.
 
-**TODO:**
+>**TODO:**
 - Largely not implemented yet, but it's mostly just going to be a mainwindow with the ability to add ENV elements to the scene by name and provides a graphical type that will be able to render any arbitrary code element as either a node or using its draw method if available...
 
 ### snap
 
-The library that implements the SnapNode protocol, and which provides the backend API to use OS-specific interfaces with a general API (things like os, graphics, gui, networking, multiprocessing, ...)
+The library that implements the SnapNode protocol, and which provides the backend API to use OS-specific interfaces with a general API (things like os, graphics, gui, networking, multiprocessing, ...).  It also provides the interfaces for compiling.
 
 ---
 
@@ -134,9 +139,9 @@ Allows for mapping multiple names to the same channel or property implementation
 
 #### Connecting
 
-Runnable example:
+Runnable (python) example:
 
-```python
+```
 from snap.SnapEnv import SnapEnv
 
 ENV = SnapEnv()
@@ -160,14 +165,14 @@ a.channel.ignore(b.channel)
 
 #### SnapMessage
 
-A way of standardizing communication structures, following the `*args, **kwargs` concept in Python where unused params are just quietly ignored, ensures that all communicable interfaces share the same "call signature" (they just accept a single MSG argument).
+A way of standardizing communication structures, following the **`(*args, **kwargs)`** concept in Python where unused params are just quietly ignored, ensures that all communicable interfaces share the same "call signature" (they just accept a single MSG argument).
 
 - `MSG.args`: positional arguments (tuple)
 - `MSG.kwargs`: keyword arguments (dict)
 - `MSG.source`: the SnapNode instance that did the send/emit creating the message
 - `MSG.channel`: the channel (str) that originated the message
 
-> Messages should be treated as immutable; don't change them
+> Messages should be treated as immutable; don't change them.  If 2-way communcation is required then pass a mutable type like a dict or list to be filled in by the receiver (but beware multiple receivers can connect to emitted messages!)
 
 #### `snap_debug.py`
 
@@ -181,8 +186,8 @@ A way of standardizing communication structures, following the `*args, **kwargs`
 
 - The primitives API will likely just be phased out, it was from an earlier design and only the SnapBytes with the numpy backend is currently useful... using the Python syntax as input means Python primitives will be available when compiled (as long as the c backend API provides them)
   - The original idea was to make properties the raw primitives themselves (like listen to an int directly for changes) but then I realized that properties are actually attributes of a parent type, and don't exist on their own! So this idea is no longer in play.
-    - To phrase another way: a property change is an event of the parent SnapNode, not of the property (data) itself because the property (data) doesn't (necessarily) exist!
-      - aka. if I have an int property that is created on get() (not locally assigned) then how do I listen to the int? I can't. It's a new one each time you access it! But I can listen to the property for its get() events (and that property belongs to the parent SnapNode).
+    - To phrase another way: a property change is an event of the parent SnapNode, not of the property (data) itself because the property (data) doesn't (necessarily) exist at all!
+      - aka. if I have an int property that is created on get() (not locally assigned) then how do I listen to the int? I can't. It's a new one each time it is accessed! But I can listen to the property for its get() events (and that property belongs to the parent SnapNode).
 
 ---
 
@@ -190,21 +195,20 @@ A way of standardizing communication structures, following the `*args, **kwargs`
 
 - **ENV** is a concept I came up with to remove the need of modules to know anything about the context in which they are running. Module 'imports' (`getattr(ENV, 'x')`) can be changed in ENV before calling the module, making it possible to redirect things, and presents interesting opportunities for adapters... I'm thinking it could be useful for legacy code (imagine being able to use the latest HD VR keyboard on an old game that was designed to use a regular keyboard, by just writing an adapter and assigning the adapter as the ENV keyboard...)
 
-- Also, it makes the global namespace more dynamic and allows changing variables at runtime, which are then visible everywhere
+- Allows for modules to be included into the 'global' (ENV) namespace through build(ENV), while also removing the need for import statements (they just access what they need from the ENV, which allows it to potentially be changed even at runtime -- like to redirect print statements to logfiles, or change a device like a keyboard to some futuristic VR keyboard adapter instead...)
+	- modules can be run directly with main(ENV)
 
-- Applications can import `snap.SnapEnv` and subclass it to define their own standard ENV, and register themselves as an importable package using `SnapEnv.__register_package__("/root/of/package")` which will then allow imports subordinate to that package using `SnapEnv.__build__("package.x")`
-
-- Modules compatible with the ENV system implement a `def build(ENV):` and optionally a `def main(ENV):` if they want to run directly, and then add their elements into the ENV as one shared namespace
+- User Applications can import `snap.SnapEnv` and subclass it to define their own ENV, and register themselves as an importable package using `SnapEnv.__register_package__("/root/of/package")` which will then allow imports subordinate to that package using `SnapEnv.__build__("package.x")`
 
 - The idea is also that ENV can represent a sandbox or isolation of a runnable program, and could be discarded when finished so that only necessary components are loaded when they are needed (TODO...)
 
 - General practice is to put the `ENV.__build__` commands into `__init__.py` files, so we can just import packages by building the folder containing the `__init__.py` file...
 
-- `ENV.__build__('path.to.module')` calls the `def build(ENV)` function in the module
+- `ENV.__build__('path.to.module')` calls the `def build(ENV)` function in 'module'
 
 ### `../snap/lib/graphics`
 
-`SnapMatrix` → `SnapMetrics` → `SnapContainer` → user is the basic intended design. Use `SnapContainer` (or subclass) as the base for all of your renderable elements.
+`SnapMatrix` → `SnapMetrics` → `SnapContainer` → **user** is the basic intended design. Use `SnapContainer` (or subclass) as the base for all of your renderable elements.
 
 #### SnapMatrix
 
@@ -214,7 +218,7 @@ The base class so that transformables can inherit from it (while also implementi
 
 #### SnapMetrics
 
-Adds the concept of an 'extents' which is a min/max point (x,y,z) of a bounding rect. Extents cannot rotate (rotate the matrix) or be negative (max >= min must always be true).
+Adds the concept of an 'extents' which is a min/max point (x,y,z) of a bounding rect. Extents cannot rotate (you rotate the owning matrix instead) and cannot be negative (max >= min must always be true).
 
 #### paint
 
@@ -226,7 +230,7 @@ Shape elements (path or mesh; connected points)
 
 #### `draw()` method
 
-Can be implemented directly on the container for hard-coded render instructions, or a shader can be assigned, making render logic changeable at runtime (change the theme to another one...)
+Can be implemented directly on the container for hard-coded render instructions, or a shader can be assigned, making render logic changeable at runtime (like change the theme to another one...)
 
 #### `lookup()` method
 
@@ -332,7 +336,7 @@ The idea is to map the concepts presented by the coding language into a more gen
 - C allows for higher-level abstraction and reasoning, and makes it easier to implement more complex data structures for the compiler to make use of (representing classes and functions, and making everything a `SnapObject_t*` type...)
   - I have no idea how I would even begin representing object orientation in pure assembly!
 
-**Current status:** I've actually only had this concept in mind for a few months now, so lots of TODO! Gonna try to get the `SnapProgrammingLanguageCompiler.py` working by following `Python-3.12.3/Python/compile.c` at https://www.python.org/downloads/release/python-3123/ and referring to this guide: https://realpython.com/cpython-source-code-guide/#core-compilation-process
+**Current status:** I've actually only had the concept of compiling other projects into a common source in mind for a few months now, so lots of TODO! Gonna try to get the `SnapProgrammingLanguageCompiler.py` working by following `Python-3.12.3/Python/compile.c` at https://www.python.org/downloads/release/python-3123/ and referring to this guide: https://realpython.com/cpython-source-code-guide/#core-compilation-process
 
 - Python has many custom op codes (see https://docs.python.org/3/library/dis.html#python-bytecode-instructions) so the idea of creating custom op-codes to support features from other languages doesn't seem so far-fetched...
 
@@ -342,9 +346,115 @@ The idea is to map the concepts presented by the coding language into a more gen
 
 ---
 
+# ATTEMPT TO CLARIFY WITH AN EXAMPLE:
+
+Let's consider an example of what it could mean to compile languages into a shared form by considering something most languages have in common, a function definition:
+
+### in python:
+```python
+def sum(a, b):
+	return a + b
+```
+
+### in c:
+```c
+int sum(int a, int b){
+	return a + b;
+}
+```
+
+### in java (forbids static functions btw...):
+```java
+public class Boilerplate {
+    public int sum(int a, int b) {
+        return a + b;
+    }
+}
+
+```
+The java example just means we wouldn't be able to have a function on it's own, so it would be a method of a class instead...  but the ideas still map readily!  When using the java code you would be expected to call Boilerplate().add(...) anyway, so java code would be internally consistent...
+
+### now the same function represented in snap (-std=89 c) as a generalized concept of a function taking 2 ints (this code is very oversimplified, and won't run, but is conceptually accurate):
+
+```c
+typedef struct SnapObject_t {
+
+	/* all types are implemented as a SnapObject_t*, with a function handler representing both the id() and the callable interface */
+
+	SnapObject_t* (*__type__)(SnapObject_t* ENV, const char* ATTR, SnapObject_t* MSG);
+	SnapObject_t* __dict__; /* where user callables are stored */
+	ssize_t __bytes_size__; /* sizeof __bytes__ */
+	char* __bytes__; /* any arbitrary data associated with the type (int* for int type, the actual number -- type decides what this is and manages it itself) */
+
+	/* ... see ../UQ/snap/lib/programming/include/snap/core/snap_types.h for the full (current) implementation design ... */
+
+} SnapObject_t;
+
+SnapObject_t* function_type(SnapObject_t* ENV, const char* ATTR, SnapObject_t* MSG){
+
+	/* const char* address will be the same 'identity' for the same word, this is exploited for readability! */
+
+	if ((void*)ATTR == (void*)"__call__"){
+
+		SnapObject_t* a = _msg_unpack(MSG, "a");
+		SnapObject_t* b = _msg_unpack(MSG, "b");
+
+		/* could do isinstance check to make sure a and b are ints, if the input language is strict-typed like c then we would... */
+
+		/* then this would call the a.__add__(b) logic (not shown here) */
+		return _call(ENV, a, "__add__", _msg(_arg(b)));
+	}
+}
+
+int main(int argc, char* argv){
+
+	SnapObject_t* ENV = malloc(...); /* basically just a custom class acting like a namespace to store attrs... */
+
+	/* _new() would just assign the SnapObject_t* members to init stuff, and call the "__init__"|"__new__" methods of the type... */
+	SnapObject_t* function = _new(ENV, function_type);
+
+	/* a and b would be initializations of int types as well */
+
+	SnapObject_t* _return = _call(ENV, &function, "__call__", _msg(_a2(a, b)));
+
+	/* _return will be SnapObject_t* int_type with the answer assigned to it's __bytes__ member... */
+
+	return 0;
+}
+
+```
+> **Note:** The design of the backend is largely still a work in progress, so **the above code is very likely to change and wouldn't run**, it's just meant to briefly illustrate the concept.
+>> **also note: the above code would be *auto-generated* and *not* typed out by hand!**
+
+Then consider the 'generalized' ast form (in language-neutral json) of a function definition that could support the function description of each input language (this would just be the method part if the input is java):
+
+```python
+{
+	'__type__':'function',
+	'name':'sum',
+	'arguments':[
+		# 'data_type' would just mean do an isintance(arg, int) or raise in the call...
+		{'__type__':'name', 'value':'a', 'data_type':'int'},
+		{'__type__':'name', 'value':'b', 'data_type':'int'}],
+	'body':[
+		{'__type__':'return', 'target':{
+			'__type__':'binary_operation',
+			'operands':[
+				{'__type__':'name', 'value':'a'}, {'__type__':'name', 'value':'b'},
+			],
+			'operator':'add',
+			}}
+		],
+}
+```
+
+Everything you need to know about the function in all 3 input languages would be representable by this ast form (except java would be a method inside a class).  So if we have the ast from each language in json, translate that json into generalized form (or support the new unique idea in the backend if it can't be generalized), then we could theoretically bring in new languages by translating them to the *common* or *generalized* output and then connecting those components together since they are now the *same types* in the *same language* :)
+
+Now, we just have to represent the above as a series of opcodes, and we're there XD!  (actually the op-based compiler would be at the user-level, the backed implementations would compile to non-asynchronous interfaces (no yield statements!)).  This means a lot of the backend can actually be written in python syntax.  I'm thinking of using "snapc:" strings to 'switch' into c code where needed while in the .py files...
+
+
 ## Closing
 
 If you've read all this, I thank you very much for doing so! I appreciate your interest, and look forward to your feedback and input! Cheers!
 
 **-Gord**
-
