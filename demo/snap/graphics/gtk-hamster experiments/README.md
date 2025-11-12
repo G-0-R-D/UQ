@@ -1,8 +1,8 @@
 
-many many years ago (~2010) when gtk and cairo were popular on linux, I was trying to learn how to use them and came across the 'gtk-hamster experiments' library on github.  I think it largely inspired me towards the graphics capabilities I've achieved today.  The github no longer exists, but I still have the code so I'm going to try porting some examples to see how it goes!
+>many many years ago (~2010) when gtk and cairo were popular on linux, I was trying to learn how to use them and came across the 'gtk-hamster experiments' library on github.  I think it largely inspired me towards the graphics capabilities I've achieved today.  The github no longer exists, but I still have the code so I'm going to try porting some examples to see how it goes!
 
-https://projecthamster.wordpress.com/2010/01/10/fun-with-hamster-graphics-lib/
-	https://www.youtube.com/watch?v=r9rBEk9HVCM
+>https://projecthamster.wordpress.com/2010/01/10/fun-with-hamster-graphics-lib/
+>https://www.youtube.com/watch?v=r9rBEk9HVCM
 
 
 ------------ ORIGINAL README: ------------

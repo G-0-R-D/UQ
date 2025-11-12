@@ -6,7 +6,7 @@ Think of this project as **'technological glue'**. The goal is to be able to con
 
 The primary focus was to make a gui/graphics library that was easy to use and maintain, while also being fully featured and fast.  The graphical concepts are abstract and general (like: image, texture, color, spline, mesh, ...), which protects against changes in the backend (opengl->vulkan?) impacting user code for features that aren't engine specific (*"draw a red rectangle"* should do the same thing with *any* backend!).
 
-The idea of pulling in existing code and integrating it is new, but it's a natural extension to what this project has evolved into (this started as trying to make a paint program 15 years ago XD).  There is no need to write all the features and functionality alone, as there already exist so many amazing open source programs with the code components necessary to get the desired behaviour.  There just needs to be a way to integrate those projects designed with different languages into one easy to use common form...  well here it is! (maybe...)
+The idea of pulling in existing code and integrating it is new, but it's a natural extension to what this project has evolved into (this started as trying to make a paint program 15 years ago XD).  More recently I realized, there is no need to write all the features and functionality alone, as there already exist so many amazing open source programs with the code components necessary to get the desired behaviour.  There just needs to be a way to integrate those projects designed with different languages into one easy to use common form...  well here it is! (maybe...)
 
 Honestly if this just ends up being a nice python-based coding and visual programming api that compiles into c, I'm quite happy!  Integrating other languages and projects would just be a bonus, though a nice one!
 
@@ -208,7 +208,7 @@ A way of standardizing communication structures, following the **`(*args, **kwar
 
 ### `../snap/lib/graphics`
 
-`SnapMatrix` → `SnapMetrics` → `SnapContainer` → **user** is the basic intended design. Use `SnapContainer` (or subclass) as the base for all of your renderable elements.
+`SnapMatrix` → `SnapMetrics` → `SnapContainer` → **user** is the basic intended design. Use `SnapContainer` (or a subclass) as the base for all of your renderable elements.
 
 #### SnapMatrix
 

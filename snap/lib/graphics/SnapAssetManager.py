@@ -3,3 +3,7 @@
 #	-- could also handle ordering, layer swapping, and layout!  while making assets exchangable and identifiable by name
 #	-- re-assigning asset should keep the original reference so we can recover the original by just passing 'asset'=True
 
+def build(ENV):
+
+	pass
+

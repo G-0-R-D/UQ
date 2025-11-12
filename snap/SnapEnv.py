@@ -255,6 +255,7 @@ class SnapEnv(object):
 				print('ENV.__build__ >>', STRING)
 
 		if module_name not in self.__PRIVATE__['__BUILT_MODULES__']:
+
 			# NOTE: the reason double build can't be allowed is because if a build localizes with Class = ENV.Class then a new ENV.Class assignment would be a different Class than the one in use!
 			#raise NameError('double build', module_name)
 
@@ -267,7 +268,6 @@ class SnapEnv(object):
 			_return = module.build(self)
 			self.__PRIVATE__['__BUILT_MODULES__'][module_name] = module
 		else:
-			#self.snap_warning('double build', repr(module_name))
 			_return = self.__PRIVATE__['__BUILT_MODULES__'][module_name]
 
 		return _return
@@ -409,6 +409,7 @@ class SnapEnv(object):
 		self.__build__('snap.lib.extern')
 		self.__build__('snap.lib.core')
 
+		self.__build__('snap.lib.events')
 		self.__build__('snap.lib.graphics')
 		self.graphics.load(name=KWARGS.get('graphics', 'QT5'))
 

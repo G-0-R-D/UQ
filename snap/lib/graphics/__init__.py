@@ -1,8 +1,6 @@
 
 def build(ENV):
 
-	ENV.__build__('snap.lib.graphics.event')
-
 	ENV.__build__('snap.lib.graphics.SnapMatrix')
 	ENV.__build__('snap.lib.graphics.SnapMetrics')
 	#SnapSpace, XXX SnapTask will fill this role
@@ -32,6 +30,7 @@ def build(ENV):
 	ENV.__build__('snap.lib.graphics.SnapEngine')
 
 	#imp('snap.lib.graphics.SnapTransformable')
+	ENV.__build__('snap.lib.graphics.SnapAssetManager')
 	ENV.__build__('snap.lib.graphics.SnapContainer')
 	ENV.__build__('snap.lib.graphics.SnapCamera')
 	ENV.__build__('snap.lib.graphics.SnapWindow')
