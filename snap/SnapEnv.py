@@ -28,7 +28,7 @@ SNAP_DIR = os.path.realpath(os.path.dirname(__file__)).rstrip(os.sep)
 assert SNAP_DIR.endswith('snap'), 'not in snap project directory? {}'.format(repr(THISDIR))
 SNAP_PATH = os.path.dirname(SNAP_DIR)
 """
-assert THISDIR.endswith('snap/lib/core'), 'not in core folder? {}'.format(THISDIR)
+assert THISDIR.endswith('snap/core'), 'not in core folder? {}'.format(THISDIR)
 assert THISDIR.count('snap') == 1, 'incorrect folder structure for ENV setup? {}'.format(THISDIR)
 SNAP_DIR = THISDIR
 while not SNAP_DIR.endswith('snap'):
@@ -295,8 +295,6 @@ class SnapEnv(object):
 
 		win = GUI.Window() # so self.GUI.MAINWINDOW exists before user.__init__() is run
 
-		#self.__build__('snap.lib.app')
-
 
 		instance = None
 		if isinstance(NODE, str):
@@ -406,38 +404,36 @@ class SnapEnv(object):
 
 		# TODO only build these if parent ENV is None or in separate thread...
 		# TODO also use lazy loading system... XXX that will be for interpreted components...
-		self.__build__('snap.lib.extern')
-		self.__build__('snap.lib.core')
+		self.__build__('snap.extern')
+		self.__build__('snap.core')
 
-		self.__build__('snap.lib.events')
-		self.__build__('snap.lib.graphics')
+		self.__build__('snap.events')
+		self.__build__('snap.graphics')
 		self.graphics.load(name=KWARGS.get('graphics', 'QT5'))
 
-		self.__build__('snap.lib.os.multiprocessing')
-		self.__build__('snap.lib.os.devices')
-		self.__build__('snap.lib.gui')
+		self.__build__('snap.os.multiprocessing')
+		self.__build__('snap.os.devices')
+		self.__build__('snap.gui')
 		GUI = self.gui.load(name=KWARGS.get('gui', 'QT5'))
 
-		self.__build__('snap.lib.parsing')
-
-		self.__build__('snap.lib.programming')
+		self.__build__('snap.programming')
 
 
 def main():
 
 	ENV = SnapEnv()
 
-	#ENV.__run_gui__(None)#'snap.lib.graphics.engines.SnapEngineTest')
-	#ENV.__run_gui__('snap.lib.gadgets.media.SnapMediaPlayer')
-	#ENV.__run__('snap.lib.core.SnapNode')
-	#ENV.__run__('snap.lib.media.SnapMediaReader')
-	#ENV.__run_gui__('snap.lib.os.devices.SnapDevicesTest')
-	#ENV.__run__('snap.lib.os.devices.SnapDeviceKeyboard')
-	ENV.__run_gui__('snap.lib.gui.widgets.SnapButton')
-	#ENV.__run__('snap.lib.graphics.shader.SnapShaderProgram')
-	#ENV.__run_gui__('snap.lib.gadgets.code.SnapCodeViewer')
+	#ENV.__run_gui__(None)#'snap.graphics.engines.SnapEngineTest')
+	#ENV.__run_gui__('snap.gadgets.media.SnapMediaPlayer')
+	#ENV.__run__('snap.core.SnapNode')
+	#ENV.__run__('snap.media.SnapMediaReader')
+	#ENV.__run_gui__('snap.os.devices.SnapDevicesTest')
+	#ENV.__run__('snap.os.devices.SnapDeviceKeyboard')
+	ENV.__run_gui__('snap.gui.widgets.SnapButton')
+	#ENV.__run__('snap.graphics.shader.SnapShaderProgram')
+	#ENV.__run_gui__('snap.gadgets.code.SnapCodeViewer')
 
-	#ENV.__run__('snap.lib.parsing.language.c')
+	#ENV.__run__('snap.parsing.language.c')
 
 if __name__ == '__main__':
 

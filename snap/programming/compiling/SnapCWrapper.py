@@ -1,0 +1,3 @@
+
+# TODO since we're compiling to c, we might as well include the ability to interface with existing c libraries by wrapping them in SnapObject_t* interfaces...
+
