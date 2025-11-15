@@ -21,6 +21,16 @@
 - 🎨/📽 *(graphics/animation)* get the animation system working via `ENV.ANIMATION.animate(...)`
 
 	
+---------------
+
+
+---------------
+## 2025.11.14 📢
+---------------
+
+- 📊/🎨/𝐓 *(report/graphics/text)* Polished up text metrics a bit more. Seems to all be working, but some features still missing (like subline extents).  Done working on it for now...
+
+
 
 ---------------
 ## 2025.11.13 📢

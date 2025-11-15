@@ -116,8 +116,8 @@ def build(ENV):
 				return m
 
 			def set(self, MSG):
-				"""(matrix=snap_matrix_t|SnapMatrix!)->None"""
-				value = MSG.unpack('matrix', None)
+				"(snap_matrix_t|SnapMatrix!)"
+				value = MSG.args[0]
 				if isinstance(value, SnapMatrix):
 					value = value['matrix']
 

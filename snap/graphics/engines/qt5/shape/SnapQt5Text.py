@@ -204,17 +204,22 @@ def build(ENV):
 			else:
 				WRAP_WIDTH = document.size().width()
 
+			qtext.setLineWrapMode(Qt5.QTextEdit.FixedPixelWidth)
+			qtext.setLineWrapColumnOrWidth(int(WRAP_WIDTH))
+			document.setTextWidth(WRAP_WIDTH)
+
 			ext = self['extents']
 			if ext is None:
-				DOC_WIDTH = WRAP_WIDTH
-				DOC_HEIGHT = document.size().height()
+				DOC_WIDTH = WRAP_WIDTH # TODO also get from cursor?  but that would mean widest line, would have to check all!
+				#DOC_HEIGHT = document.size().height()
+				cursor = qtext.textCursor()
+				cursor.setPosition(len(text))
+				rect = qtext.cursorRect(cursor)
+				DOC_HEIGHT = rect.y() + rect.height() + 10 # +10 because if we set to exactly the height the last line is wrong...
 			else:
 				DOC_WIDTH = ext[3]-ext[0]
 				DOC_HEIGHT = ext[4]-ext[1]
 
-			qtext.setLineWrapMode(Qt5.QTextEdit.FixedPixelWidth)
-			qtext.setLineWrapColumnOrWidth(int(WRAP_WIDTH))
-			document.setTextWidth(WRAP_WIDTH)
 			document.setPageSize(QSizeF(WRAP_WIDTH, DOC_HEIGHT))
 
 			qtext.setGeometry(0, 0, int(DOC_WIDTH), int(DOC_HEIGHT))
@@ -260,17 +265,16 @@ def build(ENV):
 				elif X < x:
 					R = C - 1
 				elif X > x:
-					# now we need to verify we are within the glyph, not just the min
+					# now we need to verify we are within the glyph, not just > min
 					# (or it will advance to the next position!)
 					cursor.setPosition(C + 1)
-					rect = qtext.cursorRect(cursor)
-					if rect.y() > y:
-						# make sure new rect is still on same line,
-						# we don't want the next line, we want the rightmost
-						# glyph/x in this one...
+					next_rect = qtext.cursorRect(cursor)
+					if next_rect.y() > y:
+						# if the next glyph/x would be on the next line/y,
+						# then this glyph/x is the best match possible, return it
 						return C
-					if X < rect.x():
-						# this is the glyph
+					if X < next_rect.x():
+						# X < next x; this is the glyph/x
 						return C
 					else:
 						# glyph is still to the right (but in this line/y)
@@ -292,8 +296,9 @@ def build(ENV):
 			cursor.setPosition(glyph_idx)
 			block = cursor.block()
 
+			# NOTE: this is between newlines (QTextBlock does not contain newlines)
 			s = block.position()
-			e = s + block.length()
+			e = s + block.length()-1 # -1 to exclude the newline
 
 			return s,e
 
@@ -308,6 +313,12 @@ def build(ENV):
 		def glyph_extents(self, INDEX):
 
 			qtext = self['__engine_data__']
+			text = self['text']
+
+			text_length = len(text)
+
+			if INDEX >= text_length:
+				INDEX = text_length
 
 			cursor = qtext.textCursor()
 			cursor.setPosition(INDEX)
@@ -315,25 +326,32 @@ def build(ENV):
 
 			first_rect = qtext.cursorRect(cursor)
 
-			cursor.setPosition(INDEX+1)
+			cursor.setPosition(min(text_length, INDEX+1))
 
 			second_rect = qtext.cursorRect(cursor)
 
-			return [first_rect.x(), first_rect.y(), 0, second_rect.x(), first_rect.y() + second_rect.height(), 0]
+			return snap_extents_t(first_rect.x(), first_rect.y(), 0, second_rect.x(), first_rect.y() + second_rect.height(), 0)
 
 
 		def text_extents(self, start=None, end=None):
 
 			qtext = self['__engine_data__']
+			text = self['text']
+			text_length = len(text)
 
 			# TODO start and end can be negative, meaning from the end...
 			if start is None:
 				start = 0
 			elif start < 0:
-				start = len(self['text']) - abs(start)
+				start = max(0, text_length - abs(start))
 
+			# TODO end < 0 from end as well?
 			if end is None:
-				end = len(self['text'])-1
+				end = text_length
+			if end < start:
+				end = start
+			if end > text_length:
+				end = text_length
 
 			#assert isinstance(start, int) and isinstance(end, int), 'start/end range must be int type if provided'
 
@@ -344,30 +362,53 @@ def build(ENV):
 			cursor.setPosition(block.position())
 			rect = qtext.cursorRect(cursor)
 
+			first_rect = rect
+
+			#ENV.snap_out('text_extents', [start,end], [block.position(), min(text_length, block.position()+block.length()-1)], repr(text[start:end]), rect)
+
 			minpoint = [rect.x(), rect.y()]
 
-			cursor.setPosition(end)
-			block = cursor.block()
-			cursor.setPosition(block.position() + block.length())
-			rect = qtext.cursorRect(cursor)
+			if 0:
+				cursor.setPosition(end)
+				block = cursor.block()
+				cursor.setPosition(block.position() + block.length()-1)
+				rect = qtext.cursorRect(cursor)
+			else:
+				# if multi-subline, rather than check the size of each subline,
+				# just set the width to the wrap width to be more efficient...
+				# since multi-subline guarantees we're > word_wrap_width
+				cursor.setPosition(end, Qt5.QTextCursor.KeepAnchor)
+				block = cursor.block()
+				cursor.setPosition(block.position() + block.length()-1)
+				rect = qtext.cursorRect(cursor)
 
-			return [minpoint[0], minpoint[1], 0, minpoint[0]+rect.x(), minpoint[1]+rect.height(), 0]
+				if rect.y() == minpoint[1]:
+					#print('inline', repr(text[start:end]))
+					WIDTH = rect.x()+rect.width()
+				else:
+					#print('not inline', repr(text[start:end]), self['word_wrap_width'])
+					WIDTH = self['word_wrap_width']
+
+			#ENV.snap_out('text_extents', [start,end], repr(text[start:end]), first_rect.y(), rect.y()+rect.height(), (minpoint[0], minpoint[1], 0, rect.x(), rect.y()+rect.height(),0))
+
+			#return snap_extents_t(minpoint[0], minpoint[1], 0, rect.x()+rect.width(), rect.y()+rect.height(), 0)
+			return snap_extents_t(minpoint[0], minpoint[1], 0, WIDTH, rect.y()+rect.height(),0)
 
 
 
-		def newlines(self, start=None, end=None):
+		def newlines(self):
 			# returns list of spans representing the body of each newline (ignoring word wrap, use sublines for all lines)
 
 			text = self['text']
 
-			if start is None:
-				start = 0
-			if end is None:
-				end = len(text)-1
+			# we need to backup the start to newline if it isn't at the start of one...
+			# XXX just get list of all newline indices, and then check if one after <= start?  or next newline < end?
+			#while start > 0 and text[start] != '\n':
+			#	start -= 1
 
 			# spans are returned without the newline character included
-			indices = [start] + [idx for idx,val in enumerate(text) if val == '\n' and start <= idx <= end] + [end+1]
-			return [(indices[idx]+1, indices[idx+1]) for idx in range(len(indices)-1)]
+			indices = [0] + [idx+1 for idx,val in enumerate(text) if val == '\n'] + [len(text)]
+			return [(indices[idx], indices[idx+1]-1) for idx in range(len(indices)-1)]
 
 		def __init__(self, text=None, **SETTINGS):
 			SnapText.__init__(self, text=text, **SETTINGS)

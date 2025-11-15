@@ -1,8 +1,6 @@
 
 def build(ENV):
 
-	SnapNode = ENV.SnapNode
-
 	snap_matrix_t = ENV.snap_matrix_t
 	SnapMatrix = ENV.SnapMatrix
 	SNAP_IDENTITY_MATRIX = ENV.SNAP_IDENTITY_MATRIX
@@ -12,8 +10,7 @@ def build(ENV):
 
 	#SnapProperty = ENV.SnapProperty
 
-	# NOTE: deliberately not a SnapNode subtype for speed!
-	class SnapContext(SnapNode):
+	class SnapContext(SnapMatrix):
 
 		__slots__ = [
 		#'_config_', '_engine_context_',#'_config_defaults_',
@@ -48,24 +45,25 @@ def build(ENV):
 		@ENV.SnapProperty
 		class matrix:
 
-			def get(self, MSG):
-				"""()->snap_matrix_t"""
-				m = self.__snap_data__['matrix']
-				if m is None:
-					m = snap_matrix_t(*SNAP_IDENTITY_MATRIX)
-					self.__snap_data__['matrix'] = m
-				return snap_matrix_t(*m)
+			#def get(self, MSG):
+			#	"""()->snap_matrix_t"""
+			#	m = self.__snap_data__['matrix']
+			#	if m is None:
+			#		m = snap_matrix_t(*SNAP_IDENTITY_MATRIX)
+			#		self.__snap_data__['matrix'] = m
+			#	return snap_matrix_t(*m)
 
 			def set(self, MSG):
-				"""(snap_matrix_t|SnapMatrix)"""
-				m = MSG.args[0]
-				if m is None:
-					self.__snap_data__['matrix'] = snap_matrix_t(*SNAP_IDENTITY_MATRIX)
-				else:
-					if isinstance(m, SnapMatrix):
-						m = m['matrix']
-					assert isinstance(m, snap_matrix_t), 'not a matrix type? {}'.format(type(m))
-					self.__snap_data__['matrix'] = snap_matrix_t(*m)
+				"(snap_matrix_t|SnapMatrix)"
+				SnapMatrix.matrix.set(self, MSG)
+				#m = MSG.args[0]
+				#if m is None:
+				#	self.__snap_data__['matrix'] = snap_matrix_t(*SNAP_IDENTITY_MATRIX)
+				#else:
+				#	if isinstance(m, SnapMatrix):
+				#		m = m['matrix']
+				#	assert isinstance(m, snap_matrix_t), 'not a matrix type? {}'.format(type(m))
+				#	self.__snap_data__['matrix'] = snap_matrix_t(*m)
 
 				try:
 					self.cmd_apply_matrix()
@@ -453,7 +451,7 @@ def build(ENV):
 		"""
 
 		def __init__(self, image=None, depth=None, **SETTINGS):
-			SnapNode.__init__(self, **SETTINGS)
+			SnapMatrix.__init__(self, **SETTINGS)
 
 			# XXX this needs to happen once context is assigned...
 			#for k,v in self.CONFIG_DEFAULTS.items():

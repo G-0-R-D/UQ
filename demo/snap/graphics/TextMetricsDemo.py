@@ -49,10 +49,12 @@ def build(ENV):
 					index = self.text_graphic.glyph_at_position(*local_position)
 					if index is not None and index < len(self.text_graphic['text']):
 						self.current_hover_glyph = repr(self.text_graphic['text'][index])
+						#ENV.snap_out('hover glyph', repr(self.current_hover_glyph))
 						self.hover_glyph_ext = self.text_graphic.glyph_extents(index)
 					else:
+						#ENV.snap_warning('index', index, len(self.text_graphic['text']),self.text_graphic.glyph_extents(index)[:])
 						self.current_hover_glyph = None
-						self.hover_glyph_ext = None
+						self.hover_glyph_ext = self.text_graphic.glyph_extents(index)
 
 		def animate(self):
 
@@ -65,6 +67,7 @@ def build(ENV):
 				if not newlines_idx < len(newlines):
 					newlines_idx = 0
 				start,end = newlines[newlines_idx]
+				ENV.snap_out('line', repr(self.text_graphic['text'][start:end]))
 				self.animated_line_ext = self.text_graphic.text_extents(start,end)
 				newlines_idx += 1
 
