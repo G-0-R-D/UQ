@@ -91,21 +91,21 @@ ln -s /absolute/path/to/UQ/snap /absolute/path/to/python<x>/snap
 
 ## Orientation
 
-### `../snap/lib/core`
+### `UQ/snap/core`
 
->*see: [../snap/core/README.md](https://github.com/G-0-R-D/UQ/tree/main/snap/core/README.md)*
+>*see: [UQ/snap/core/README.md](https://github.com/G-0-R-D/UQ/tree/main/snap/core/README.md)*
 
-### `../snap/lib/graphics`
+### `UQ/snap/graphics`
 
->*see: [../snap/graphics/README.md](https://github.com/G-0-R-D/UQ/tree/main/snap/graphics/README.md)*
+>*see: [UQ/snap/graphics/README.md](https://github.com/G-0-R-D/UQ/tree/main/snap/graphics/README.md)*
 
-### `../snap/lib/gui`
+### `UQ/snap/gui`
 
->*see: [../snap/gui/README.md](https://github.com/G-0-R-D/UQ/tree/main/snap/gui/README.md)*
+>*see: [UQ/snap/gui/README.md](https://github.com/G-0-R-D/UQ/tree/main/snap/gui/README.md)*
 
-### `../snap/lib/programming`
+### `UQ/snap/programming`
 
->*see: [../snap/programming/README.md](https://github.com/G-0-R-D/UQ/tree/main/snap/programming/README.md)*
+>*see: [UQ/snap/programming/README.md](https://github.com/G-0-R-D/UQ/tree/main/snap/programming/README.md)*
 
 #### TODO
 

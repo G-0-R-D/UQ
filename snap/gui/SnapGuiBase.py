@@ -264,22 +264,17 @@ def build(ENV):
 					
 
 			elif isinstance(DEVICE, ENV.SnapDeviceKeyboard):
-				ENV.snap_out('keyboard event', ACTION, SOURCE)
+				#ENV.snap_out('unhandled keyboard event', ACTION, SOURCE)
 
-				# TODO objects can just register/unregister themselves with keyboard interact_info?
+				# TODO just forward to user window?  indicate local?  propagate if not return True?
+				# TODO active window is ['windows'][-1] (on top) # TODO make sure it is on pointer events...
 
-				KEYBOARD = DEVICE
-
-				if ACTION == 'press':
-					'handle press'
-
-				elif ACTION == 'release':
-					'handle release'
-
-				# TODO Text event?  action='text_entry'
-
-				else:
-					ENV.snap_debug('unknown keyboard event', ACTION, SOURCE)
+				open_windows = self['windows']
+				if open_windows:
+					# TODO maintain active_window at front of list
+					active_window = open_windows[0]
+					user_window = active_window['__user_window__']
+					user_window.device_event.__direct__(MSG)
 
 			else:
 				ENV.snap_debug('unknown device event?', ACTION, SOURCE)

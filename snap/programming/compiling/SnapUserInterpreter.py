@@ -1,4 +1,7 @@
 
+# same as SnapUserCompiler, but instead of compiling to c, this maps to the opcodes directly
+#	-- this will be compiled into c... 
+
 # https://docs.python.org/3/library/operator.html
 from operator import (
 	# TODO these will need to be implemented by the c api, but will work in python for now!

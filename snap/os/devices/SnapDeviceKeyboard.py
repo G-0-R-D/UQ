@@ -2,9 +2,18 @@
 # https://www.berrange.com/tags/gtkvnc/
 # https://github.com/rust-windowing/winit/issues/753
 
+import os
+import json
 
+from PyQt5.QtGui import *
+from PyQt5.QtCore import * # Qt
 
 from weakref import ref as weakref_ref
+
+THISDIR = os.path.realpath(os.path.dirname(__file__))
+
+CONFIG_FILE = os.path.join(THISDIR, 'config/SnapDeviceKeyboard.json')
+
 
 def build(ENV):
 
@@ -14,135 +23,58 @@ def build(ENV):
 	#SnapEvent = ENV.SnapEvent
 
 	#snap_keycode_to_name = ENV.snap_keycode_to_name
-	SNAP_KEYMAP = ENV.SNAP_KEYMAP
 	SnapDeviceInputButton = ENV.SnapDeviceInputButton
 	SnapDeviceGroup = ENV.SnapDeviceGroup
 	SnapDevice = ENV.SnapDevice
 
-	class SnapDeviceKeyGroup(SnapDeviceGroup):
 
-		__slots__ = []
+	def load_keymap(FILE):
+		# if SNAP_KEYMAP.json is missing then generate a new one from Qt keynames
 
-		# TODO children are in numerical (code) order?  and also by name?
+		if not os.path.exists(FILE):
 
-		# access by code or name
+			seen = set()
+			unique_keys = []
+			for attr in dir(Qt):
+				if not attr.lower().startswith('key_'): continue
+				if attr == 'Key_Any': continue # same value as spacebar, we'll use spacebar...
+				value = getattr(Qt, attr)
+				assert value not in seen, 'duplicate Qt key? {}'.format(repr(attr))
+				seen.add(value)
+				unique_keys.append(attr)
+				
 
+			KEYMAP = {qtname[len('key_'):]:{"Qt":qtname} for qtname in unique_keys}
+			with open(FILE, 'w') as openfile:
+				config = {'keymap':KEYMAP} # so we can store other config as well...  futureproof :)
+				openfile.write(json.dumps(config, indent=4))
+		else:
+			with open(FILE, 'r') as openfile:
+				config = json.loads(openfile.read())
+				KEYMAP = config['keymap']
 
-	class SnapDeviceKeyboardKeySymbol(SnapNode):
+		"""
+		just go through, find all entries with scan codes and register them ahead for disambiguation
+			-- make a dict of 'resolve by scan code' Qt name: identity, then if we encounter name in there, it must resolve (None scan code is okay)
+		then go through and if we have a scan code or a collision, disambiguate (assign scan code dict) 
 
-		__slots__ = []
+		or on first pass just register Qtname:[entries] and then find those that have multiple entries that are unresolvable...
+		"""
 
-		@ENV.SnapProperty
-		class name:
+		# just verify that all mappings would be unique...
+		identities = set()
+		for name,entry in KEYMAP.items():
 
-			def get(self, MSG):
-				"()->str"
-				return self.__snap_data__['name']
+			identity = (name, entry['Qt'], entry.get('scan'))#, entry.get('key'))
+			if identity in identities: # TODO what if we have a key with same name but one with scan code and one without?
+				raise NameError('duplicate key?', identity)
+			identities.add(identity)
 
-			"""
-			def set(self, MSG):
-				"(str!)"
-				name = MSG.args[0]
-				if name is not None:
-					assert isinstance(name, str), 'name must be string'
-				self.__snap_data__['name'] = name
-				self.changed(name=name)
-			"""
-
-		@ENV.SnapProperty
-		class text:
-
-			def get(self, MSG):
-				"()->str"
-				return self.__snap_data__['text'] or ''
-
-			"""
-			def set(self, MSG):
-				"(str!)"
-				text = MSG.args[0]
-				if text is not None:
-					assert isinstance(text, str), 'text must be string'
-				self.__snap_data__['text'] = text
-				self.changed(text=text)
-			"""
-
-		@ENV.SnapProperty
-		class code:
-
-			def get(self, MSG):
-				"()->int"
-				code = self.__snap_data__['code']
-				if code is None:
-					return -1
-				return code
-
-			"""
-			def set(self, MSG):
-				"(int!)"
-				value = MSG.args[0]
-				if value is not None:
-					assert isinstance(value, int), 'value must be int'
-				self.__snap_data__['value'] = value
-				self.changed(value=value)
-			"""
-
-		@code.shared
-		class keycode: pass
-
-		def __init__(self, name=None, code=None, text=None):
-			SnapNode.__init__(self)
-
-			if name is not None:
-				assert isinstance(name, str), 'name must be string'
-			if code is not None:
-				assert isinstance(code, int), 'code must be int'
-			if text is not None:
-				assert isinstance(text, str), 'text must be string'
-
-			self.__snap_data__['name'] = name
-			self.__snap_data__['code'] = code
-			self.__snap_data__['text'] = text
-
-			# this is logicless, the owner needs to assign the correct values... (it's really just a dict, but with SnapNode api)
-
-			#self.set(**{k:v for k,v in SETTINGS.items() if k in ('name', 'value', 'text')})
-
-	ENV.SnapDeviceKeyboardKeySymbol = SnapDeviceKeyboardKeySymbol
-
+		return KEYMAP
 
 	class SnapDeviceKeyboardKey(SnapDeviceInputButton):
 
 		__slots__ = []
-
-		"""
-		def text(self, level=None):
-			symbol = self.symbol(level=level)
-			if symbol:
-				return symbol.text()
-			return None
-
-		def value(self, level=None):
-			symbol = self.symbol(level=level)
-			if symbol:
-				return symbol.value()
-			return None
-
-		def nameXXX(self):
-			# key name is always scan code name
-			for symbol in getattr(self, '_symbols_', []):
-				if symbol:
-					return symbol.name()
-			return None
-		"""
-
-		# XXX instead of this do something like keyboard.shift.enabled()?
-		"""
-		def level(self):
-			keyboard = self.device()
-			if keyboard:
-				return keyboard.level()
-			return 0
-		"""
 
 		@ENV.SnapProperty
 		class name:
@@ -187,181 +119,13 @@ def build(ENV):
 				self.changed(code=code, name=name)
 		"""
 
-		@ENV.SnapProperty
-		class symbols:
-
-			def get(self, MSG):
-				"""()->list(*SnapDeviceKeyboardKeySymbol)"""
-				return self.__snap_data__['symbols'] or []
-
-		@ENV.SnapProperty
-		class symbol:
-
-			def get(self, MSG):
-				"""(level=int?)->SnapDeviceKeyboardKeySymbol"""
-				level = MSG.unpack('level', None)
-
-				symbols = self['symbols']
-
-				if level is None:
-					keyboard = self['device']
-					if keyboard is None:
-						ENV.snap_warning('no keyboard to determine active level, assigning to 0')
-						level = 0
-					else:
-						level = int(keyboard['shift_enabled'])
-
-				if level > -1 and level < len(symbols):
-					return symbols[level]
-
-				return None
-
-			#def set(self, MSG):
-			#	''
-
-
-		"""
-		def generate_eventXXX(self, MSG):
-			# TODO??
-
-			EVENT = MSG.args[0]
-			EXTRAS = MSG.kwargs
-
-			# TODO if self is modifier (shift key), then update keyboard level
-			# TODO make this snap_event(&keyboard, "MODIFIER_EVENT", ...)?  add to list of "active_modifiers"?
-
-			level = 0
-			scancode = self.code()
-
-			if scancode == SNAP_SCANCODE_CAPSLOCK:
-				'toggle on / off' # TODO RELEASE does not release a toggle button, but another press when state is true...
-				# TODO just add mode=toggle to SnapDeviceInputButton...
-
-
-		
-			# XXX keyboard.shift_enabled() -> (shift_L | shift_R) ^ CAPSLOCK -> just find() by code?
-
-			if keyval and (
-				# TODO use self.code() == SNAP_SCANCODE_LSHIFT | RSHIFT...
-				# actually use special shift group to handle this?
-				keyval == SNAP_KEYVAL_Shift_L or \
-				keyval == SNAP_KEYVAL_Shift_R
-				# TODO keyval == SNAP_KEYVAL_Caps_Lock
-				):
-
-				keyboard = self['device']
-
-				if EVENT == "PRESS":
-					# set level 1
-					# TODO check level is not 1 first?
-					keyboard.set(level=1)
-
-				elif EVENT == "RELEASE":
-					# set level 0 (if all shift keys are released!)
-
-					modifiers = keyboard.get("MODIFIERS")
-					children = modifiers['children'] # XXX no more children
-
-					#snap_out("device(%p) modifiers(%p) children(%p)", device, modifiers, children);
-
-					still_caps = False
-					for key in children:
-						if key['name'] in ('Shift_L', 'Shift_R'):
-							# TODO capslock on?
-							if key != self and key['state'] == True:
-								still_caps = True
-								break
-
-						#snap_out('modifier name', name)
-
-					if not still_caps:
-						keyboard.set(level=0)
-
-			return SnapDeviceInputButton.generate_event(self, SnapMessage(EVENT, **EXTRAS))
-		"""
-
-		def define_symbol(self, code=None, level=None, text=None):
-
-			# NOTE XXX text is temporary, until more robust mapping (create symbol_value -> text mapping (for applicable symbols)		
-
-			if not (code is not None and SNAP_KEYMAP.snap_keycode_to_name(code)):
-				raise ValueError("must provide valid symbol code!")
-
-			if level is None:
-				level = 0
-
-			symbol = None
-
-			# check if symbol already exists
-			symbols = self['symbols']
-			if symbols is not None and level < len(symbols) and symbols[level] is not None:
-				# symbol entry exists
-				symbol = symbols[level]
-				keycode = symbol['code']
-				if keycode != code:
-					ENV.snap_error("existing symbol with different code!")
-					raise KeyError('another symbol({}) already occupies level({})'.format(symbol['name'], level))
-				else:
-					ENV.snap_debug("symbol({}) already added to key".format(SNAP_KEYMAP.snap_keycode_to_name(code)))
-			else:
-				# create new and add
-				if level < 0 or level > 10:
-					raise ValueError('level out of acceptable range', level)
-
-				name_before = self['name']
-				while len(symbols) <= level:
-					symbols.append(None) # pad with None
-				symbols[level] = SnapDeviceKeyboardKeySymbol(code=code, name=SNAP_KEYMAP.snap_keycode_to_name(code), text=text)
-
-				self.__snap_data__['symbols'] = symbols
-
-				if name_before != self['name']:
-					self.changed(name=self['name'])
-			
-			return None
-
-		"""
-		def add(self, MSG):
-
-			OTHER_SETTINGS = {k:v for k,v in MSG.kwargs.items() if k not in ('symbol','level')}
-
-			symbol,level = MSG.unpack('symbol',None, 'level',None, ignore_args=True)
-
-			if OTHER_SETTINGS: # XXX TODO?
-				SnapDeviceInputButton.add(self, SnapMessage(**OTHER_SETTINGS))
-
-			if level is not None or symbol is not None:
-				if not (level is not None and symbol is not None):
-					raise ValueError('level and symbol must be defined together')
-				
-				if level < 0 or level > 10:
-					raise ValueError('level out of acceptable range')
-
-				existing = self['symbol', SnapMessage(level=level)]
-				if existing and id(existing) != id(symbol):
-					raise KeyError("another symbol({}) already occupies level({})".format(existing.name(), level))
-
-				name_before = self['name']
-				symbols = self['symbols']
-				while len(symbols) <= level:
-					symbols.append(None)
-				symbols[level] = symbol
-
-				self['symbols'] = symbols
-
-				#snap_listen(symbol, self) # ?
-
-				if name_before != self['name']:
-					keyboard = self['device']
-					if keyboard:
-						keyboard.changed.send(name=name_before)
-		"""
 
 		def __init__(self, code=None, **SETTINGS):
 			SnapDeviceInputButton.__init__(self, **SETTINGS)
 
 			#self.define_symbol(code=code, level=level, text=text)
 
+			# TODO instead of codes maybe just use indices?
 			self.__snap_data__['code'] = code # scan code (hardware) -- keyval code is assigned to symbol
 
 			#self['symbols'] = []
@@ -375,26 +139,37 @@ def build(ENV):
 
 		__slots__ = []
 
+		KEYMAP = load_keymap(CONFIG_FILE)
+
 		@ENV.SnapProperty
 		class shift_enabled:
 
 			def get(self, MSG):
 				"()->bool"
 
-				keys = self.get('keys')
+				modifiers = self.get('modifiers')
 
-				LSHIFT = keys.get("LSHIFT")
-				RSHIFT = keys.get("RSHIFT")
-				CAPSLOCK = keys.get("CAPSLOCK")
+				# supporting one "Shift" key, or "LeftShift", "RightShift" keys if enabled in config
+				SHIFT_KEYS = []
+				CAPSLOCK = None
+				for key in modifiers:
+					name = key['name']
+					if 'shift' in name.lower():
+						SHIFT_KEYS.append(key)
+					elif 'capslock' in name.lower():
+						CAPSLOCK = key
 
-				if not (LSHIFT and RSHIFT and CAPSLOCK):
-					ENV.snap_warning('missing a shift modifier key?', LSHIFT, RSHIFT, CAPSLOCK)
+				if not (SHIFT_KEYS and CAPSLOCK):
+					ENV.snap_warning('missing a shift modifier key?', SHIFT_KEYS, CAPSLOCK)
 					return False
 
-				return (LSHIFT['state'] | RSHIFT['state']) ^ CAPSLOCK['state']
+				return any(k['state'] for k in SHIFT_KEYS) ^ CAPSLOCK['state']
 
 		@ENV.SnapProperty
 		class level:
+
+			# TODO if we implement the backend ourself then this would be useful for mapping the text,
+			# but otherwise doesn't do much right now :)
 
 			def get(self, MSG):
 				"()->int"
@@ -412,131 +187,15 @@ def build(ENV):
 		def key_event_intercept(self, MSG):
 			'' # TODO listen to self.device_event with this, and if it's a text key then send a text event
 			ENV.snap_out('key intercept, check for text', MSG) # forward through self.text_event.send()
+			# XXX backend will handle this, keyboard just has keys now (doesn't even need scancodes!)
 
 
+		# XXX text events will be sent as device_event(action='text_input', ...)
+		"""
 		@ENV.SnapChannel
 		def text_event(self, MSG):
 			'()'
-			# TODO listen to this for text events
-
-
-		@ENV.SnapChannel
-		def generate_eventXXX(self, MSG): # XXX move this onto the key...
-
-			EVENT = MSG.args[0]
-			code = MSG.unpack('code',None)
-			EXTRAS = {k:v for k,v in MSG.kwargs.items() if k not in ('code',)}
-
-			# TODO if EVENT == "TEXT": generate text event through text group...  otherwise raise (key events should go through the keys direct...
-
-			if not (EVENT == "PRESS" or EVENT == "RELEASE"):
-				raise Exception('event({}) unsupported'.format(EVENT))
-
-			if code is None or code < 0:
-				raise ValueError('invalid code({}) for event'.format(code))
-
-			key = self.get(code)
-			if not key:
-				raise KeyError('no key for code({})'.format(code))
-
-			return key.generate_event(EVENT, **EXTRAS)
-
-
-		@ENV.SnapChannel
-		def key_for_keycodeXXX(self, MSG): # XXX just use get(code) (TODO distinguish keyval from scancode?)
-			"""(keycode=int)->SnapDeviceKeyboardKey"""
-			
-			# key instance based on symbol on the key
-			# NOTE: this is not very efficient TODO use the keymap and just consider entries with 'keys'?
-
-			KEYCODE = MSG.unpack('keycode',None) if MSG is not None else None
-
-			all_inputs = self.__snap_data__['__inputs_by_id__']
-			if all_inputs is None:
-				return None
-
-			for key in all_inputs.values():
-				symbols = key['symbols']
-				if symbols is not None:
-					for symbol in symbols:
-						keycode = symbol['code']
-						if keycode == KEYCODE:
-							return key
-
-			return None
-
-		#@ENV.SnapChannel
-		def define_keyXXX(self, code, value, text, level): # XXX TODO not a channel, make internal
-
-			#SETTINGS = {k:v for k,v in MSG.kwargs.items() if k not in ('code','text','level')}
-			#code,value,text,level = MSG.unpack('code',None, 'text',None, 'level',None)
-
-			#if SETTINGS:
-			#	ENV.snap_warning('unknown args', SETTINGS.keys())
-		
-			if level is None:
-				level = 0
-
-			# NOTE: code is scancode here...
-			if code is None or code < 0 or not SNAP_KEYMAP.snap_keycode_to_name(code):
-				raise ValueError('invalid code({}) in define_key'.format(code))
-
-			if level > 10:
-				raise ValueError('key level too high', level)
-
-			key = self.get(code)
-			if key is None:
-				# create new key
-				if level != 0:
-					ENV.snap_warning('creating new key for level != 0')
-				key = SnapDeviceKeyboardKey(code=code, device=self)
-				self.register(key)
-
-				# verify was added
-				if self.get(code) != key:
-					raise KeyError('unable to add key!', code, self.get(code))
-
-			symbol = key['symbols'][level]
-			if not symbol:
-				# make new symbol at level
-				# TODO can define_symbol(...) just be key.add(input=SnapDevice...Sym(value, level, text))?
-				key.define_symbol(code=code, level=level, text=text)
-			else:
-				# verify symbol is same or bark
-				if symbol['code'] != code:
-					ValueError('key code mismatch', level, name, code, symbol['code'])
-
-
-			# add modifier keys to "MODIFIERS" group
-			if code in (
-				SNAP_KEYMAP.SNAP_SCANCODE_LSHIFT,
-				SNAP_KEYMAP.SNAP_SCANCODE_RSHIFT,
-				SNAP_KEYMAP.SNAP_SCANCODE_CAPSLOCK,
-				# TODO ALT, CTRL, GUI?, numlocks... all locks?
-				):
-
-				modifiers = self.get('MODIFIERS')
-				if not modifiers:
-					modifiers = SnapDeviceGroup(name='MODIFIERS', device=self)
-					self.register(modifiers)
-
-					if self.get('MODIFIERS') is not modifiers:
-						raise KeyError('modifiers not registered properly?')
-
-				modifiers.register(key)
-
-			return None
-
-
-		"""
-		def set(self, **SETTINGS):
-
-			for attr,value in SETTINGS.items():
-				if attr == 'level':
-					# TODO update self.time?
-					self._level_ = int(value)
-				else:
-					SnapDevice.set(self, **{attr:value})
+			# TODO listen to this for text events, generated by gui backend
 		"""
 
 
@@ -551,33 +210,37 @@ def build(ENV):
 
 			seen_names = set()
 
-			for e in SNAP_KEYMAP.SNAP_KEYMAP:
-				scancode,scanname = e['scan']
+			for name,entry in self.KEYMAP.items():#SNAP_KEYMAP.SNAP_KEYMAP:
 
-				if scanname in seen_names:
-					ENV.snap_warning('duplicate keyname', scanname)
+				if name in seen_names:
+					ENV.snap_warning("duplicate key?", repr(name))
 					continue
-				seen_names.add(scanname)
+				seen_names.add(name)
 
-				if scancode in ("CAPSLOCK",): # TODO numlock?  other locks?
+				check_name = name.lower()
+
+				if check_name in ("capslock",): # TODO numlock?  other locks?
 					mode = 'TOGGLE'
 				else:
 					mode = 'NORMAL'
 
 				#ENV.snap_out('key', scancode, scanname)
-				key = SnapDeviceKeyboardKey(code=scancode, name=scanname, mode=mode)
+				def fake_codes():
+					code = -1
+					while 1:
+						code += 1
+						yield code
+
+				fake_code = fake_codes()
+				key = SnapDeviceKeyboardKey(code=next(fake_code), name=name, mode=mode)
 				keys.append(key)
 
-				if 'keys' in e:
-					for idx, (keycode, keyname, keytext) in enumerate(e['keys']):
-						key.define_symbol(code=keycode, level=idx, text=keytext)
+				#if 'keys' in e:
+				#	for idx, (keycode, keyname, keytext) in enumerate(e['keys']):
+				#		key.define_symbol(code=keycode, level=idx, text=keytext)
 
-				if scancode in (
-					SNAP_KEYMAP.SNAP_SCANCODE_LSHIFT,
-					SNAP_KEYMAP.SNAP_SCANCODE_RSHIFT,
-					SNAP_KEYMAP.SNAP_SCANCODE_CAPSLOCK,
+				if 'shift' in check_name or 'ctrl' in check_name or 'control' in check_name or 'alt' in check_name or 'capslock' in check_name:
 					# TODO ALT, CTRL, GUI?, numlocks... all locks?
-					):
 					# https://wiki.libsdl.org/SDL2/SDL_Keymod
 					"""
 					KMOD_NONE
@@ -598,6 +261,7 @@ def build(ENV):
 					KMOD_ALT
 					KMOD_GUI
 					"""
+					#ENV.snap_debug('init modifier key', repr(name))
 					modifiers.append(key)
 
 
@@ -606,6 +270,7 @@ def build(ENV):
 			# just listen to the text group to get the text events
 			#text = SnapDeviceGroup(name='TEXT') # XXX use text_event channel
 
+			# physical keys
 			keys = SnapDeviceGroup(name='keys', children=keys)
 			modifiers = SnapDeviceGroup(name='modifiers', children=modifiers)
 
@@ -616,11 +281,12 @@ def build(ENV):
 			#assert self.get("TEXT") is text, 'unable to add text group to keyboard!'
 			assert self.get('keys') is keys and self.get('modifiers') is modifiers
 
-			capslock = self.get('keys', 'CAPSLOCK')
-			capslock['mode'] = 'TOGGLE'
+			# TODO
+			capslock = self.get('keys', 'CapsLock')
+			assert capslock['mode'] == 'TOGGLE'
 
 
-			self.device_event.listen(self.key_event_intercept)
+			#self.device_event.listen(self.key_event_intercept)
 			
 				
 			"""
@@ -642,13 +308,13 @@ def build(ENV):
 def main(ENV):
 
 	if not getattr(ENV, 'SnapDevice', None):
-		ENV.__build__('snap.core.os.devices')
+		ENV.__build__('snap.os.devices')
 
 	snap_test_out = ENV.snap_test_out
 
 	k = ENV.SnapDeviceKeyboard()
 	snap_test_out(k['shift_enabled'] == False)
-	capslock = k.get("keys", "CAPSLOCK")
+	capslock = k.get("keys", "CapsLock")
 	snap_test_out(capslock is not None)
 	if capslock:
 		capslock.press()#generate_event("PRESS")
@@ -659,7 +325,24 @@ def main(ENV):
 		capslock.release()#generate_event('RELEASE')
 		snap_test_out(capslock['state'] == False and k['shift_enabled'] == False)
 
-	print('get x', ENV.SNAP_KEYMAP.snap_keycode_to_name(88), k.get('keys', 88))
+	#print('get x', ENV.SNAP_KEYMAP.snap_keycode_to_name(88), k.get('keys', 88))
 
-		
+	SnapContainer = ENV.SnapContainer
+
+	# TODO make gui interface to configure keyboard -- make a channel for gui to send raw event info...
+	class KeyboardCalibration(SnapContainer):
+		# XXX make the SnapKeyboardDevice the calibration api if it is added to a scene?
+
+		@ENV.SnapChannel
+		def device_event(self, MSG):
+			action,device,source = MSG.unpack('action', None, 'device', None, 'source', None)
+			if isinstance(device, ENV.SnapDeviceKeyboard):
+				ENV.snap_out('keyboard event', MSG.kwargs)
+
+	ENV.__run_gui__(KeyboardCalibration)
+
+if __name__ == '__main__':
+
+	import snap; main(snap.SnapEnv())
+
 

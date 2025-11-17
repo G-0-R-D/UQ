@@ -56,6 +56,8 @@ def build(ENV):
 						self.current_hover_glyph = None
 						self.hover_glyph_ext = self.text_graphic.glyph_extents(index)
 
+
+
 		def animate(self):
 
 			glyph_idx = 0
@@ -67,7 +69,7 @@ def build(ENV):
 				if not newlines_idx < len(newlines):
 					newlines_idx = 0
 				start,end = newlines[newlines_idx]
-				ENV.snap_out('line', repr(self.text_graphic['text'][start:end]))
+				#ENV.snap_out('line', repr(self.text_graphic['text'][start:end]))
 				self.animated_line_ext = self.text_graphic.text_extents(start,end)
 				newlines_idx += 1
 
@@ -134,6 +136,5 @@ def main(ENV):
 	ENV.__run_gui__(build(ENV))
 
 if __name__ == '__main__':
+	import snap; main(snap.SnapEnv(graphics='QT5'))
 
-	from snap.SnapEnv import SnapEnv
-	main(SnapEnv(graphics='QT5'))

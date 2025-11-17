@@ -1,7 +1,7 @@
 
 from weakref import ref as weakref_ref
 
-import sys
+import sys, time
 
 def build(ENV):
 
@@ -21,6 +21,21 @@ def build(ENV):
 	ENV.GUI_GRAPHICS = ENV.graphics.load('QT5')
 
 	snap_extents_t = ENV.snap_extents_t
+
+	snap_device_event = ENV.snap_device_event
+
+	LOCAL_KEYMAP = {} # QtValue:{None:snapkey, scancode:snapkey, ...}
+
+	KEYBOARD = ENV.DEVICES['keyboard']
+	for name, entry in ENV.SnapDeviceKeyboard.KEYMAP.items():
+		key = KEYBOARD.get('keys', name)
+		assert key is not None, 'no key? {}'.format(repr(name))
+		qkey = getattr(Qt, entry['Qt'])
+
+		d = LOCAL_KEYMAP.get(qkey, {})
+		scan = entry.get('scan') # can be None, default
+		d[scan] = key
+		LOCAL_KEYMAP[qkey] = d
 
 
 	class _EventFilterer(Qt5.QWidget):
@@ -312,16 +327,39 @@ def build(ENV):
 			#QEvent.KeyboardLayoutChange
 
 			elif etype == QEvent.KeyPress:
-				ENV.snap_debug('key press', EVENT.key())
+				#ENV.snap_debug('key press', EVENT.key())
 				if EVENT.key() == Qt.Key_Q:
 					''
+				if not EVENT.isAutoRepeat():
+
+					scan_lookup = LOCAL_KEYMAP.get(EVENT.key(), {})
+					snap_key = scan_lookup.get(EVENT.nativeScanCode(), scan_lookup.get(None))
+
+
+					if snap_key is None:
+						ENV.snap_debug('missing key?', EVENT.key(), dir(EVENT))
+					else:
+						#ENV.snap_debug('found key', snap_key, EVENT.nativeScanCode())
+						if snap_key['value'] > 0:
+							ENV.snap_debug('key already pressed?', snap_key)
+						else:
+							snap_key['value'] = 1.0
+					
+
+					text = EVENT.text()
+					if text:
+						encoding = 'UTF8' # TODO ?
+						snap_device_event(KEYBOARD, SnapMessage(action='text_input', value=text, encoding=encoding, time=time.time(), device=KEYBOARD, source=snap_key))
+						
+
+				#print(dir(EVENT), EVENT.key())
 
 				# TODO make a map from qt key codes to the ones that we have...
 
-				keyboard = ENV.DEVICES['keyboard']
+				#keyboard = ENV.DEVICES['keyboard']
 				#print(dir(EVENT))
 				#print('key', EVENT.nativeScanCode(), EVENT.nativeVirtualKey())
-				print('get', ENV.SNAP_KEYMAP.snap_keycode_to_name(EVENT.key()), ENV.SNAP_KEYMAP.snap_scancode_to_name(EVENT.nativeVirtualKey()))
+				#print('get', ENV.SNAP_KEYMAP.snap_keycode_to_name(EVENT.key()), ENV.SNAP_KEYMAP.snap_scancode_to_name(EVENT.nativeVirtualKey()))
 
 				"""
 				int code = (int)E->hardware_keycode;
@@ -331,7 +369,20 @@ def build(ENV):
 				"""
 
 			elif etype == QEvent.KeyRelease:
-				ENV.snap_debug('key release', EVENT.key())
+				#ENV.snap_debug('key release', EVENT.key())
+
+				if not EVENT.isAutoRepeat():
+					scan_lookup = LOCAL_KEYMAP.get(EVENT.key(), {})
+					snap_key = scan_lookup.get(EVENT.nativeScanCode(), scan_lookup.get(None))
+
+					if snap_key is None:
+						ENV.snap_debug('missing key?', EVENT.key())
+					else:
+						if snap_key['value'] == 0.:
+							ENV.snap_debug('key already released?', snap_key)
+						else:
+							snap_key['value'] = 0.
+
 				"""
 				int code = (int)E->hardware_keycode;
 

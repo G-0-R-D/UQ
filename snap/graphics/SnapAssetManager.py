@@ -7,3 +7,4 @@ def build(ENV):
 
 	pass
 
+	# TODO set(*names, **assigns) where names are render order, and assigns are assigning the graphics to the names...

@@ -221,7 +221,7 @@ def build(ENV):
 						self.__snap_data__['count'] = count
 						
 
-					submsg = SnapMessage(action='press', source=self, count=count)
+					submsg = SnapMessage(action='press', count=count, time=last_time, device=self['device'], source=self)
 					submsg.channel = 'press'
 					submsg.source = self
 
@@ -229,12 +229,12 @@ def build(ENV):
 
 					snap_device_event(self, submsg)
 
-					if mode != 'TOGGLE':
-						self['value'] = 0.0 # triggers release event
+					#if mode != 'TOGGLE':
+					#	self['value'] = 0.0 # triggers release event
 
 				elif value == 0.0:
 					'release event'
-					submsg = SnapMessage(action='release', source=self)
+					submsg = SnapMessage(action='release', time=self['last_time'], device=self['device'], source=self)
 					submsg.channel = 'release'
 					submsg.source = self
 

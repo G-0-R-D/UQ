@@ -79,6 +79,8 @@ def build(ENV):
 					msg = device.remap_event(MSG, cam)
 				else:
 					msg = MSG
+
+				# TODO move this to window.device_event...
 				device_event = getattr(user, 'device_event', None)
 				if isinstance(device_event, SnapBoundChannel):
 					if device_event.__direct__(msg) is True:

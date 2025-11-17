@@ -160,3 +160,5 @@ Thumbs.db
 # Note: .so files are already tracked but should be ignored for new files
 # To remove existing .so files from git: git rm --cached snap/lib/graphics/CExtensions/*.so
 
+snap/os/devices/config/*.json
+

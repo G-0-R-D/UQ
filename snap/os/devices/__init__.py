@@ -12,7 +12,6 @@ def build(ENV):
 	ENV.__build__('snap.os.devices.SnapDevice')
 
 	if 1:
-		ENV.__build__('snap.os.devices.SnapKeymap')
 		ENV.__build__('snap.os.devices.SnapDeviceKeyboard')
 
 		ENV.__build__('snap.os.devices.SnapDevicePointer')
