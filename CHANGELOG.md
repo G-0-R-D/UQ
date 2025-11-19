@@ -23,6 +23,25 @@
 
 
 ---------------
+## 2025.11.18 📢
+---------------
+
+- 🛠️ *(WIP)* working on OpenGL, brought some old code in, but it doesn't work yet...
+
+	
+* 👑 *(contributor)* [@Shmalikov](https://github.com/Shmalikov) made another contribution in [[#2](https://github.com/G-0-R-D/UQ/pull/2)]
+
+
+
+---------------
+## 2025.11.17 📢
+---------------
+
+- 🖥️/🎨/✍ *(gui/graphics/design)* event and asset managers can be easily implemented using python properties, which create the instance locally if it doesn't exist, then return it...  simple!  (was going to do something much more complex with decorators!)
+
+
+
+---------------
 ## 2025.11.16 📢
 ---------------
 

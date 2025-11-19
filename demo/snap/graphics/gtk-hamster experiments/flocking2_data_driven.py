@@ -23,6 +23,7 @@ from random import random
 
 from contrib.euclid import Vector2, Point2
 from contrib.proximity import LQProximityStore
+from _snap_extras.fps_tracker import FPSTracker
 
 import time
 
@@ -213,6 +214,9 @@ def build(ENV):
 			#self.connect("on-click", self.on_mouse_click)
 			#self.connect("on-enter-frame", self.on_enter_frame)
 
+			# FPS tracking
+			self.fps_tracker = FPSTracker(ENV.snap_time)
+
 			ENV.snap_out('set fps 60')
 			ENV.GUI['windows'][0]['fps'] = 60.0
 
@@ -257,11 +261,12 @@ def build(ENV):
 		# def on_enter_frame(self, scene, context):
 			#raise NotImplementedError()
 
-			current_time = time.time()
-			fps = 1./(current_time - LAST_TIME[0])
-			LAST_TIME[0] = current_time
-			CTX.cmd_draw_text(ENV.GRAPHICS.Text(text='boids: {} fps: {}'.format(len(self.flock), fps) ))
+			# Calculate FPS
+			self.fps_tracker.update()
 
+			# Display flock count and FPS
+			info_text = "Boids: %d  FPS: %.1f" % (len(self.flock), self.fps_tracker.fps)
+			CTX.cmd_draw_text(ENV.GRAPHICS.Text(text=info_text))
 
 			#c_graphics = graphics.Graphics(context)
 
