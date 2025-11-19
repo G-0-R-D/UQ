@@ -246,3 +246,4 @@ Now, we just have to represent the above as a series of opcodes, and we're there
 If you've read all this, I thank you very much for doing so! I appreciate your interest, and look forward to your feedback and input! Cheers!
 
 **-Gord**
+
