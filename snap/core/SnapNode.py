@@ -60,6 +60,9 @@ def build(ENV):
 		def get(self, *a, **k):
 			return self.dictionary.get(*a, **k)
 
+		def __repr__(self):
+			return '{}({})'.format(self.__class__.__name__, self.dictionary)
+
 		def __init__(self):
 			self.dictionary = {}
 			# TODO slots = set() ?  then error for any key that isn't included in the set for strict behaviour?

@@ -24,6 +24,10 @@ from random import random
 from contrib.euclid import Vector2, Point2
 from contrib.proximity import LQProximityStore
 
+import time
+
+LAST_TIME = [time.time()]
+
 def build(ENV):
 
 	SnapContainer = ENV.SnapContainer
@@ -209,6 +213,9 @@ def build(ENV):
 			#self.connect("on-click", self.on_mouse_click)
 			#self.connect("on-enter-frame", self.on_enter_frame)
 
+			ENV.snap_out('set fps 60')
+			ENV.GUI['windows'][0]['fps'] = 60.0
+
 		@ENV.SnapProperty
 		class render_items:
 
@@ -250,7 +257,10 @@ def build(ENV):
 		# def on_enter_frame(self, scene, context):
 			#raise NotImplementedError()
 
-			CTX.cmd_draw_text(ENV.GRAPHICS.Text(text=str(len(self.flock))))
+			current_time = time.time()
+			fps = 1./(current_time - LAST_TIME[0])
+			LAST_TIME[0] = current_time
+			CTX.cmd_draw_text(ENV.GRAPHICS.Text(text='boids: {} fps: {}'.format(len(self.flock), fps) ))
 
 
 			#c_graphics = graphics.Graphics(context)

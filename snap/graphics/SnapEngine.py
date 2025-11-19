@@ -101,7 +101,7 @@ def build(ENV):
 			
 			engine_context = ctx_data['engine_context']
 
-			assert engine_context is not None, 'context cannot be used without image and engine_context'
+			#assert engine_context is not None, 'context cannot be used without image and engine_context'
 
 			ctx_data['depth'] = max_depth if max_depth is not None else ctx.MAX_RENDER_DEPTH
 			assert ctx['depth'] <= ctx.MAX_RENDER_DEPTH, 'depth: {} exceeds limit: {}'.format(ctx['depth'], ctx.MAX_RENDER_DEPTH)

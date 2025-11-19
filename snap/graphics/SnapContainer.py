@@ -352,6 +352,10 @@ def build(ENV):
 
 				# TODO device_event.emit(action='focus', anim_curve='x')
 
+			elif action == 'camera':
+				'' # TODO can indicate an area (in camera space) to focus on...  -- with optional lookat target?
+				# motion, focus, zoom, pan, ..., with animation...
+
 			elif action == 'motion':
 				'' # notify that the containing container has moved (useful for shake-type animations...)
 				# local position and delta

@@ -434,7 +434,7 @@ def build(ENV):
 				return
 
 			#TIMERS.start(self.render, fps=fps, repeat=True)
-			ENV.snap_out('timer init')
+			ENV.snap_out('reset render timer')
 			self.__snap_data__['__render_timer__'] = SnapTimer(self.render, fps=fps, repeat=True)
 
 

@@ -389,16 +389,6 @@ def build(ENV):
 		# TODO primitives?  draw_rect, draw_circle, ...?  or just stick to path representations of those forms?  maybe circle/arc is useful cause it costs a lot of points...
 
 
-		def cmd_save(self):
-			# TODO self._config_['cmd_save'] = self._config_ ?  self._config_ = self._config_.copy()?
-			self['engine_context'].save()
-
-		def cmd_restore(self):
-			# TODO restore config
-			self['engine_context'].restore()
-
-
-
 
 		#def cmd_set_stroke_after(self, BOOL):
 		#	'' # XXX this is just the order of operations of draw/stroke calls, put in operator!

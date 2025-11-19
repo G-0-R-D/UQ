@@ -12,11 +12,11 @@ def build(ENV):
 
 			def get(self, MSG):
 				"()->snap_extents_t"
-				raise NotImplementedError()
+				#raise NotImplementedError()
 
 			def set(self, MSG):
 				"(snap_extents_t!)"
-				raise NotImplementedError()
+				#raise NotImplementedError()
 
 
 		@ENV.SnapChannel

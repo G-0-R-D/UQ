@@ -3,7 +3,7 @@ def build(ENV):
 
 	SnapNode = ENV.SnapNode
 
-	GFX = ENV.GRAPHICS
+	GFX = ENV.GRAPHICS # TODO styles should be on the engine, so we can get from the ENV.GRAPHICS.STYLE -- could also use the name Theme, but I like style...
 
 	class SnapStyle(SnapNode):
 

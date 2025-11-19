@@ -94,8 +94,8 @@ def build(ENV):
 			#ENV.__build__('snap.graphics.engines.qt5.shader.SnapQt5Shader')
 			#self.Shader = ENV.SnapQt5Shader
 
-			ENV.__build__('snap.graphics.engines.qt5.SnapQt5Window')
-			self.Window = self.SnapQt5Window
+			#ENV.__build__('snap.graphics.engines.qt5.SnapQt5Window')
+			#self.Window = self.SnapQt5Window
 
 			delattr(ENV.graphics, '__current_graphics_build__')
 

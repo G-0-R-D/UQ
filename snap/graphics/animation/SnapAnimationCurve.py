@@ -9,3 +9,5 @@ def build(ENV):
 		# plus we can make it very lowlevel...
 
 		# support from description to pull from a Spline: self['description'] = Spline()['description'] and just ignore 3D elements and unsupported types?
+
+		# supported Spline descriptions, but ignore 3rd axis if present, and disallow x < last x (clamp + remove overlapping)

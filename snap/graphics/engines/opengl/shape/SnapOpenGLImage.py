@@ -1,26 +1,13 @@
 
-# https://doc.qt.io/qtforpython-5/PySide2/QtCore/QTimer.html#PySide2.QtCore.PySide2.QtCore.QTimer.start
-"""
-Typically, the QImage class is used to load an image file, optionally manipulating the image data, before the QImage object is converted into a QPixmap to be shown on screen. Alternatively, if no manipulation is desired, the image file can be loaded directly into a QPixmap .
-"""
-# -- so I'm going with a QPixmap is a Texture (which is required to actually render/display the image), and QImage is an Image, hopefully that works out...
-# TODO is it necessary to use QPixmap at all?  make texture just act as a dummy for now, and forward the QImage to the render?
-def build(ENV):
+from OpenGL.GL import *
 
-	Qt5 = ENV.extern.Qt5
-	QRectF = Qt5.QRectF
-	QImage = Qt5.QImage
-	QPainter = Qt5.QPainter
+def build(ENV):
 
 	SnapImage = ENV.SnapImage
 	SnapBytes = ENV.SnapBytes
 
 	SnapMessage = ENV.SnapMessage
 
-	#snap_warning = ENV.snap_warning
-	#snap_emit = ENV.snap_emit
-
-	#snap_raw = ENV.snap_raw
 	snap_extents_t = ENV.snap_extents_t
 
 	ENGINE = ENV.graphics.__current_graphics_build__
@@ -30,8 +17,9 @@ def build(ENV):
 
 
 
-	def numpy_to_qimage(NUMPY, QIMAGE):
+	def numpy_to_glimage(NUMPY, GLIMAGE):
 
+		"""
 		size = QIMAGE.size()
 		w,h = size.width(),size.height()
 		img = QImage(NUMPY.data, w, h, w*4, QImage.Format_ARGB32)
@@ -41,43 +29,50 @@ def build(ENV):
 		ptr.setCompositionMode(QPainter.CompositionMode_Source) # just a direct copy, replace the pixel with the exact value in the source
 		ptr.drawImage(0,0, img)
 		ptr.end()
+		"""
+		raise NotImplementedError()
 
-		return QIMAGE
+		return GLIMAGE
 
-	def qimage_to_numpy(QIMAGE, NUMPY):
+	def glimage_to_numpy(GLIMAGE, NUMPY):
 
+		"""
 		p = QIMAGE.constBits()
 		p.setsize(QIMAGE.byteCount())
 		local = np.frombuffer(p, dtype=np.uint8)
 
 		if NUMPY is None:
 			return local
+		"""
+		raise NotImplementedError()
 
 		NUMPY[:] = local
 		return NUMPY
 
-	class SnapQt5Image(SnapImage):
+	class SnapOpenGLImage(SnapImage):
 
 		__slots__ = []
 
 		@ENV.SnapProperty
 		class engine:
 			def get(self, MSG):
-				"""()->SnapQt5Engine"""
+				"""()->SnapOpenGLEngine"""
 				return ENGINE
 
 		@ENV.SnapProperty
 		class __engine_data__:
 			def get(self, MSG):
-				"""()->?"""
-				qimage = self.__snap_data__['__engine_data__']
-				if qimage is None:
-					# NOTE: qimage needs to be locally assigned if it is used in a context!
-					pixels = self.__snap_data__['pixels']
-					if pixels is None:
-						pixels = self.__snap_data__['pixels'] = SnapBytes(size=4)
-					qimage = self.__snap_data__['__engine_data__'] = QImage(pixels['data'].data, 1,1, 4, QImage.Format_ARGB32)
-				return qimage
+				"()->int"
+				ID = self.__snap_data__['__engine_data__']
+				if ID is None:
+					#pixels = self.__snap_data__['pixels']
+					#if pixels is None:
+					#	pixels = self.__snap_data__['pixels'] = SnapBytes(size=4)
+					ID = self.__snap_data__['__engine_data__'] = glGenTextures(1)
+					# TODO verify ID?
+				return ID
+
+
 
 		@ENV.SnapProperty
 		class pixels:
@@ -93,12 +88,24 @@ def build(ENV):
 				   array = np.ndarray((qimage.height(), qimage.width(), 3), buffer=qimage.constBits(), strides=[qimage.bytesPerLine(), 3, 1], dtype=np.uint8)
 				   return array
 				"""
+
+				ID = self.__snap_data__['__engine_data__']
+				# TODO: pass back the format info, and caller can set itself (because sometimes pulling data means redefining config)
+				return glGetTexImage(
+					GL_TEXTURE_2D,
+					ID,
+					0, # mipmap level
+					GL_RGBA, # GL_BGRA ?
+					GL_UNSIGNED_BYTE,
+					None, # ?
+					)
+
 				qimage = self['__engine_data__']
 				pixels = self.__snap_data__['pixels']
 				if pixels is not None:
 					qimage = self['__engine_data__']
 					# NOTE: when image is painted to the underlying buffer is copied...  so just always update the buffer just in case (XXX TODO FIXME: get rid of Qt backend!)
-					qimage_to_numpy(qimage, pixels['data'])
+					glimage_to_numpy(qimage, pixels['data'])
 				return pixels
 				"""
 				q = self['__engine_data__']
@@ -122,12 +129,15 @@ def build(ENV):
 
 			#ENV.snap_error('image DRAW!')
 
-			e = self['extents']
+			# TODO draw image using pre-existing unit rect?  set matrix to fill it?
 
-			CTX['engine_context'].drawImage(QRectF(e[0], e[1], e[3]-e[0], e[4]-e[1]), self['__engine_data__'])
+			#e = self['extents']
+
+			#CTX['engine_context'].drawImage(QRectF(e[0], e[1], e[3]-e[0], e[4]-e[1]), self['__engine_data__'])
 			#CTX['image'].save('/media/user/CRUCIAL1TB/MyComputer/PROGRAMMING/PROJECTS/UQ/TestNode_in_image_draw.png')
 			# TODO self.pixels is not being updated!  we need to get pixels from qimage?
 			#CTX._image_.__engine_data__().save('/media/user/CRUCIAL1TB/MyComputer/PROGRAMMING/PROJECTS/UQ/TestNode_in_image_draw.png')
+			pass
 
 		def lookup(self, CTX):
 			# either use the extents or render and check the alpha of the image...
@@ -135,6 +145,21 @@ def build(ENV):
 			pass # TODO
 
 		def _assign(self, WIDTH, HEIGHT, BITS_PER_PIXEL, FORMAT, BYTES):
+			return # XXX TODO
+			IMAGE = self._ref
+			w,h = IMAGE.size()
+
+			glBindTexture(GL_TEXTURE_2D, ID)
+
+			# TODO: query Image api to get settings
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w,h, 0, GL_RGBA, GL_UNSIGNED_BYTE, None)
+
+		def _assignXXX(self, WIDTH, HEIGHT, BITS_PER_PIXEL, FORMAT, BYTES):
 
 			existing_pixels = self.__snap_data__['pixels'] # SnapBytes if not None
 			#existing_pixels = getattr(self, '_ndarray_', None)
@@ -163,7 +188,8 @@ def build(ENV):
 				# https://doc.qt.io/qtforpython-5/PySide2/QtGui/QImage.html#PySide2.QtGui.PySide2.QtGui.QImage.size
 
 				if BITS_PER_PIXEL == 32:
-					engine_format = Qt5.QImage.Format_ARGB32
+					raise NotImplementedError() # TODO
+					#engine_format = Qt5.QImage.Format_ARGB32
 				else:
 					raise TypeError('unsupported format', repr(FORMAT), BITS_PER_PIXEL)
 
@@ -212,7 +238,7 @@ def build(ENV):
 				existing_pixels['data'][:] = 0 # TODO clear to a color?
 
 			# TODO update the QImage, make SnapContext.clear() a drawing operation?
-			numpy_to_qimage(existing_pixels['data'], self['__engine_data__'])
+			numpy_to_glimage(existing_pixels['data'], self['__engine_data__'])
 
 			#out('pixels set', w,h, byte_count, ctypes.sizeof(existing_pixels), len(existing_pixels), len(existing_pixels.value))
 
@@ -228,11 +254,14 @@ def build(ENV):
 
 			# TODO so use a QPixmap for the image engine data, use QImage for manipulations?
 
-		def __delete__(self):
-			''
+		def __del__(self):
+			try:
+				glDeleteTextures(1, self.__snap_data__['__engine_data__'])
+			except Exception as e:
+				pass
 
-	ENGINE.SnapQt5Image = SnapQt5Image
-	return SnapQt5Image
+	ENGINE.SnapOpenGLImage = SnapOpenGLImage
+	return SnapOpenGLImage
 
 def main(ENV):
 
@@ -241,24 +270,8 @@ def main(ENV):
 	#extern.build(ENV)
 	#graphics.build(ENV)
 	#build(ENV)
-
-	img = ENV.GRAPHICS.Image(width=100, height=100)
-
-	print(img['__engine_data__'], img['__engine_data__'].width(), img['__engine_data__'].height())
-
-	img['__engine_data__'].save('/home/user/Downloads/test.png')
-
-
-	import numpy as np
-	arr = np.ndarray((480,640,4), dtype=np.uint8)
-	arr[:] = 255
-	img = ENV.extern.Qt5.QImage(arr, arr.shape[1], arr.shape[0], ENV.extern.Qt5.QImage.Format_ARGB32)
-	img.save('/home/user/Downloads/test1.png')
-	arr[16:20] = 0
-	img.save('/home/user/Downloads/test2.png')
+	''
 
 if __name__ == '__main__':
-
-	from snap.SnapEnv import SnapEnv
-	main(SnapEnv(graphics='QT5'))
+	import snap; main(snap.SnapEnv(graphics='OPENGL'))
 

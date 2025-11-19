@@ -4,7 +4,7 @@ def build(ENV):
 	ENV.__build__('snap.events.SnapEvent')
 	#ENV.__build__('snap.interaction.SnapInteractCombo')
 
-	#ENV.__build__('snap.events.SnapEventManager')
+	ENV.__build__('snap.events.SnapEventManager')
 
 
 
