@@ -1,0 +1,1408 @@
+{
+    "keymap": {
+        "0": {
+            "Qt": "Key_0"
+        },
+        "1": {
+            "Qt": "Key_1"
+        },
+        "2": {
+            "Qt": "Key_2"
+        },
+        "3": {
+            "Qt": "Key_3"
+        },
+        "4": {
+            "Qt": "Key_4"
+        },
+        "5": {
+            "Qt": "Key_5"
+        },
+        "6": {
+            "Qt": "Key_6"
+        },
+        "7": {
+            "Qt": "Key_7"
+        },
+        "8": {
+            "Qt": "Key_8"
+        },
+        "9": {
+            "Qt": "Key_9"
+        },
+        "A": {
+            "Qt": "Key_A"
+        },
+        "AE": {
+            "Qt": "Key_AE"
+        },
+        "Aacute": {
+            "Qt": "Key_Aacute"
+        },
+        "Acircumflex": {
+            "Qt": "Key_Acircumflex"
+        },
+        "AddFavorite": {
+            "Qt": "Key_AddFavorite"
+        },
+        "Adiaeresis": {
+            "Qt": "Key_Adiaeresis"
+        },
+        "Agrave": {
+            "Qt": "Key_Agrave"
+        },
+        "Alt": {
+            "Qt": "Key_Alt"
+        },
+        "AltGr": {
+            "Qt": "Key_AltGr"
+        },
+        "Ampersand": {
+            "Qt": "Key_Ampersand"
+        },
+        "Apostrophe": {
+            "Qt": "Key_Apostrophe"
+        },
+        "ApplicationLeft": {
+            "Qt": "Key_ApplicationLeft"
+        },
+        "ApplicationRight": {
+            "Qt": "Key_ApplicationRight"
+        },
+        "Aring": {
+            "Qt": "Key_Aring"
+        },
+        "AsciiCircum": {
+            "Qt": "Key_AsciiCircum"
+        },
+        "AsciiTilde": {
+            "Qt": "Key_AsciiTilde"
+        },
+        "Asterisk": {
+            "Qt": "Key_Asterisk"
+        },
+        "At": {
+            "Qt": "Key_At"
+        },
+        "Atilde": {
+            "Qt": "Key_Atilde"
+        },
+        "AudioCycleTrack": {
+            "Qt": "Key_AudioCycleTrack"
+        },
+        "AudioForward": {
+            "Qt": "Key_AudioForward"
+        },
+        "AudioRandomPlay": {
+            "Qt": "Key_AudioRandomPlay"
+        },
+        "AudioRepeat": {
+            "Qt": "Key_AudioRepeat"
+        },
+        "AudioRewind": {
+            "Qt": "Key_AudioRewind"
+        },
+        "Away": {
+            "Qt": "Key_Away"
+        },
+        "B": {
+            "Qt": "Key_B"
+        },
+        "Back": {
+            "Qt": "Key_Back"
+        },
+        "BackForward": {
+            "Qt": "Key_BackForward"
+        },
+        "Backslash": {
+            "Qt": "Key_Backslash"
+        },
+        "Backspace": {
+            "Qt": "Key_Backspace"
+        },
+        "Backtab": {
+            "Qt": "Key_Backtab"
+        },
+        "Bar": {
+            "Qt": "Key_Bar"
+        },
+        "BassBoost": {
+            "Qt": "Key_BassBoost"
+        },
+        "BassDown": {
+            "Qt": "Key_BassDown"
+        },
+        "BassUp": {
+            "Qt": "Key_BassUp"
+        },
+        "Battery": {
+            "Qt": "Key_Battery"
+        },
+        "Blue": {
+            "Qt": "Key_Blue"
+        },
+        "Bluetooth": {
+            "Qt": "Key_Bluetooth"
+        },
+        "Book": {
+            "Qt": "Key_Book"
+        },
+        "BraceLeft": {
+            "Qt": "Key_BraceLeft"
+        },
+        "BraceRight": {
+            "Qt": "Key_BraceRight"
+        },
+        "BracketLeft": {
+            "Qt": "Key_BracketLeft"
+        },
+        "BracketRight": {
+            "Qt": "Key_BracketRight"
+        },
+        "BrightnessAdjust": {
+            "Qt": "Key_BrightnessAdjust"
+        },
+        "C": {
+            "Qt": "Key_C"
+        },
+        "CD": {
+            "Qt": "Key_CD"
+        },
+        "Calculator": {
+            "Qt": "Key_Calculator"
+        },
+        "Calendar": {
+            "Qt": "Key_Calendar"
+        },
+        "Call": {
+            "Qt": "Key_Call"
+        },
+        "Camera": {
+            "Qt": "Key_Camera"
+        },
+        "CameraFocus": {
+            "Qt": "Key_CameraFocus"
+        },
+        "Cancel": {
+            "Qt": "Key_Cancel"
+        },
+        "CapsLock": {
+            "Qt": "Key_CapsLock"
+        },
+        "Ccedilla": {
+            "Qt": "Key_Ccedilla"
+        },
+        "ChannelDown": {
+            "Qt": "Key_ChannelDown"
+        },
+        "ChannelUp": {
+            "Qt": "Key_ChannelUp"
+        },
+        "Clear": {
+            "Qt": "Key_Clear"
+        },
+        "ClearGrab": {
+            "Qt": "Key_ClearGrab"
+        },
+        "Close": {
+            "Qt": "Key_Close"
+        },
+        "Codeinput": {
+            "Qt": "Key_Codeinput"
+        },
+        "Colon": {
+            "Qt": "Key_Colon"
+        },
+        "Comma": {
+            "Qt": "Key_Comma"
+        },
+        "Community": {
+            "Qt": "Key_Community"
+        },
+        "Context1": {
+            "Qt": "Key_Context1"
+        },
+        "Context2": {
+            "Qt": "Key_Context2"
+        },
+        "Context3": {
+            "Qt": "Key_Context3"
+        },
+        "Context4": {
+            "Qt": "Key_Context4"
+        },
+        "ContrastAdjust": {
+            "Qt": "Key_ContrastAdjust"
+        },
+        "Control": {
+            "Qt": "Key_Control"
+        },
+        "Copy": {
+            "Qt": "Key_Copy"
+        },
+        "Cut": {
+            "Qt": "Key_Cut"
+        },
+        "D": {
+            "Qt": "Key_D"
+        },
+        "DOS": {
+            "Qt": "Key_DOS"
+        },
+        "Dead_A": {
+            "Qt": "Key_Dead_A"
+        },
+        "Dead_Abovecomma": {
+            "Qt": "Key_Dead_Abovecomma"
+        },
+        "Dead_Abovedot": {
+            "Qt": "Key_Dead_Abovedot"
+        },
+        "Dead_Abovereversedcomma": {
+            "Qt": "Key_Dead_Abovereversedcomma"
+        },
+        "Dead_Abovering": {
+            "Qt": "Key_Dead_Abovering"
+        },
+        "Dead_Aboveverticalline": {
+            "Qt": "Key_Dead_Aboveverticalline"
+        },
+        "Dead_Acute": {
+            "Qt": "Key_Dead_Acute"
+        },
+        "Dead_Belowbreve": {
+            "Qt": "Key_Dead_Belowbreve"
+        },
+        "Dead_Belowcircumflex": {
+            "Qt": "Key_Dead_Belowcircumflex"
+        },
+        "Dead_Belowcomma": {
+            "Qt": "Key_Dead_Belowcomma"
+        },
+        "Dead_Belowdiaeresis": {
+            "Qt": "Key_Dead_Belowdiaeresis"
+        },
+        "Dead_Belowdot": {
+            "Qt": "Key_Dead_Belowdot"
+        },
+        "Dead_Belowmacron": {
+            "Qt": "Key_Dead_Belowmacron"
+        },
+        "Dead_Belowring": {
+            "Qt": "Key_Dead_Belowring"
+        },
+        "Dead_Belowtilde": {
+            "Qt": "Key_Dead_Belowtilde"
+        },
+        "Dead_Belowverticalline": {
+            "Qt": "Key_Dead_Belowverticalline"
+        },
+        "Dead_Breve": {
+            "Qt": "Key_Dead_Breve"
+        },
+        "Dead_Capital_Schwa": {
+            "Qt": "Key_Dead_Capital_Schwa"
+        },
+        "Dead_Caron": {
+            "Qt": "Key_Dead_Caron"
+        },
+        "Dead_Cedilla": {
+            "Qt": "Key_Dead_Cedilla"
+        },
+        "Dead_Circumflex": {
+            "Qt": "Key_Dead_Circumflex"
+        },
+        "Dead_Currency": {
+            "Qt": "Key_Dead_Currency"
+        },
+        "Dead_Diaeresis": {
+            "Qt": "Key_Dead_Diaeresis"
+        },
+        "Dead_Doubleacute": {
+            "Qt": "Key_Dead_Doubleacute"
+        },
+        "Dead_Doublegrave": {
+            "Qt": "Key_Dead_Doublegrave"
+        },
+        "Dead_E": {
+            "Qt": "Key_Dead_E"
+        },
+        "Dead_Grave": {
+            "Qt": "Key_Dead_Grave"
+        },
+        "Dead_Greek": {
+            "Qt": "Key_Dead_Greek"
+        },
+        "Dead_Hook": {
+            "Qt": "Key_Dead_Hook"
+        },
+        "Dead_Horn": {
+            "Qt": "Key_Dead_Horn"
+        },
+        "Dead_I": {
+            "Qt": "Key_Dead_I"
+        },
+        "Dead_Invertedbreve": {
+            "Qt": "Key_Dead_Invertedbreve"
+        },
+        "Dead_Iota": {
+            "Qt": "Key_Dead_Iota"
+        },
+        "Dead_Longsolidusoverlay": {
+            "Qt": "Key_Dead_Longsolidusoverlay"
+        },
+        "Dead_Lowline": {
+            "Qt": "Key_Dead_Lowline"
+        },
+        "Dead_Macron": {
+            "Qt": "Key_Dead_Macron"
+        },
+        "Dead_O": {
+            "Qt": "Key_Dead_O"
+        },
+        "Dead_Ogonek": {
+            "Qt": "Key_Dead_Ogonek"
+        },
+        "Dead_Semivoiced_Sound": {
+            "Qt": "Key_Dead_Semivoiced_Sound"
+        },
+        "Dead_Small_Schwa": {
+            "Qt": "Key_Dead_Small_Schwa"
+        },
+        "Dead_Stroke": {
+            "Qt": "Key_Dead_Stroke"
+        },
+        "Dead_Tilde": {
+            "Qt": "Key_Dead_Tilde"
+        },
+        "Dead_U": {
+            "Qt": "Key_Dead_U"
+        },
+        "Dead_Voiced_Sound": {
+            "Qt": "Key_Dead_Voiced_Sound"
+        },
+        "Dead_a": {
+            "Qt": "Key_Dead_a"
+        },
+        "Dead_e": {
+            "Qt": "Key_Dead_e"
+        },
+        "Dead_i": {
+            "Qt": "Key_Dead_i"
+        },
+        "Dead_o": {
+            "Qt": "Key_Dead_o"
+        },
+        "Dead_u": {
+            "Qt": "Key_Dead_u"
+        },
+        "Delete": {
+            "Qt": "Key_Delete"
+        },
+        "Direction_L": {
+            "Qt": "Key_Direction_L"
+        },
+        "Direction_R": {
+            "Qt": "Key_Direction_R"
+        },
+        "Display": {
+            "Qt": "Key_Display"
+        },
+        "Documents": {
+            "Qt": "Key_Documents"
+        },
+        "Dollar": {
+            "Qt": "Key_Dollar"
+        },
+        "Down": {
+            "Qt": "Key_Down"
+        },
+        "E": {
+            "Qt": "Key_E"
+        },
+        "ETH": {
+            "Qt": "Key_ETH"
+        },
+        "Eacute": {
+            "Qt": "Key_Eacute"
+        },
+        "Ecircumflex": {
+            "Qt": "Key_Ecircumflex"
+        },
+        "Ediaeresis": {
+            "Qt": "Key_Ediaeresis"
+        },
+        "Egrave": {
+            "Qt": "Key_Egrave"
+        },
+        "Eisu_Shift": {
+            "Qt": "Key_Eisu_Shift"
+        },
+        "Eisu_toggle": {
+            "Qt": "Key_Eisu_toggle"
+        },
+        "Eject": {
+            "Qt": "Key_Eject"
+        },
+        "End": {
+            "Qt": "Key_End"
+        },
+        "Enter": {
+            "Qt": "Key_Enter"
+        },
+        "Equal": {
+            "Qt": "Key_Equal"
+        },
+        "Escape": {
+            "Qt": "Key_Escape"
+        },
+        "Excel": {
+            "Qt": "Key_Excel"
+        },
+        "Exclam": {
+            "Qt": "Key_Exclam"
+        },
+        "Execute": {
+            "Qt": "Key_Execute"
+        },
+        "Exit": {
+            "Qt": "Key_Exit"
+        },
+        "Explorer": {
+            "Qt": "Key_Explorer"
+        },
+        "F": {
+            "Qt": "Key_F"
+        },
+        "F1": {
+            "Qt": "Key_F1"
+        },
+        "F10": {
+            "Qt": "Key_F10"
+        },
+        "F11": {
+            "Qt": "Key_F11"
+        },
+        "F12": {
+            "Qt": "Key_F12"
+        },
+        "F13": {
+            "Qt": "Key_F13"
+        },
+        "F14": {
+            "Qt": "Key_F14"
+        },
+        "F15": {
+            "Qt": "Key_F15"
+        },
+        "F16": {
+            "Qt": "Key_F16"
+        },
+        "F17": {
+            "Qt": "Key_F17"
+        },
+        "F18": {
+            "Qt": "Key_F18"
+        },
+        "F19": {
+            "Qt": "Key_F19"
+        },
+        "F2": {
+            "Qt": "Key_F2"
+        },
+        "F20": {
+            "Qt": "Key_F20"
+        },
+        "F21": {
+            "Qt": "Key_F21"
+        },
+        "F22": {
+            "Qt": "Key_F22"
+        },
+        "F23": {
+            "Qt": "Key_F23"
+        },
+        "F24": {
+            "Qt": "Key_F24"
+        },
+        "F25": {
+            "Qt": "Key_F25"
+        },
+        "F26": {
+            "Qt": "Key_F26"
+        },
+        "F27": {
+            "Qt": "Key_F27"
+        },
+        "F28": {
+            "Qt": "Key_F28"
+        },
+        "F29": {
+            "Qt": "Key_F29"
+        },
+        "F3": {
+            "Qt": "Key_F3"
+        },
+        "F30": {
+            "Qt": "Key_F30"
+        },
+        "F31": {
+            "Qt": "Key_F31"
+        },
+        "F32": {
+            "Qt": "Key_F32"
+        },
+        "F33": {
+            "Qt": "Key_F33"
+        },
+        "F34": {
+            "Qt": "Key_F34"
+        },
+        "F35": {
+            "Qt": "Key_F35"
+        },
+        "F4": {
+            "Qt": "Key_F4"
+        },
+        "F5": {
+            "Qt": "Key_F5"
+        },
+        "F6": {
+            "Qt": "Key_F6"
+        },
+        "F7": {
+            "Qt": "Key_F7"
+        },
+        "F8": {
+            "Qt": "Key_F8"
+        },
+        "F9": {
+            "Qt": "Key_F9"
+        },
+        "Favorites": {
+            "Qt": "Key_Favorites"
+        },
+        "Finance": {
+            "Qt": "Key_Finance"
+        },
+        "Find": {
+            "Qt": "Key_Find"
+        },
+        "Flip": {
+            "Qt": "Key_Flip"
+        },
+        "Forward": {
+            "Qt": "Key_Forward"
+        },
+        "G": {
+            "Qt": "Key_G"
+        },
+        "Game": {
+            "Qt": "Key_Game"
+        },
+        "Go": {
+            "Qt": "Key_Go"
+        },
+        "Greater": {
+            "Qt": "Key_Greater"
+        },
+        "Green": {
+            "Qt": "Key_Green"
+        },
+        "Guide": {
+            "Qt": "Key_Guide"
+        },
+        "H": {
+            "Qt": "Key_H"
+        },
+        "Hangul": {
+            "Qt": "Key_Hangul"
+        },
+        "Hangul_Banja": {
+            "Qt": "Key_Hangul_Banja"
+        },
+        "Hangul_End": {
+            "Qt": "Key_Hangul_End"
+        },
+        "Hangul_Hanja": {
+            "Qt": "Key_Hangul_Hanja"
+        },
+        "Hangul_Jamo": {
+            "Qt": "Key_Hangul_Jamo"
+        },
+        "Hangul_Jeonja": {
+            "Qt": "Key_Hangul_Jeonja"
+        },
+        "Hangul_PostHanja": {
+            "Qt": "Key_Hangul_PostHanja"
+        },
+        "Hangul_PreHanja": {
+            "Qt": "Key_Hangul_PreHanja"
+        },
+        "Hangul_Romaja": {
+            "Qt": "Key_Hangul_Romaja"
+        },
+        "Hangul_Special": {
+            "Qt": "Key_Hangul_Special"
+        },
+        "Hangul_Start": {
+            "Qt": "Key_Hangul_Start"
+        },
+        "Hangup": {
+            "Qt": "Key_Hangup"
+        },
+        "Hankaku": {
+            "Qt": "Key_Hankaku"
+        },
+        "Help": {
+            "Qt": "Key_Help"
+        },
+        "Henkan": {
+            "Qt": "Key_Henkan"
+        },
+        "Hibernate": {
+            "Qt": "Key_Hibernate"
+        },
+        "Hiragana": {
+            "Qt": "Key_Hiragana"
+        },
+        "Hiragana_Katakana": {
+            "Qt": "Key_Hiragana_Katakana"
+        },
+        "History": {
+            "Qt": "Key_History"
+        },
+        "Home": {
+            "Qt": "Key_Home"
+        },
+        "HomePage": {
+            "Qt": "Key_HomePage"
+        },
+        "HotLinks": {
+            "Qt": "Key_HotLinks"
+        },
+        "Hyper_L": {
+            "Qt": "Key_Hyper_L"
+        },
+        "Hyper_R": {
+            "Qt": "Key_Hyper_R"
+        },
+        "I": {
+            "Qt": "Key_I"
+        },
+        "Iacute": {
+            "Qt": "Key_Iacute"
+        },
+        "Icircumflex": {
+            "Qt": "Key_Icircumflex"
+        },
+        "Idiaeresis": {
+            "Qt": "Key_Idiaeresis"
+        },
+        "Igrave": {
+            "Qt": "Key_Igrave"
+        },
+        "Info": {
+            "Qt": "Key_Info"
+        },
+        "Insert": {
+            "Qt": "Key_Insert"
+        },
+        "J": {
+            "Qt": "Key_J"
+        },
+        "K": {
+            "Qt": "Key_K"
+        },
+        "Kana_Lock": {
+            "Qt": "Key_Kana_Lock"
+        },
+        "Kana_Shift": {
+            "Qt": "Key_Kana_Shift"
+        },
+        "Kanji": {
+            "Qt": "Key_Kanji"
+        },
+        "Katakana": {
+            "Qt": "Key_Katakana"
+        },
+        "KeyboardBrightnessDown": {
+            "Qt": "Key_KeyboardBrightnessDown"
+        },
+        "KeyboardBrightnessUp": {
+            "Qt": "Key_KeyboardBrightnessUp"
+        },
+        "KeyboardLightOnOff": {
+            "Qt": "Key_KeyboardLightOnOff"
+        },
+        "L": {
+            "Qt": "Key_L"
+        },
+        "LastNumberRedial": {
+            "Qt": "Key_LastNumberRedial"
+        },
+        "Launch0": {
+            "Qt": "Key_Launch0"
+        },
+        "Launch1": {
+            "Qt": "Key_Launch1"
+        },
+        "Launch2": {
+            "Qt": "Key_Launch2"
+        },
+        "Launch3": {
+            "Qt": "Key_Launch3"
+        },
+        "Launch4": {
+            "Qt": "Key_Launch4"
+        },
+        "Launch5": {
+            "Qt": "Key_Launch5"
+        },
+        "Launch6": {
+            "Qt": "Key_Launch6"
+        },
+        "Launch7": {
+            "Qt": "Key_Launch7"
+        },
+        "Launch8": {
+            "Qt": "Key_Launch8"
+        },
+        "Launch9": {
+            "Qt": "Key_Launch9"
+        },
+        "LaunchA": {
+            "Qt": "Key_LaunchA"
+        },
+        "LaunchB": {
+            "Qt": "Key_LaunchB"
+        },
+        "LaunchC": {
+            "Qt": "Key_LaunchC"
+        },
+        "LaunchD": {
+            "Qt": "Key_LaunchD"
+        },
+        "LaunchE": {
+            "Qt": "Key_LaunchE"
+        },
+        "LaunchF": {
+            "Qt": "Key_LaunchF"
+        },
+        "LaunchG": {
+            "Qt": "Key_LaunchG"
+        },
+        "LaunchH": {
+            "Qt": "Key_LaunchH"
+        },
+        "LaunchMail": {
+            "Qt": "Key_LaunchMail"
+        },
+        "LaunchMedia": {
+            "Qt": "Key_LaunchMedia"
+        },
+        "Left": {
+            "Qt": "Key_Left"
+        },
+        "Less": {
+            "Qt": "Key_Less"
+        },
+        "LightBulb": {
+            "Qt": "Key_LightBulb"
+        },
+        "LogOff": {
+            "Qt": "Key_LogOff"
+        },
+        "M": {
+            "Qt": "Key_M"
+        },
+        "MailForward": {
+            "Qt": "Key_MailForward"
+        },
+        "Market": {
+            "Qt": "Key_Market"
+        },
+        "Massyo": {
+            "Qt": "Key_Massyo"
+        },
+        "MediaLast": {
+            "Qt": "Key_MediaLast"
+        },
+        "MediaNext": {
+            "Qt": "Key_MediaNext"
+        },
+        "MediaPause": {
+            "Qt": "Key_MediaPause"
+        },
+        "MediaPlay": {
+            "Qt": "Key_MediaPlay"
+        },
+        "MediaPrevious": {
+            "Qt": "Key_MediaPrevious"
+        },
+        "MediaRecord": {
+            "Qt": "Key_MediaRecord"
+        },
+        "MediaStop": {
+            "Qt": "Key_MediaStop"
+        },
+        "MediaTogglePlayPause": {
+            "Qt": "Key_MediaTogglePlayPause"
+        },
+        "Meeting": {
+            "Qt": "Key_Meeting"
+        },
+        "Memo": {
+            "Qt": "Key_Memo"
+        },
+        "Menu": {
+            "Qt": "Key_Menu"
+        },
+        "MenuKB": {
+            "Qt": "Key_MenuKB"
+        },
+        "MenuPB": {
+            "Qt": "Key_MenuPB"
+        },
+        "Messenger": {
+            "Qt": "Key_Messenger"
+        },
+        "Meta": {
+            "Qt": "Key_Meta"
+        },
+        "MicMute": {
+            "Qt": "Key_MicMute"
+        },
+        "MicVolumeDown": {
+            "Qt": "Key_MicVolumeDown"
+        },
+        "MicVolumeUp": {
+            "Qt": "Key_MicVolumeUp"
+        },
+        "Minus": {
+            "Qt": "Key_Minus"
+        },
+        "Mode_switch": {
+            "Qt": "Key_Mode_switch"
+        },
+        "MonBrightnessDown": {
+            "Qt": "Key_MonBrightnessDown"
+        },
+        "MonBrightnessUp": {
+            "Qt": "Key_MonBrightnessUp"
+        },
+        "Muhenkan": {
+            "Qt": "Key_Muhenkan"
+        },
+        "Multi_key": {
+            "Qt": "Key_Multi_key"
+        },
+        "MultipleCandidate": {
+            "Qt": "Key_MultipleCandidate"
+        },
+        "Music": {
+            "Qt": "Key_Music"
+        },
+        "MySites": {
+            "Qt": "Key_MySites"
+        },
+        "N": {
+            "Qt": "Key_N"
+        },
+        "New": {
+            "Qt": "Key_New"
+        },
+        "News": {
+            "Qt": "Key_News"
+        },
+        "No": {
+            "Qt": "Key_No"
+        },
+        "Ntilde": {
+            "Qt": "Key_Ntilde"
+        },
+        "NumLock": {
+            "Qt": "Key_NumLock"
+        },
+        "NumberSign": {
+            "Qt": "Key_NumberSign"
+        },
+        "O": {
+            "Qt": "Key_O"
+        },
+        "Oacute": {
+            "Qt": "Key_Oacute"
+        },
+        "Ocircumflex": {
+            "Qt": "Key_Ocircumflex"
+        },
+        "Odiaeresis": {
+            "Qt": "Key_Odiaeresis"
+        },
+        "OfficeHome": {
+            "Qt": "Key_OfficeHome"
+        },
+        "Ograve": {
+            "Qt": "Key_Ograve"
+        },
+        "Ooblique": {
+            "Qt": "Key_Ooblique"
+        },
+        "Open": {
+            "Qt": "Key_Open"
+        },
+        "OpenUrl": {
+            "Qt": "Key_OpenUrl"
+        },
+        "Option": {
+            "Qt": "Key_Option"
+        },
+        "Otilde": {
+            "Qt": "Key_Otilde"
+        },
+        "P": {
+            "Qt": "Key_P"
+        },
+        "PageDown": {
+            "Qt": "Key_PageDown"
+        },
+        "PageUp": {
+            "Qt": "Key_PageUp"
+        },
+        "ParenLeft": {
+            "Qt": "Key_ParenLeft"
+        },
+        "ParenRight": {
+            "Qt": "Key_ParenRight"
+        },
+        "Paste": {
+            "Qt": "Key_Paste"
+        },
+        "Pause": {
+            "Qt": "Key_Pause"
+        },
+        "Percent": {
+            "Qt": "Key_Percent"
+        },
+        "Period": {
+            "Qt": "Key_Period"
+        },
+        "Phone": {
+            "Qt": "Key_Phone"
+        },
+        "Pictures": {
+            "Qt": "Key_Pictures"
+        },
+        "Play": {
+            "Qt": "Key_Play"
+        },
+        "Plus": {
+            "Qt": "Key_Plus"
+        },
+        "PowerDown": {
+            "Qt": "Key_PowerDown"
+        },
+        "PowerOff": {
+            "Qt": "Key_PowerOff"
+        },
+        "PreviousCandidate": {
+            "Qt": "Key_PreviousCandidate"
+        },
+        "Print": {
+            "Qt": "Key_Print"
+        },
+        "Printer": {
+            "Qt": "Key_Printer"
+        },
+        "Q": {
+            "Qt": "Key_Q"
+        },
+        "Question": {
+            "Qt": "Key_Question"
+        },
+        "QuoteDbl": {
+            "Qt": "Key_QuoteDbl"
+        },
+        "QuoteLeft": {
+            "Qt": "Key_QuoteLeft"
+        },
+        "R": {
+            "Qt": "Key_R"
+        },
+        "Red": {
+            "Qt": "Key_Red"
+        },
+        "Redo": {
+            "Qt": "Key_Redo"
+        },
+        "Refresh": {
+            "Qt": "Key_Refresh"
+        },
+        "Reload": {
+            "Qt": "Key_Reload"
+        },
+        "Reply": {
+            "Qt": "Key_Reply"
+        },
+        "Return": {
+            "Qt": "Key_Return"
+        },
+        "Right": {
+            "Qt": "Key_Right"
+        },
+        "Romaji": {
+            "Qt": "Key_Romaji"
+        },
+        "RotateWindows": {
+            "Qt": "Key_RotateWindows"
+        },
+        "RotationKB": {
+            "Qt": "Key_RotationKB"
+        },
+        "RotationPB": {
+            "Qt": "Key_RotationPB"
+        },
+        "S": {
+            "Qt": "Key_S"
+        },
+        "Save": {
+            "Qt": "Key_Save"
+        },
+        "ScreenSaver": {
+            "Qt": "Key_ScreenSaver"
+        },
+        "ScrollLock": {
+            "Qt": "Key_ScrollLock"
+        },
+        "Search": {
+            "Qt": "Key_Search"
+        },
+        "Select": {
+            "Qt": "Key_Select"
+        },
+        "Semicolon": {
+            "Qt": "Key_Semicolon"
+        },
+        "Send": {
+            "Qt": "Key_Send"
+        },
+        "Settings": {
+            "Qt": "Key_Settings"
+        },
+        "Shift": {
+            "Qt": "Key_Shift"
+        },
+        "Shop": {
+            "Qt": "Key_Shop"
+        },
+        "SingleCandidate": {
+            "Qt": "Key_SingleCandidate"
+        },
+        "Slash": {
+            "Qt": "Key_Slash"
+        },
+        "Sleep": {
+            "Qt": "Key_Sleep"
+        },
+        "Space": {
+            "Qt": "Key_Space"
+        },
+        "Spell": {
+            "Qt": "Key_Spell"
+        },
+        "SplitScreen": {
+            "Qt": "Key_SplitScreen"
+        },
+        "Standby": {
+            "Qt": "Key_Standby"
+        },
+        "Stop": {
+            "Qt": "Key_Stop"
+        },
+        "Subtitle": {
+            "Qt": "Key_Subtitle"
+        },
+        "Super_L": {
+            "Qt": "Key_Super_L"
+        },
+        "Super_R": {
+            "Qt": "Key_Super_R"
+        },
+        "Support": {
+            "Qt": "Key_Support"
+        },
+        "Suspend": {
+            "Qt": "Key_Suspend"
+        },
+        "SysReq": {
+            "Qt": "Key_SysReq"
+        },
+        "T": {
+            "Qt": "Key_T"
+        },
+        "THORN": {
+            "Qt": "Key_THORN"
+        },
+        "Tab": {
+            "Qt": "Key_Tab"
+        },
+        "TaskPane": {
+            "Qt": "Key_TaskPane"
+        },
+        "Terminal": {
+            "Qt": "Key_Terminal"
+        },
+        "Time": {
+            "Qt": "Key_Time"
+        },
+        "ToDoList": {
+            "Qt": "Key_ToDoList"
+        },
+        "ToggleCallHangup": {
+            "Qt": "Key_ToggleCallHangup"
+        },
+        "Tools": {
+            "Qt": "Key_Tools"
+        },
+        "TopMenu": {
+            "Qt": "Key_TopMenu"
+        },
+        "TouchpadOff": {
+            "Qt": "Key_TouchpadOff"
+        },
+        "TouchpadOn": {
+            "Qt": "Key_TouchpadOn"
+        },
+        "TouchpadToggle": {
+            "Qt": "Key_TouchpadToggle"
+        },
+        "Touroku": {
+            "Qt": "Key_Touroku"
+        },
+        "Travel": {
+            "Qt": "Key_Travel"
+        },
+        "TrebleDown": {
+            "Qt": "Key_TrebleDown"
+        },
+        "TrebleUp": {
+            "Qt": "Key_TrebleUp"
+        },
+        "U": {
+            "Qt": "Key_U"
+        },
+        "UWB": {
+            "Qt": "Key_UWB"
+        },
+        "Uacute": {
+            "Qt": "Key_Uacute"
+        },
+        "Ucircumflex": {
+            "Qt": "Key_Ucircumflex"
+        },
+        "Udiaeresis": {
+            "Qt": "Key_Udiaeresis"
+        },
+        "Ugrave": {
+            "Qt": "Key_Ugrave"
+        },
+        "Underscore": {
+            "Qt": "Key_Underscore"
+        },
+        "Undo": {
+            "Qt": "Key_Undo"
+        },
+        "Up": {
+            "Qt": "Key_Up"
+        },
+        "V": {
+            "Qt": "Key_V"
+        },
+        "Video": {
+            "Qt": "Key_Video"
+        },
+        "View": {
+            "Qt": "Key_View"
+        },
+        "VoiceDial": {
+            "Qt": "Key_VoiceDial"
+        },
+        "VolumeDown": {
+            "Qt": "Key_VolumeDown"
+        },
+        "VolumeMute": {
+            "Qt": "Key_VolumeMute"
+        },
+        "VolumeUp": {
+            "Qt": "Key_VolumeUp"
+        },
+        "W": {
+            "Qt": "Key_W"
+        },
+        "WLAN": {
+            "Qt": "Key_WLAN"
+        },
+        "WWW": {
+            "Qt": "Key_WWW"
+        },
+        "WakeUp": {
+            "Qt": "Key_WakeUp"
+        },
+        "WebCam": {
+            "Qt": "Key_WebCam"
+        },
+        "Word": {
+            "Qt": "Key_Word"
+        },
+        "X": {
+            "Qt": "Key_X"
+        },
+        "Xfer": {
+            "Qt": "Key_Xfer"
+        },
+        "Y": {
+            "Qt": "Key_Y"
+        },
+        "Yacute": {
+            "Qt": "Key_Yacute"
+        },
+        "Yellow": {
+            "Qt": "Key_Yellow"
+        },
+        "Yes": {
+            "Qt": "Key_Yes"
+        },
+        "Z": {
+            "Qt": "Key_Z"
+        },
+        "Zenkaku": {
+            "Qt": "Key_Zenkaku"
+        },
+        "Zenkaku_Hankaku": {
+            "Qt": "Key_Zenkaku_Hankaku"
+        },
+        "Zoom": {
+            "Qt": "Key_Zoom"
+        },
+        "ZoomIn": {
+            "Qt": "Key_ZoomIn"
+        },
+        "ZoomOut": {
+            "Qt": "Key_ZoomOut"
+        },
+        "acute": {
+            "Qt": "Key_acute"
+        },
+        "brokenbar": {
+            "Qt": "Key_brokenbar"
+        },
+        "cedilla": {
+            "Qt": "Key_cedilla"
+        },
+        "cent": {
+            "Qt": "Key_cent"
+        },
+        "copyright": {
+            "Qt": "Key_copyright"
+        },
+        "currency": {
+            "Qt": "Key_currency"
+        },
+        "degree": {
+            "Qt": "Key_degree"
+        },
+        "diaeresis": {
+            "Qt": "Key_diaeresis"
+        },
+        "division": {
+            "Qt": "Key_division"
+        },
+        "exclamdown": {
+            "Qt": "Key_exclamdown"
+        },
+        "guillemotleft": {
+            "Qt": "Key_guillemotleft"
+        },
+        "guillemotright": {
+            "Qt": "Key_guillemotright"
+        },
+        "hyphen": {
+            "Qt": "Key_hyphen"
+        },
+        "iTouch": {
+            "Qt": "Key_iTouch"
+        },
+        "macron": {
+            "Qt": "Key_macron"
+        },
+        "masculine": {
+            "Qt": "Key_masculine"
+        },
+        "mu": {
+            "Qt": "Key_mu"
+        },
+        "multiply": {
+            "Qt": "Key_multiply"
+        },
+        "nobreakspace": {
+            "Qt": "Key_nobreakspace"
+        },
+        "notsign": {
+            "Qt": "Key_notsign"
+        },
+        "onehalf": {
+            "Qt": "Key_onehalf"
+        },
+        "onequarter": {
+            "Qt": "Key_onequarter"
+        },
+        "onesuperior": {
+            "Qt": "Key_onesuperior"
+        },
+        "ordfeminine": {
+            "Qt": "Key_ordfeminine"
+        },
+        "paragraph": {
+            "Qt": "Key_paragraph"
+        },
+        "periodcentered": {
+            "Qt": "Key_periodcentered"
+        },
+        "plusminus": {
+            "Qt": "Key_plusminus"
+        },
+        "questiondown": {
+            "Qt": "Key_questiondown"
+        },
+        "registered": {
+            "Qt": "Key_registered"
+        },
+        "section": {
+            "Qt": "Key_section"
+        },
+        "ssharp": {
+            "Qt": "Key_ssharp"
+        },
+        "sterling": {
+            "Qt": "Key_sterling"
+        },
+        "threequarters": {
+            "Qt": "Key_threequarters"
+        },
+        "threesuperior": {
+            "Qt": "Key_threesuperior"
+        },
+        "twosuperior": {
+            "Qt": "Key_twosuperior"
+        },
+        "unknown": {
+            "Qt": "Key_unknown"
+        },
+        "ydiaeresis": {
+            "Qt": "Key_ydiaeresis"
+        },
+        "yen": {
+            "Qt": "Key_yen"
+        }
+    }
+}
