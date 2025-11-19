@@ -17,6 +17,8 @@ Also added mass to the ball that is equal to the radius.
 import math
 from random import randint
 
+from contrib.fps_tracker import FPSTracker
+
 
 SPRING = 0.05;
 GRAVITY = 0.1;
@@ -109,6 +111,9 @@ def build(ENV):
 			SnapContainer.__init__(self)
 			self.balls = []
 			self.window_pos = None
+			
+			# FPS tracking
+			self.fps_tracker = FPSTracker(ENV.snap_time)
 
 			#self.connect("on-enter-frame", self.on_enter_frame)
 
@@ -119,6 +124,14 @@ def build(ENV):
 
 		def draw(self, CTX):
 			# def on_enter_frame(self, scene, context):
+			
+			# Calculate FPS
+			self.fps_tracker.update()
+			
+			# Display ball count and FPS
+			info_text = "Balls: %d  FPS: %.1f" % (len(self.balls), self.fps_tracker.fps)
+			CTX.cmd_draw_text(GFX.Text(text=info_text))
+			
 			# render and update positions of the balls
 			if not self.balls:
 				for i in range(15):
