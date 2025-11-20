@@ -23,6 +23,17 @@
 
 
 ---------------
+## 2025.11.19 📢
+---------------
+
+- 📊 *(progress)* working on opengl, image can open and save now
+
+	
+- 🧠/😺 *(learning/git)* [@G-0-R-D](https://github.com/G-0-R-D) should be able to do a merge with conflicts now...
+
+
+
+---------------
 ## 2025.11.18 📢
 ---------------
 
