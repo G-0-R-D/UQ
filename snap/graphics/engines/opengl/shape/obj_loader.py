@@ -54,7 +54,7 @@ def finalize(OBJECTS, merge=False, **SETTINGS):
 	NORMAL_DATA = 2
 
 	for settings,point_data in OBJECTS:
-		print('finaling', settings['name'])
+		#print('finaling', settings['name'])
 
 		face_data = point_data.get('f', None)
 		if not face_data:
@@ -70,7 +70,7 @@ def finalize(OBJECTS, merge=False, **SETTINGS):
 			samples = [int(bool(i)) for i in sample[0].split('/')]
 			if len(samples) < 3:
 				samples.extend([0 for i in range(3-len(samples))])
-			print('samples', samples)
+			#print('samples', samples)
 			#has_vertex_data, has_texture_data, has_normal_data = sample[0].split('/')
 			str_data = '/'.join(str_data)
 			if not samples[1]:
@@ -229,6 +229,8 @@ def obj_open(PATH, **SETTINGS):
 	return OBJECTS
 	
 
+def build(ENV):
+	return obj_open
 
 if __name__ == '__main__':
 
@@ -239,7 +241,7 @@ if __name__ == '__main__':
 
 	#with Stopwatch('load obj file'):
 	start_time = time.time()
-	obj = obj_open(pjoin(THISDIR, 'suzanne.obj'))
+	obj = obj_open(pjoin(THISDIR, 'obj/suzanne.obj'))
 	print('finished', time.time() - start_time)
 
 

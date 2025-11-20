@@ -93,7 +93,6 @@ def build(ENV):
 				   array = np.ndarray((qimage.height(), qimage.width(), 3), buffer=qimage.constBits(), strides=[qimage.bytesPerLine(), 3, 1], dtype=np.uint8)
 				   return array
 				"""
-				qimage = self['__engine_data__']
 				pixels = self.__snap_data__['pixels']
 				if pixels is not None:
 					qimage = self['__engine_data__']
@@ -218,7 +217,7 @@ def build(ENV):
 
 			# TODO call emit with each arg set?
 			self.changed(image=self, size=[WIDTH,HEIGHT], width=WIDTH, height=HEIGHT, format=FORMAT, pixels=BYTES)
-
+			self.changed_data.emit()
 
 		def __init__(self, **SETTINGS):
 			SnapImage.__init__(self, **SETTINGS)

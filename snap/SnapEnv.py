@@ -66,6 +66,10 @@ class SnapEnv(object):
 	#	self.mainloop # touch to create mainloop
 	#	return self.__PRIVATE__['__MAINLOOP_NODE__']
 
+	@property
+	def SNAP_PATH(self):
+		return SNAP_PATH # TODO something more robust?
+
 	def mainloop_next(self):
 		# this is in user space, for if the user wants to pump the mainloop themselves
 		M = self.__PRIVATE__.get('__MAINLOOP_NODE__')

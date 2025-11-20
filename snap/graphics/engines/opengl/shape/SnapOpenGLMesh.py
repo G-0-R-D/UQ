@@ -1,7 +1,11 @@
 
 from OpenGL.GL import *
 
+import os
+
 def build(ENV):
+
+	obj_open = ENV.__build__('snap.graphics.engines.opengl.shape.obj_loader')
 
 	SnapMesh = ENV.SnapMesh
 
@@ -32,6 +36,33 @@ def build(ENV):
 
 				return d
 
+		@ENV.SnapChannel
+		def open(self, MSG):
+			"(str objpath)"
+
+			objpath = MSG.unpack('objpath', None)
+
+			if not os.path.exists(objpath):
+				raise OSError('not an obj file?', repr(objpath))
+
+			# TODO
+			obj_data = obj_open(objpath)
+
+			ENV.snap_out('obj data', obj_data)
+
+			
+			
+
+		@ENV.SnapChannel
+		def close(self, MSG):
+			"()"
+			engine_data = self.__snap_data__['__engine_data__']
+			if engine_data:
+				for t,ID in engine_data.items():
+					if ID is not None:
+						glDeleteBuffers(1, ID)
+				del self.__snap_data__['__engine_data__']
+
 		def _assign(self, VERTICES, INDICES, *a, **k):
 			# TODO VERTICES and INDICES are SnapBytes?  TODO groups?
 
@@ -60,11 +91,15 @@ def build(ENV):
 
 
 		def __del__(self):
-			try:
-				for t,ID in self.__snap_data__['__engine_data__'].items():
-					glDeleteBuffers(1, ID)
-			except Exception as e:
-				print('opengl mesh __del__ fail', repr(e))
+			self.close()
 
 	ENGINE.SnapOpenGLMesh = SnapOpenGLMesh
 	return SnapOpenGLMesh
+
+def main(ENV):
+
+	''
+
+if __name__ == '__main__':
+	import snap; main(snap.SnapEnv(graphics='OPENGL'))
+

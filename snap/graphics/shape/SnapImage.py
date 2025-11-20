@@ -194,13 +194,13 @@ def build(ENV):
 				#		assert None not in SIZE, 'must provide size or both of width and height'
 				#		validate = [SIZE[0], SIZE[1], FORMAT, PIXELS]
 
-			if any([v for v in validate if v is not None]):
+				if any([v for v in validate if v is not None]):
 
-				WIDTH, HEIGHT, bits_per, FORMAT, BYTES = self._validate(*validate)
-				self._assign(WIDTH, HEIGHT, bits_per, FORMAT, BYTES)
+					WIDTH, HEIGHT, bits_per, FORMAT, BYTES = self._validate(*validate)
+					self._assign(WIDTH, HEIGHT, bits_per, FORMAT, BYTES)
 
-				# XXX TODO move changed to assign
-				#self.changed(image=self, size=[WIDTH, HEIGHT], width=WIDTH, height=HEIGHT, format=FORMAT, pixels=BYTES)
+					# XXX TODO move changed to assign
+					#self.changed(image=self, size=[WIDTH, HEIGHT], width=WIDTH, height=HEIGHT, format=FORMAT, pixels=BYTES)
 
 			"""
 			settings = MSG.kwargs
@@ -390,8 +390,8 @@ def build(ENV):
 
 			self._assign(*self._validate(w, h, "RGBA", B))
 
-			self.changed(image=self, width=w, height=h, size=[w,h], format=self['format'], pixels=B)
-			self.changed_data.emit()
+			#self.changed(image=self, width=w, height=h, size=[w,h], format=self['format'], pixels=B)
+			#self.changed_data.emit()
 
 			#snap_warning("open not yet implemented")
 
@@ -653,11 +653,11 @@ def build(ENV):
 
 			# TODO optimize with lazy loading?  some parameters don't need to exist unless they are used...
 
-			self.__snap_data__['pixels'] = None
+			#self.__snap_data__['pixels'] = None
 			#data['ndarray'] = None # pixels for now
-			self['extents'] = snap_extents_t(0,0,0, 1,1,1)
+			#self['extents'] = snap_extents_t(0,0,0, 1,1,1)
 
-			self.__snap_data__['format'] = "RGBA"
+			#self.__snap_data__['format'] = "RGBA"
 
 			init = dict(
 				width=1,
@@ -686,15 +686,23 @@ def build(ENV):
 
 def main(ENV):
 
+	import os
+	THISDIR = os.path.realpath(os.path.dirname(__file__))
+
 	img = ENV.SnapImage()
 	img.resize(100,100)
 
 	ENV.snap_out(img['width'], img['height'], img['bits_per_pixel'], img['width'] * img['height'] * 4)
 	#ctypes.memset(img._pixels_, 220, img.width() * img.height() * 4)
-	img.save('/home/user/Downloads/SnapImage_test.png')
+	img.save(os.path.join(THISDIR, 'SnapImage_test.png'))
 
-	img.open('/media/user/CRUCIAL1TB/MyComputer/MEDIA/IMAGES/Funny/0bo3u55w27iz.png')
-	img.save('/home/user/Downloads/SnapImage_test2.png')
+	asset = os.path.join(ENV.SNAP_PATH, 'demo/snap/graphics/gtk-hamster experiments/assets/oxy.png')
+
+	img.open(asset)
+	img.save(os.path.join(THISDIR, 'SnapImage_test2.png'))
 
 	ENV.snap_out('ok')
+
+if __name__ == '__main__':
+	import snap; main(snap.SnapEnv())
 

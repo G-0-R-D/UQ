@@ -17,7 +17,7 @@ def build(ENV):
 
 
 
-	def numpy_to_glimage(NUMPY, GLIMAGE):
+	def numpy_to_glimage(NUMPY, ID):
 
 		"""
 		size = QIMAGE.size()
@@ -32,22 +32,9 @@ def build(ENV):
 		"""
 		raise NotImplementedError()
 
-		return GLIMAGE
+		return ID
 
-	def glimage_to_numpy(GLIMAGE, NUMPY):
 
-		"""
-		p = QIMAGE.constBits()
-		p.setsize(QIMAGE.byteCount())
-		local = np.frombuffer(p, dtype=np.uint8)
-
-		if NUMPY is None:
-			return local
-		"""
-		raise NotImplementedError()
-
-		NUMPY[:] = local
-		return NUMPY
 
 	class SnapOpenGLImage(SnapImage):
 
@@ -89,40 +76,29 @@ def build(ENV):
 				   return array
 				"""
 
-				ID = self.__snap_data__['__engine_data__']
-				# TODO: pass back the format info, and caller can set itself (because sometimes pulling data means redefining config)
-				return glGetTexImage(
-					GL_TEXTURE_2D,
-					ID,
-					0, # mipmap level
-					GL_RGBA, # GL_BGRA ?
-					GL_UNSIGNED_BYTE,
-					None, # ?
-					)
-
-				qimage = self['__engine_data__']
 				pixels = self.__snap_data__['pixels']
 				if pixels is not None:
-					qimage = self['__engine_data__']
-					# NOTE: when image is painted to the underlying buffer is copied...  so just always update the buffer just in case (XXX TODO FIXME: get rid of Qt backend!)
-					glimage_to_numpy(qimage, pixels['data'])
+					ID = self['__engine_data__']
+
+					glBindTexture(GL_TEXTURE_2D, ID)
+
+					glGetTexImage(
+						GL_TEXTURE_2D,
+						0, # mipmap level
+						GL_BGRA, # GL_BGRA ?
+						GL_UNSIGNED_BYTE,
+						pixels['data'],
+						)
+
+					glBindTexture(GL_TEXTURE_2D, 0)
+
+					#arr = np.frombuffer(p, dtype=np.uint8).reshape(HEIGHT, WIDTH, 4)
+					#arr[:] = arr[:,:, [2,1,0,3]] # BGRA
+					#arr = arr.reshape(HEIGHT * WIDTH * 4)
+
+					#pixels['data'][:] = np.frombuffer(p, dtype=np.uint8)
+
 				return pixels
-				"""
-				q = self['__engine_data__']
-				if q is not None:
-					assert q.format() == QImage.Format_ARGB32, 'qimage format is not ARGB; unsupported (TODO)'
-					#ENV.snap_out("q is", q, q.width(), q.height(), q.format(), type(q.constBits()), q.bytesPerLine())
-					p = q.constBits()
-					p.setsize(q.height() * q.width() * 4)
-					#B.__snap_data__ = np.ndarray((q.width() * q.height() * 4), buffer=p, strides=[q.bytesPerLine(), 4, 1], dtype=np.uint8)
-					# https://stackoverflow.com/questions/45020672/convert-pyqt5-qpixmap-to-numpy-ndarray/50023229#50023229
-					#numpy.array(qimg.constBits()).reshape(skimg.shape)
-					arr = np.frombuffer(p, np.uint8).copy() # q.constBits() is read only
-					view = arr.reshape(q.height(), q.width(), 4)
-					view[:] = view[:,:, [2,1,0,3]] # BGRA
-					return SnapBytes(data=arr) # NOTE: copy of the data
-				return None #SnapImage.pixels(self, MSG)
-				"""
 
 		def draw(self, CTX):
 			# hard coded here (no shader program)
@@ -145,11 +121,31 @@ def build(ENV):
 			pass # TODO
 
 		def _assign(self, WIDTH, HEIGHT, BITS_PER_PIXEL, FORMAT, BYTES):
-			return # XXX TODO
-			IMAGE = self._ref
-			w,h = IMAGE.size()
 
-			glBindTexture(GL_TEXTURE_2D, ID)
+			engine_data = self['__engine_data__']
+
+			existing_pixels = self.__snap_data__['pixels'] # SnapBytes if not None
+
+			existing_byte_count = len(existing_pixels) if existing_pixels is not None else 0
+
+			byte_count = int(self._calc_bytes(WIDTH, HEIGHT, BITS_PER_PIXEL))
+			changed = not existing_byte_count or existing_byte_count != byte_count
+			if changed:
+
+				if existing_pixels is None:
+					existing_pixels = self.__snap_data__['pixels'] = SnapBytes()
+
+				existing_pixels.realloc(HEIGHT * WIDTH * 4)
+
+				if BITS_PER_PIXEL == 32:
+					engine_format = GL_RGBA
+				else:
+					raise TypeError('unsupported format', repr(FORMAT), BITS_PER_PIXEL)
+
+				HEIGHT = int(HEIGHT)
+				WIDTH = int(WIDTH)
+
+			glBindTexture(GL_TEXTURE_2D, engine_data)
 
 			# TODO: query Image api to get settings
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
@@ -157,7 +153,17 @@ def build(ENV):
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
 
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w,h, 0, GL_RGBA, GL_UNSIGNED_BYTE, None)
+			ENV.snap_out('existing pixels', self, existing_pixels['data'].shape, WIDTH, HEIGHT)
+
+			# TODO GL_BGRA?
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WIDTH,HEIGHT, 0, GL_BGRA, GL_UNSIGNED_BYTE, existing_pixels['data'].data) # flipped in Y
+
+			glBindTexture(GL_TEXTURE_2D, 0)
+
+			self.__snap_data__['format'] = FORMAT
+			self.__snap_data__['extents'] = snap_extents_t(0,0,0, WIDTH,HEIGHT,1)
+
+
 
 		def _assignXXX(self, WIDTH, HEIGHT, BITS_PER_PIXEL, FORMAT, BYTES):
 
@@ -244,6 +250,7 @@ def build(ENV):
 
 			# TODO call emit with each arg set?
 			self.changed(image=self, size=[WIDTH,HEIGHT], width=WIDTH, height=HEIGHT, format=FORMAT, pixels=BYTES)
+			self.changed_data.emit()
 
 
 		def __init__(self, **SETTINGS):
@@ -255,15 +262,29 @@ def build(ENV):
 			# TODO so use a QPixmap for the image engine data, use QImage for manipulations?
 
 		def __del__(self):
-			try:
-				glDeleteTextures(1, self.__snap_data__['__engine_data__'])
-			except Exception as e:
-				pass
+			gl = self.__snap_data__['__engine_data__']
+			if gl:
+				glDeleteTextures(1, gl)
+				del self.__snap_data__['__engine_data__']
 
 	ENGINE.SnapOpenGLImage = SnapOpenGLImage
 	return SnapOpenGLImage
 
 def main(ENV):
+
+	import os
+	THISDIR = os.path.realpath(os.path.dirname(__file__))
+
+	GFX = ENV.GRAPHICS
+
+	#os.path.join(ENV.SNAP_PATH, 
+
+	asset = os.path.join(ENV.SNAP_PATH, 'demo/snap/graphics/gtk-hamster experiments/assets/oxy.png')
+
+	img = GFX.Image(filepath=asset)
+
+
+	img.save(os.path.join(THISDIR, 'SnapOpenGLImage_test.png'))
 
 	#from snap.core import SNAP_GLOBAL_ENV as ENV
 	#from snap import extern, graphics

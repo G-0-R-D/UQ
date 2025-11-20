@@ -73,9 +73,15 @@ def build(ENV):
 		@ENV.SnapProperty
 		class __engine_data__:
 
+			# TODO texture will just set the wrap mode and matrix before drawing the image...
+			#glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+			#glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+			#glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+			#glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+
 			def get(self, MSG):
 				"""()->?"""
-				# TODO
+				return self['image']['__engine_data__'] # TODO
 
 			#def set(self, MSG):
 			#	"""(?)"""

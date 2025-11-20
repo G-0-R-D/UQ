@@ -141,7 +141,7 @@ def build(ENV):
 			engine_context = ctx_data['engine_context']
 			#image = self.image
 
-			assert engine_context is not None, 'context cannot be used without engine_context'
+			#assert engine_context is not None, 'context cannot be used without engine_context'
 
 			# NOTE: lookup assumes the context is being used as a lookup context itself (separately from a render context)
 			if image['size'] != [1,1]:

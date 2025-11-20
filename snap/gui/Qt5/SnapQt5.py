@@ -822,6 +822,7 @@ def build(ENV):
 				#import os
 				#if not os.path.exists('/media/user/CRUCIAL1TB/MyComputer/PROGRAMMING/PROJECTS/UQ/snap/lib/gui/Qt5/test_out.png'):
 				#	blit_texture['__engine_data__'].save('/media/user/CRUCIAL1TB/MyComputer/PROGRAMMING/PROJECTS/UQ/snap/lib/gui/Qt5/test_out.png')
+				ENV.snap_out('blit texture', blit_texture)
 				try:
 					ptr.drawPixmap(window.rect(), blit_texture['__engine_data__'])
 					#ptr.drawImage(window.rect(), blit_texture['image']['__engine_data__'])

@@ -555,7 +555,6 @@ def build(ENV):
 			data['__user_window__'] = None
 			#ext = self._gui_window_extents_ = snap_extents_t(0,0,0, 640,480,1)
 			data['__blit_texture__'] = None # XXX TODO have the image and texture ready to go (if not the same as the user engine, do the pixel transfer on the blit)
-			data['fps'] = None # XXX fps is program or env domain...
 			data['__render_forced__'] = False
 			data['interactive'] = False # XXX gui is always interactive, just depends on if user is...?  assume it always is for now?  if not then lookup render won't do anything...?
 
@@ -607,7 +606,7 @@ def build(ENV):
 			self['interactive'] = True # TODO better api
 
 			if not self['fps']:
-				self.set(fps=30.0)
+				self.set(fps=30.0) # TODO make a 'default fps' to assign to ENV init...  assign to gui base?  and then new windows can reference it if they aren't given their own argument?  or maybe just put it on ENV?  ENV.SETTINGS?
 
 
 	ENV.SnapGuiWindowBase = SnapGuiWindowBase

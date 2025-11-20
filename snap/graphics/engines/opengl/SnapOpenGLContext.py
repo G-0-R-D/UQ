@@ -209,7 +209,7 @@ def build(ENV):
 		def finish(self, MSG):
 			"()"
 			# TODO
-			raise NotImplementedError()
+			#raise NotImplementedError()
 
 		@ENV.SnapChannel
 		def clear(self, MSG):
