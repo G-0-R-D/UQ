@@ -1,0 +1,3 @@
+
+# TODO make a shader base class that can more easily drop in shadertoy code as-is...
+

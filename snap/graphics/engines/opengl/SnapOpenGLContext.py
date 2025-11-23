@@ -14,7 +14,7 @@ def build(ENV):
 		# TODO BLENDMODES?
 
 		@ENV.SnapProperty
-		class image:
+		class imageXXX:
 
 			def get(self, MSG):
 				"()->SnapOpenGLImage"
@@ -23,14 +23,18 @@ def build(ENV):
 			def set(self, MSG):
 				"(SnapOpenGLImage!)"
 
+				ENV.snap_out('set image')
+
 				IMAGE = MSG.args[0]
 
-				if not self.__snap_data__['__fbo__']:
+				if self.__snap_data__['__fbo__'] is None:
 					self.__snap_data__['__fbo__'] = glGenFramebuffers(1)
-				if not self.__snap_data__['__rbo__']:
+				if self.__snap_data__['__rbo__'] is None:
 					self.__snap_data__['__rbo__'] = glGenRenderbuffers(1)
 
-				self.__snap_data__['image'] = IMAGE
+				self.__snap_data__['image'] = IMAGE # TODO listen to image for changes!
+
+				ENV.snap_out('image set', IMAGE, IMAGE['size'])
 
 				glBindFramebuffer(GL_FRAMEBUFFER, self.__snap_data__['__fbo__'])
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, IMAGE['__engine_data__'], 0) # GLint = mipmap level
@@ -190,7 +194,7 @@ def build(ENV):
 			"()"
 			fbo = self.__snap_data__['__fbo__']
 			if fbo is not None:
-				glBindFramebuffer(GL_FRAMEBUFFER, self.__snap_data__['__fbo__'])
+				glBindFramebuffer(GL_FRAMEBUFFER, fbo)
 
 				#glClearDepth(1.0)
 				glDepthFunc(GL_LEQUAL)#GL_LESS)
@@ -205,11 +209,13 @@ def build(ENV):
 				#glDisable(GL_CULL_FACE)
 				glEnable(GL_CULL_FACE)
 
+				glBindFramebuffer(GL_FRAMEBUFFER, 0)
+
 		@ENV.SnapChannel
 		def finish(self, MSG):
 			"()"
 			# TODO
-			#raise NotImplementedError()
+			glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
 		@ENV.SnapChannel
 		def clear(self, MSG):
@@ -217,16 +223,46 @@ def build(ENV):
 			image = self['image']
 			if image is not None:
 				# TODO should there be a bind call in here?
+
+				glBindFramebuffer(GL_FRAMEBUFFER, self.__snap_data__['__fbo__'])
+
 				w,h = image['size']
 				glViewport(0,0,w,h)
 				glClearColor(0,0,0,0)
 				glClearDepth(1.0)
 				glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT)
 
+
 		# TODO set?
 
 		def __init__(self, **SETTINGS):
 			SnapContext.__init__(self, **SETTINGS)
+
+
+			IMAGE = self['image']
+
+			# TODO maybe put these buffers on the window or something?  so we don't have to create and destroy them constantly!
+			#	-- put them on image, if they are used on the image...
+			if self.__snap_data__['__fbo__'] is None:
+				self.__snap_data__['__fbo__'] = glGenFramebuffers(1)
+			if self.__snap_data__['__rbo__'] is None:
+				self.__snap_data__['__rbo__'] = glGenRenderbuffers(1)
+
+			# TODO listen to image for changes!
+
+			#ENV.snap_out('image set', IMAGE, IMAGE['size'])
+
+			glBindFramebuffer(GL_FRAMEBUFFER, self.__snap_data__['__fbo__'])
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, IMAGE['__engine_data__'], 0) # GLint = mipmap level
+			#glBindRenderbuffer(GL_RENDERBUFFER, self._rbo_)
+			#glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, *IMAGE.size())
+			#glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, self._rbo_) # depth and stencil buffers
+
+			if glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE:
+				raise Exception('framebuffer error!')
+
+			self.reset()
+
 
 		def __del__(self):
 			fbo = self.__snap_data__['__fbo__']

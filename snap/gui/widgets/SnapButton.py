@@ -145,10 +145,6 @@ def build(ENV):
 			#CTX.cmd_fill_path(self['background_color'], self['shape'])
 			CTX.cmd_fill_extents(self['background_color'], self['extents'])
 			#ENV.snap_out(CTX['image']['pixels']['data'][(640*40*4)+50:])
-			#import os
-			#if not os.path.exists('/media/user/CRUCIAL1TB/MyComputer/PROGRAMMING/PROJECTS/UQ/snap/lib/draw_out.png'):
-			#	#ENV.snap_out('image size', CTX['image']['size'])
-			#	CTX['image']['__engine_data__'].save('/media/user/CRUCIAL1TB/MyComputer/PROGRAMMING/PROJECTS/UQ/snap/lib/draw_out.png')
 
 		def lookup(self, CTX):
 			#ENV.snap_out('perform lookup', CTX['matrix'][:], self['extents'][:])

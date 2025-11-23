@@ -682,14 +682,6 @@ def main(ENV):
 		char greetings[] = {'H', 'e', 'l', 'l', 'o', ' ', 'W', 'o', 'r', 'l', 'd', '!', 65};
 	}
 	"""
-
-	#EXAMPLE = 'fprintf("hello world");'
-
-	#path = './example.c'
-	#path = '/media/user/CRUCIAL1TB/MyComputer/PROGRAMMING/PROJECTS/UQ/snap/lib/core/parsing/github.com py-pdf pypdf/Makefile'
-	#with open(path, 'r') as openfile:
-	#	j = decode(openfile.read())
-	#c = ENV.SnapCLanguage()
 	dec = ENV.SnapCLanguageDecoder()
 	if 1:
 		TESTS = os.path.join(THISDIR, 'test')

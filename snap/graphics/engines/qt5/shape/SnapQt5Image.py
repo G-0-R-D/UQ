@@ -98,6 +98,9 @@ def build(ENV):
 					qimage = self['__engine_data__']
 					# NOTE: when image is painted to the underlying buffer is copied...  so just always update the buffer just in case (XXX TODO FIXME: get rid of Qt backend!)
 					qimage_to_numpy(qimage, pixels['data'])
+
+					arr = pixels['data'].reshape(self['height'], self['width'], 4)
+					arr[:] = arr[:,:, [2,1,0,3]] # BGRA
 				return pixels
 				"""
 				q = self['__engine_data__']
@@ -124,9 +127,7 @@ def build(ENV):
 			e = self['extents']
 
 			CTX['engine_context'].drawImage(QRectF(e[0], e[1], e[3]-e[0], e[4]-e[1]), self['__engine_data__'])
-			#CTX['image'].save('/media/user/CRUCIAL1TB/MyComputer/PROGRAMMING/PROJECTS/UQ/TestNode_in_image_draw.png')
-			# TODO self.pixels is not being updated!  we need to get pixels from qimage?
-			#CTX._image_.__engine_data__().save('/media/user/CRUCIAL1TB/MyComputer/PROGRAMMING/PROJECTS/UQ/TestNode_in_image_draw.png')
+
 
 		def lookup(self, CTX):
 			# either use the extents or render and check the alpha of the image...
@@ -148,6 +149,9 @@ def build(ENV):
 			changed = not existing_byte_count or existing_byte_count != byte_count
 			if changed:
 
+				HEIGHT = int(HEIGHT)
+				WIDTH = int(WIDTH)
+
 				if existing_pixels is None:
 					existing_pixels = self.__snap_data__['pixels'] = SnapBytes()
 
@@ -155,6 +159,8 @@ def build(ENV):
 					#existing_pixels = ctypes.create_string_buffer(byte_count)
 					#existing_pixels = np.ndarray((HEIGHT, WIDTH, 4), dtype=np.uint8)
 				existing_pixels.realloc(HEIGHT * WIDTH * 4)
+
+				#ENV.snap_out('existing pixels', HEIGHT*WIDTH*4)
 
 				#ctypes.resize(existing_pixels, byte_count)
 
@@ -170,8 +176,6 @@ def build(ENV):
 				#if surface:
 				#	cairo_surface_destroy(surface)
 				#	self._snap_engine_data_ = None
-				HEIGHT = int(HEIGHT)
-				WIDTH = int(WIDTH)
 
 				#existing_pixels = data['pixels'] = np.ndarray((HEIGHT, WIDTH, 4), dtype=np.uint8)
 
@@ -189,7 +193,7 @@ def build(ENV):
 
 			#data['byte_count'] = byte_count # XXX ?  this is pixel count?  this is width * height * nchannels
 
-			if BYTES is not None:
+			if BYTES is not None and BYTES['data'] is not None:
 				# copy pixels
 				#snap_memcpy(existing_pixels, PIXELS, byte_count);
 				#ctypes.memmove(existing_pixels, PIXELS, byte_count)
@@ -199,11 +203,13 @@ def build(ENV):
 
 				#arr = BYTES
 
-				arr = BYTES['data'].reshape(HEIGHT, WIDTH, 4)
-				arr[:] = arr[:,:, [2,1,0,3]] # BGRA
-				arr = arr.reshape(HEIGHT * WIDTH * 4)
+				#arr = BYTES['data'].reshape(HEIGHT, WIDTH, 4)
+				#arr[:] = arr[:,:, [2,1,0,3]] # BGRA
+				#arr = arr.reshape(HEIGHT * WIDTH * 4)
 
-				existing_pixels['data'][:] = arr
+				#existing_pixels['data'][:] = arr
+				#ENV.snap_out(existing_pixels['data'].shape, BYTES['data'].shape)
+				existing_pixels['data'][:] = BYTES['data']
 			else:
 				# assign as NULL
 				#ctypes.memset(existing_pixels, 0, byte_count)
@@ -241,20 +247,27 @@ def main(ENV):
 	#graphics.build(ENV)
 	#build(ENV)
 
+	import os
+
+	THISDIR = os.path.realpath(os.path.dirname(__file__))
+
 	img = ENV.GRAPHICS.Image(width=100, height=100)
 
 	print(img['__engine_data__'], img['__engine_data__'].width(), img['__engine_data__'].height())
 
-	img['__engine_data__'].save('/home/user/Downloads/test.png')
+	img['__engine_data__'].save(os.path.join(THISDIR, 'test.png'))
+
+	img.open(filepath=os.path.join(ENV.SNAP_PATH, 'demo/snap/graphics/gtk-hamster experiments/assets/oxy.png'))
+	img.save(os.path.join(THISDIR, 'oxy.png'))
 
 
 	import numpy as np
 	arr = np.ndarray((480,640,4), dtype=np.uint8)
 	arr[:] = 255
 	img = ENV.extern.Qt5.QImage(arr, arr.shape[1], arr.shape[0], ENV.extern.Qt5.QImage.Format_ARGB32)
-	img.save('/home/user/Downloads/test1.png')
+	img.save(os.path.join(THISDIR, 'test1.png'))
 	arr[16:20] = 0
-	img.save('/home/user/Downloads/test2.png')
+	img.save(os.path.join(THISDIR, 'test2.png'))
 
 if __name__ == '__main__':
 

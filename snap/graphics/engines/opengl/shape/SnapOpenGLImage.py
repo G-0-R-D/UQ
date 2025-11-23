@@ -1,5 +1,6 @@
 
 from OpenGL.GL import *
+import numpy
 
 def build(ENV):
 
@@ -77,26 +78,39 @@ def build(ENV):
 				"""
 
 				pixels = self.__snap_data__['pixels']
-				if pixels is not None:
-					ID = self['__engine_data__']
+				if pixels is None:
+					w,h = self['size']
+					fmt = 4 # TODO
+					#pixels = SnapBytes(size=w*h*4)
+					pixels = SnapBytes()
+					pixels.realloc(w*h*4)
+					# but we don't assign locally
+				else:
+					ENV.snap_warning('pixels exist')
 
-					glBindTexture(GL_TEXTURE_2D, ID)
+				ID = self['__engine_data__']
 
-					glGetTexImage(
-						GL_TEXTURE_2D,
-						0, # mipmap level
-						GL_BGRA, # GL_BGRA ?
-						GL_UNSIGNED_BYTE,
-						pixels['data'],
-						)
+				glBindTexture(GL_TEXTURE_2D, ID)
 
-					glBindTexture(GL_TEXTURE_2D, 0)
+				#ENV.snap_out('pixels data', pixels['data'])
 
-					#arr = np.frombuffer(p, dtype=np.uint8).reshape(HEIGHT, WIDTH, 4)
-					#arr[:] = arr[:,:, [2,1,0,3]] # BGRA
-					#arr = arr.reshape(HEIGHT * WIDTH * 4)
+				glGetTexImage(
+					GL_TEXTURE_2D,
+					0, # mipmap level
+					GL_BGRA, # GL_BGRA ? TODO when saving
+					GL_UNSIGNED_BYTE,
+					pixels['data'],
+					)
 
-					#pixels['data'][:] = np.frombuffer(p, dtype=np.uint8)
+				glBindTexture(GL_TEXTURE_2D, 0)
+
+				#arr = np.frombuffer(p, dtype=np.uint8).reshape(HEIGHT, WIDTH, 4)
+				#arr[:] = arr[:,:, [2,1,0,3]] # BGRA
+				#arr = arr.reshape(HEIGHT * WIDTH * 4)
+
+				#pixels['data'][:] = np.frombuffer(p, dtype=np.uint8)
+
+				#ENV.snap_out("pixels", pixels['data'], self['size'])
 
 				return pixels
 
@@ -109,10 +123,6 @@ def build(ENV):
 
 			#e = self['extents']
 
-			#CTX['engine_context'].drawImage(QRectF(e[0], e[1], e[3]-e[0], e[4]-e[1]), self['__engine_data__'])
-			#CTX['image'].save('/media/user/CRUCIAL1TB/MyComputer/PROGRAMMING/PROJECTS/UQ/TestNode_in_image_draw.png')
-			# TODO self.pixels is not being updated!  we need to get pixels from qimage?
-			#CTX._image_.__engine_data__().save('/media/user/CRUCIAL1TB/MyComputer/PROGRAMMING/PROJECTS/UQ/TestNode_in_image_draw.png')
 			pass
 
 		def lookup(self, CTX):
@@ -124,26 +134,33 @@ def build(ENV):
 
 			engine_data = self['__engine_data__']
 
-			existing_pixels = self.__snap_data__['pixels'] # SnapBytes if not None
+			#existing_pixels = self.__snap_data__['pixels'] # SnapBytes if not None
 
-			existing_byte_count = len(existing_pixels) if existing_pixels is not None else 0
+			ext = self['extents']
+			if ext is None:
+				w = h = 0
+			else:
+				w,h = self['size']
+			#existing_byte_count = len(existing_pixels) if existing_pixels is not None else 0
+			existing_byte_count = w * h * 4
+
+			HEIGHT = int(HEIGHT)
+			WIDTH = int(WIDTH)
 
 			byte_count = int(self._calc_bytes(WIDTH, HEIGHT, BITS_PER_PIXEL))
 			changed = not existing_byte_count or existing_byte_count != byte_count
 			if changed:
 
-				if existing_pixels is None:
-					existing_pixels = self.__snap_data__['pixels'] = SnapBytes()
+				#if existing_pixels is None:
+				#	existing_pixels = self.__snap_data__['pixels'] = SnapBytes()
 
-				existing_pixels.realloc(HEIGHT * WIDTH * 4)
+				#existing_pixels.realloc(HEIGHT * WIDTH * 4)
 
 				if BITS_PER_PIXEL == 32:
 					engine_format = GL_RGBA
 				else:
 					raise TypeError('unsupported format', repr(FORMAT), BITS_PER_PIXEL)
 
-				HEIGHT = int(HEIGHT)
-				WIDTH = int(WIDTH)
 
 			glBindTexture(GL_TEXTURE_2D, engine_data)
 
@@ -153,10 +170,14 @@ def build(ENV):
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
 
-			ENV.snap_out('existing pixels', self, existing_pixels['data'].shape, WIDTH, HEIGHT)
+			#ENV.snap_out('existing pixels', self, existing_pixels['data'].shape, WIDTH, HEIGHT)
 
 			# TODO GL_BGRA?
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WIDTH,HEIGHT, 0, GL_BGRA, GL_UNSIGNED_BYTE, existing_pixels['data'].data) # flipped in Y
+			if BYTES is not None:
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WIDTH,HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, BYTES['data'].data) # flipped in Y
+			else:
+				#arr = numpy.zeros((HEIGHT*WIDTH*4), dtype=numpy.uint8)
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WIDTH,HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, None)#arr.data) # flipped in Y
 
 			glBindTexture(GL_TEXTURE_2D, 0)
 
@@ -164,93 +185,6 @@ def build(ENV):
 			self.__snap_data__['extents'] = snap_extents_t(0,0,0, WIDTH,HEIGHT,1)
 
 
-
-		def _assignXXX(self, WIDTH, HEIGHT, BITS_PER_PIXEL, FORMAT, BYTES):
-
-			existing_pixels = self.__snap_data__['pixels'] # SnapBytes if not None
-			#existing_pixels = getattr(self, '_ndarray_', None)
-
-			#existing_pixels = getattr(self, '_pixels_', None)
-			#existing_byte_count = int(getattr(self, '_byte_count_', 0) or 0)
-			
-			existing_byte_count = len(existing_pixels) if existing_pixels is not None else 0
-
-			byte_count = int(self._calc_bytes(WIDTH, HEIGHT, BITS_PER_PIXEL))
-
-			changed = not existing_byte_count or existing_byte_count != byte_count
-			if changed:
-
-				if existing_pixels is None:
-					existing_pixels = self.__snap_data__['pixels'] = SnapBytes()
-
-				#if 1:#XXX existing_pixels is None:
-					#existing_pixels = ctypes.create_string_buffer(byte_count)
-					#existing_pixels = np.ndarray((HEIGHT, WIDTH, 4), dtype=np.uint8)
-				existing_pixels.realloc(HEIGHT * WIDTH * 4)
-
-				#ctypes.resize(existing_pixels, byte_count)
-
-
-				# https://doc.qt.io/qtforpython-5/PySide2/QtGui/QImage.html#PySide2.QtGui.PySide2.QtGui.QImage.size
-
-				if BITS_PER_PIXEL == 32:
-					raise NotImplementedError() # TODO
-					#engine_format = Qt5.QImage.Format_ARGB32
-				else:
-					raise TypeError('unsupported format', repr(FORMAT), BITS_PER_PIXEL)
-
-				#surface = getattr(self, '_snap_engine_data_', None)
-				#if surface:
-				#	cairo_surface_destroy(surface)
-				#	self._snap_engine_data_ = None
-				HEIGHT = int(HEIGHT)
-				WIDTH = int(WIDTH)
-
-				#existing_pixels = data['pixels'] = np.ndarray((HEIGHT, WIDTH, 4), dtype=np.uint8)
-
-				# stride = width * bytes per pixel (format)
-				qimage = Qt5.QImage(existing_pixels['data'].data, WIDTH, HEIGHT, WIDTH * 4, engine_format)
-
-				stride = qimage.bytesPerLine()
-				assert stride * HEIGHT == byte_count, 'pixel misalignment {}'.format([stride * HEIGHT, byte_count])
-
-				#self._pixels_ = existing_pixels
-				self.__snap_data__['format'] = FORMAT
-				self.__snap_data__['extents'] = snap_extents_t(0,0,0, WIDTH,HEIGHT,1)
-
-				self.__snap_data__['__engine_data__'] = qimage
-
-			#data['byte_count'] = byte_count # XXX ?  this is pixel count?  this is width * height * nchannels
-
-			if BYTES is not None:
-				# copy pixels
-				#snap_memcpy(existing_pixels, PIXELS, byte_count);
-				#ctypes.memmove(existing_pixels, PIXELS, byte_count)
-
-				HEIGHT = int(HEIGHT)
-				WIDTH = int(WIDTH)
-
-				#arr = BYTES
-
-				arr = BYTES['data'].reshape(HEIGHT, WIDTH, 4)
-				arr[:] = arr[:,:, [2,1,0,3]] # BGRA
-				arr = arr.reshape(HEIGHT * WIDTH * 4)
-
-				existing_pixels['data'][:] = arr
-			else:
-				# assign as NULL
-				#ctypes.memset(existing_pixels, 0, byte_count)
-				#ENV.snap_out("existing pixels assign")
-				existing_pixels['data'][:] = 0 # TODO clear to a color?
-
-			# TODO update the QImage, make SnapContext.clear() a drawing operation?
-			numpy_to_glimage(existing_pixels['data'], self['__engine_data__'])
-
-			#out('pixels set', w,h, byte_count, ctypes.sizeof(existing_pixels), len(existing_pixels), len(existing_pixels.value))
-
-			# TODO call emit with each arg set?
-			self.changed(image=self, size=[WIDTH,HEIGHT], width=WIDTH, height=HEIGHT, format=FORMAT, pixels=BYTES)
-			self.changed_data.emit()
 
 
 		def __init__(self, **SETTINGS):

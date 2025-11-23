@@ -20,6 +20,25 @@ def build(ENV):
 		'build shaders...'
 
 
+	# decorator
+	def task(FUNC, *args, **kwargs):
+		'register'
+		# TODO wrapper gets assigned to the timer, and assigned to self...
+		# then wrapper does the iteration (or just a call if not an iterator)
+		# and wrapper cleans up after (remove from local assign from FUNC.__name__)
+		#	-- assign to self.__snap_data__['__tasks__'] on whatever self is (a SnapNode type)
+		#	-- TODO and use methods to define the tasks, decorate them with this
+		#	-- TODO maybe make a task manager decorator that assigns to an instance in data['__task_manager__']? XXX this is the task manager, just assign the tasks to a dict from here
+		def wrapper(self, *a, **k):
+			timer = SnapTimer(None)
+			gen = FUNC(self, self.__project__(), timer, *a, **k)
+			existing = [t for t in self.__tasks__.get(FUNC.__name__, []) if t['running']] # housekeeping
+			self.__tasks__[FUNC.__name__] = existing + [timer]
+			timer.start(gen, seconds=0, repeat=True)
+			return timer#FUNC(self, PROJECT, TIMER)
+		return wrapper
+
+
 	class SnapProject(SnapContainer):
 
 		__slots__ = ['__tasks__']

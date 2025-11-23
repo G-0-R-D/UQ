@@ -77,6 +77,8 @@ def build(ENV):
 				except:
 					pass
 
+				#del self.__snap_data__['__blit_image__'] # force a new one
+
 		@ENV.SnapProperty
 		class matrix:
 
@@ -110,11 +112,11 @@ def build(ENV):
 				data = self.__snap_data__
 
 				data['__user__'] = USER
-				data['__blit_texture__'] = None
+				del data['__blit_image__']
 
 				if USER is None:
 					data['__user_window__'] = None
-					data['__blit_texture__'] = None
+					#data['__blit_image__'] = None
 					#ENV.snap_out('set user abort')
 					return
 
@@ -139,7 +141,7 @@ def build(ENV):
 
 				# if toplevel is not in the same graphics engine as the gui then
 				# image must be transferred to a local copy in gui format
-				# so a __blit_texture__ is only assigned/used if user engine is different than
+				# so a __blit_image__ is only assigned/used if user engine is different than
 				# gui, otherwise __user_window__.texture() is used directly
 
 				GUI_ENGINE = getattr(ENV, 'GUI_GRAPHICS', None) #ENV.snap_preferred_engine()
@@ -149,12 +151,14 @@ def build(ENV):
 
 				assert GUI_ENGINE is not None, 'cannot render if no gui graphics!'
 
+				"""
 				if GUI_ENGINE == USER_ENGINE:
-					data['__blit_texture__'] = None
+					data['__blit_image__'] = None
 				else:
-					'assign __blit_texture__ to new GUI_ENGINE.Texture()'
+					'assign __blit_image__ to new GUI_ENGINE.Texture()'
 					image = GUI_ENGINE.Image()
-					data['__blit_texture__'] = GUI_ENGINE.Texture(image=image)
+					data['__blit_image__'] = GUI_ENGINE.Texture(image=image)
+				"""
 
 				if not DEVICES:
 					ENV.snap_warning("no devices for user assign!")
@@ -201,14 +205,6 @@ def build(ENV):
 					if SNAP_DEBUGGING_GUI:
 						start_time = snap_time() - start_time
 						#snap_debug_gui("render completed in %lf secs or %lf/sec", start_time, 1.0/start_time)
-
-					#ENV.snap_out("user_window items", list(user_window.render_items()))
-					#import os
-					#savepath = '/media/user/CRUCIAL1TB/MyComputer/PROGRAMMING/PROJECTS/UQ/TestNode_render_result.png'
-					#texture = user_window['texture']
-					#if not os.path.exists(savepath) and texture['image']['size'] != [1,1]:
-					#	ENV.snap_out("image saved", savepath, texture['image']['size'])
-					#	texture['image'].save(savepath)
 
 					self.trigger_blit() # gui updates display
 
@@ -377,9 +373,9 @@ def build(ENV):
 				'__user_window__ = __user__'
 
 			if 'user engine is different':
-				'__blit_texture__ is new and listens for changed'
+				'__blit_image__ is new and listens for changed'
 			else:
-				'__blit_texture__ is __user_window__ texture'
+				'__blit_image__ is __user_window__ texture'
 
 			if GUI_ENGINE and USER_ENGINE:
 				# renderable, make proxy if needed
@@ -400,8 +396,8 @@ def build(ENV):
 					# find the engine and rendering will begin
 					ENV.snap_warning("ENGINE not set for GUI window! (nothing will display)")
 
-			ENV.snap_out("assign __blit_texture__", blit_texture)
-			self['__blit_texture__'] = blit_texture
+			ENV.snap_out("assign __blit_image__", blit_texture)
+			self['__blit_image__'] = blit_texture
 
 			return None
 
@@ -554,7 +550,7 @@ def build(ENV):
 			data['__user__'] = None
 			data['__user_window__'] = None
 			#ext = self._gui_window_extents_ = snap_extents_t(0,0,0, 640,480,1)
-			data['__blit_texture__'] = None # XXX TODO have the image and texture ready to go (if not the same as the user engine, do the pixel transfer on the blit)
+			data['__blit_image__'] = None # XXX TODO have the image and texture ready to go (if not the same as the user engine, do the pixel transfer on the blit)
 			data['__render_forced__'] = False
 			data['interactive'] = False # XXX gui is always interactive, just depends on if user is...?  assume it always is for now?  if not then lookup render won't do anything...?
 

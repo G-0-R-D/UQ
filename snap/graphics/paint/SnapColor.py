@@ -83,7 +83,7 @@ def build(ENV):
 				FORMAT = MSG.kwargs.get('format', 'rgba').lower()
 				assert ''.join(sorted(FORMAT)) in ('abgr','bgr'), 'invalid format: {}'.format(repr(FORMAT))
 
-				ENV.snap_out("format", FORMAT, MSG)
+				#ENV.snap_out("format", FORMAT, MSG)
 
 				# TODO verify only rgba letters in format, and check if 3 or 4?
 

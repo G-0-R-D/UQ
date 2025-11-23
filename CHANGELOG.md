@@ -23,6 +23,25 @@
 
 
 ---------------
+## 2025.11.22 📢
+---------------
+
+- 🎨/✨/🎪 *(graphics/new/demo)* **`UQ/demo/snap/graphics/opengl/shadertoy/Rhobidium.py`** now runs...  but still lots to do!
+
+	
+- 🛠️/⚠️/❗ *(WIP/major/refactoring)* currently working on a redesign of the core, but hopefully it doesn't impact existing code too much...
+
+
+
+---------------
+## 2025.11.20 📢
+---------------
+
+- 🎨/✨ *(graphics/new)* new opengl obj reader (untested)
+
+
+
+---------------
 ## 2025.11.19 📢
 ---------------
 

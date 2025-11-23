@@ -18,7 +18,7 @@ def build(ENV):
 
 	# TODO load the preferred engine of gui if not loaded...
 	assert getattr(ENV, 'GUI_GRAPHICS', None) is None, 'gui graphics already loaded?'
-	ENV.GUI_GRAPHICS = ENV.graphics.load('QT5')
+	GUI_GRAPHICS = ENV.GUI_GRAPHICS = ENV.graphics.load('QT5')
 
 	snap_extents_t = ENV.snap_extents_t
 
@@ -810,18 +810,54 @@ def build(ENV):
 
 			# TODO just keep the existing design, render on window and then this just pulls the self.data()['__texture__'] setup in self._update_blit_data()
 
-			ptr = Qt5.QPainter(window)
+			with Qt5.QPainter(window) as ptr:
 
-			blit_texture = self['__blit_texture__']
+				user_window = self['__user_window__']
+				if user_window is None:
+					ptr.fillRect(window.rect(), Qt5.Qt.red)
+					return None
+
+				user_image = user_window['image']
+				if user_image is None:
+					ptr.fillRect(window.rect(), Qt5.Qt.red)
+					return None
+
+				if isinstance(user_image, GUI_GRAPHICS.Image):
+					qimage = user_image['__engine_data__']
+				else:
+					blit_image = self['__blit_image__']
+					if blit_image is None:
+						blit_image = self['__blit_image__'] = GUI_GRAPHICS.Image()
+
+					#ENV.snap_out('blit', user_image['size'], len(user_image['pixels']['data']) if user_image['pixels'] is not None else None, user_image['format'])
+					blit_image.set(image=user_image)
+
+					# TODO save the output...
+					#import os
+					#THISDIR = os.path.realpath(os.path.dirname(__file__))
+					#filepath = os.path.join(THISDIR, 'blit_test.png')
+					#if not os.path.exists(filepath):
+					#	''#user_image.save(filepath)
+
+					qimage = blit_image['__engine_data__']
+
+				try:
+					ptr.drawImage(window.rect(), qimage)
+				except Exception as e:
+					ENV.snap_error('blit error', repr(e))
+					ptr.fillRect(window.rect(), Qt5.Qt.red)
+
+			return None
+
+			
+			"""
+			blit_texture = self['__blit_texture__'] # TODO this can just be a pre-made context we use to render...
 			if blit_texture is not None:
 				#ENV.snap_out('__blit_texture__ exists!')
 				# TODO resize blit texture image (or reformat if changed from user size)
 				#if blit_texture['__engine_data__'] is None:
 				#	ENV.snap_out('texture engine data', blit_texture['__engine_data__'])
 
-				#import os
-				#if not os.path.exists('/media/user/CRUCIAL1TB/MyComputer/PROGRAMMING/PROJECTS/UQ/snap/lib/gui/Qt5/test_out.png'):
-				#	blit_texture['__engine_data__'].save('/media/user/CRUCIAL1TB/MyComputer/PROGRAMMING/PROJECTS/UQ/snap/lib/gui/Qt5/test_out.png')
 				ENV.snap_out('blit texture', blit_texture)
 				try:
 					ptr.drawPixmap(window.rect(), blit_texture['__engine_data__'])
@@ -836,19 +872,6 @@ def build(ENV):
 					if texture is not None:
 						#ENV.snap_out('draw pixmap', window.rect(), texture.__engine_data__().size())
 						#user_window.render() # TODO timer...
-						#import os
-						#savepath = '/media/user/CRUCIAL1TB/MyComputer/PROGRAMMING/PROJECTS/UQ/snap/lib/gui_blit.png'
-						#ENV.snap_out("image size", texture.image().size())
-						#if not os.path.exists(savepath) and texture['image']['size'] != [1,1]:
-							#texture['image']['__engine_data__'].save(savepath)
-						#	texture['image'].save(savepath)
-
-						#ENV.snap_out("display texture")
-
-						#GFX = ENV.GUI_GRAPHICS
-						#image = GFX.Image()
-						#image.open('/media/user/CRUCIAL1TB/MyComputer/ARTWORK/SKETCHBOOK/REFERENCE/ANATOMY/HUMAN/Cross Sections/cosmos.phy.tufts.edu ~rwillson medgross gross.htm.jpeg')
-						#texture = GFX.Texture(image=image)
 
 						#ptr.drawPixmap(window.rect(), texture.__engine_data__())
 						#ENV.snap_out("image size", texture.image().size())
@@ -869,6 +892,7 @@ def build(ENV):
 
 			#ptr.finish()
 			ptr.end()
+			"""
 
 		def __init__(self, **SETTINGS):
 			SnapGuiWindowBase.__init__(self, **SETTINGS)

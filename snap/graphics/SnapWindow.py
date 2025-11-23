@@ -446,11 +446,6 @@ def build(ENV):
 			#ENV.snap_out("ctx.do_draw", self['image'], self['render_items'])
 			ENGINE.do_draw(image=self['image'], items=self['render_items'])#, offset=m)
 
-			#import os
-			#pth = '/media/user/CRUCIAL1TB/MyComputer/PROGRAMMING/PROJECTS/UQ/snap/lib/test_out.png'
-			#if not os.path.exists(pth):
-			#	self['image'].save(pth)
-
 			return None
 
 

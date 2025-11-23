@@ -90,13 +90,6 @@ def build(ENV):
 			if clear:
 				ctx.clear()
 
-
-				#import os
-				#if not os.path.exists('/media/user/CRUCIAL1TB/MyComputer/PROGRAMMING/PROJECTS/UQ/snap/lib/after_clear.png'):
-				#	#ENV.snap_out('image size', CTX['image']['size'])
-				#	image.save('/media/user/CRUCIAL1TB/MyComputer/PROGRAMMING/PROJECTS/UQ/snap/lib/after_clear.png')
-
-
 			ctx_data = ctx.__snap_data__
 			
 			engine_context = ctx_data['engine_context']

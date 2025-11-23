@@ -79,10 +79,15 @@ def build(ENV):
 			ENV.__build__('snap.graphics.engines.opengl.SnapOpenGLContext')
 			self.Context = self.SnapOpenGLContext
 
-			ENV.__build__('snap.graphics.engines.opengl.shader.SnapOpenGLShaderProgram')
-			self.ShaderProgram = self.SnapOpenGLShaderProgram
+			ENV.__build__('snap.graphics.engines.opengl.shader.SnapOpenGLShaderComponent')
+			self.ShaderComponent = self.SnapOpenGLShaderComponent
+
+			ENV.__build__('snap.graphics.engines.opengl.shader.SnapOpenGLShader')
+			self.Shader = self.SnapOpenGLShader
 
 			delattr(ENV.graphics, '__current_graphics_build__')
+
+			# TODO default/engine shaders
 
 
 	ENV.SnapOpenGLEngine = SnapOpenGLEngine

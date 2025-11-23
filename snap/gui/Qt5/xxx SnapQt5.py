@@ -1,6 +1,4 @@
 
-# /media/user/CRUCIAL1TB/MyComputer/PROGRAMMING/PROJECTS/__ARCHIVE__/2023.12.20 holiday cleaning/snap/src xxx/03 - Finaling/snap/lib/gui/pyside4_5.py
-# /media/user/CRUCIAL1TB/MyComputer/PROGRAMMING/PROJECTS/__ARCHIVE__/2023.12.20 holiday cleaning/snap/src xxx/02 - Environment/snap/lib/gui/pyside4.py
 
 def build(ENV):
 
