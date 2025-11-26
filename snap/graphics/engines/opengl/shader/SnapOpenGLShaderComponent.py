@@ -1,7 +1,20 @@
 
-from OpenGL.GL import *
 
 def build(ENV):
+
+	OpenGL = ENV.extern.OpenGL
+
+	glCreateShader = OpenGL.glCreateShader
+	glShaderSource = OpenGL.glShaderSource
+	glCompileShader = OpenGL.glCompileShader
+	glGetShaderiv = OpenGL.glGetShaderiv
+	glGetShaderInfoLog = OpenGL.glGetShaderInfoLog
+	glDeleteShader = OpenGL.glDeleteShader
+
+	GL_COMPILE_STATUS = OpenGL.GL_COMPILE_STATUS
+	GL_VERTEX_SHADER = OpenGL.GL_VERTEX_SHADER
+	GL_FRAGMENT_SHADER = OpenGL.GL_FRAGMENT_SHADER
+	GL_GEOMETRY_SHADER = OpenGL.GL_GEOMETRY_SHADER
 
 	SnapNode = ENV.SnapNode
 

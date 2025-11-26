@@ -1,8 +1,11 @@
 
+from weakref import ref as weakref_ref
+
+import sys, time
 
 def build(ENV):
 
-	Qt5 = ENV.Qt5 # from lib.extern
+	Qt5 = ENV.extern.Qt5 # from lib.extern
 	QEvent = Qt5.QEvent
 
 	# https://doc.qt.io/qtforpython-5/PySide2/QtCore/Qt.html
@@ -11,60 +14,28 @@ def build(ENV):
 	SnapGuiWindowBase = ENV.SnapGuiWindowBase
 	SnapGuiBase = ENV.SnapGuiBase
 
-	ENGINE = getattr(ENV, 'ENGINE', None) # TODO make this a function call instead, with internal logic hidden, can check for engine in multiple places...
-	#TIMERS = getattr(ENV, 'SNAP_TIMERS', None)
-	#snap_incoming = ENV.snap_incoming
-	debug_gui = snap_debug = ENV.snap_debug # TODO put all the gui stuff into a gui module?
-	snap_warning = ENV.snap_warning
-	snap_out = ENV.snap_out
-	snap_error = ENV.snap_error
-	snap_test_out = ENV.snap_test_out
+	SnapMessage = ENV.SnapMessage
 
-	snap_listen = ENV.snap_listen
-	snap_ignore = ENV.snap_ignore
-	snap_start_mainloop = ENV.snap_start_mainloop
-	snap_stop_mainloop = ENV.snap_stop_mainloop
-	SNAP_CH_REFRESH = ENV.SNAP_CH_REFRESH
-	SNAP_CH_QUIT = ENV.SNAP_CH_QUIT
-	snap_refresh_rate = ENV.snap_refresh_rate
-	snap_emit = ENV.snap_emit
+	# TODO load the preferred engine of gui if not loaded...
+	assert getattr(ENV, 'GUI_GRAPHICS', None) is None, 'gui graphics already loaded?'
+	GUI_GRAPHICS = ENV.GUI_GRAPHICS = ENV.graphics.load('QT5')
 
-	SnapWeakref = ENV.SnapWeakref
+	snap_extents_t = ENV.snap_extents_t
 
+	snap_device_event = ENV.snap_device_event
 
-	# mappings from qt codes to own codes (might be the same)
-	KEYBOARD_MAP = {}
-	POINTER_MAP = {}
+	LOCAL_KEYMAP = {} # QtValue:{None:snapkey, scancode:snapkey, ...}
 
-	DEVICES = getattr(ENV, 'SNAP_DEVICES', None)
-	if DEVICES:
-		DEFAULT_POINTER = DEVICES.pointer()
-		DEFAULT_KEYBOARD = DEVICES.keyboard()
+	KEYBOARD = ENV.DEVICES['keyboard']
+	for name, entry in ENV.SnapDeviceKeyboard.KEYMAP.items():
+		key = KEYBOARD.get('keys', name)
+		assert key is not None, 'no key? {}'.format(repr(name))
+		qkey = getattr(Qt, entry['Qt'])
 
-		BUTTONS = DEFAULT_POINTER.find("BUTTONS")
-		POINTER_MAP.update({
-			# https://doc.qt.io/qtforpython-5/PySide2/QtCore/Qt.html#PySide2.QtCore.PySide2.QtCore.Qt.MouseButton
-			Qt.LeftButton:BUTTONS.find("LEFT"),
-			Qt.MiddleButton:BUTTONS.find("MIDDLE"),
-			Qt.RightButton:BUTTONS.find("RIGHT")
-		})
-
-		# https://doc.qt.io/qtforpython-5/PySide2/QtGui/QKeyEvent.html#qkeyevent
-		for key in dir(Qt5.Qt):
-			if not key.lower().startswith('key'): continue
-
-			# TODO get all the keys in the keyboard, check code and name
-
-			code = getattr(Qt5.Qt, key)
-			if not isinstance(code, int): continue
-
-			print('key', key, code)
-
-	else:
-		snap_warning("no devices module for sending device events")
-		DEFAULT_POINTER = DEFAULT_KEYBOARD = None
-
-
+		d = LOCAL_KEYMAP.get(qkey, {})
+		scan = entry.get('scan') # can be None, default
+		d[scan] = key
+		LOCAL_KEYMAP[qkey] = d
 
 
 	class _EventFilterer(Qt5.QWidget):
@@ -76,146 +47,104 @@ def build(ENV):
 		def __init__(self, WINDOW):
 			Qt5.QWidget.__init__(self)
 
-			self._window_ = SnapWeakref(WINDOW)
-			WINDOW.__qt_window__.installEventFilter(self)
+			self._window_ = weakref_ref(WINDOW)
+			WINDOW['__qt_window__'].installEventFilter(self)
 
 
 	class SnapQt5Window(SnapGuiWindowBase):
 
-		__slots__ = ['__qt_window__', '_event_filterer_']
+		__slots__ = []
 
-		def render(self):
-			# render means to draw / update / redraw,
-			# blit means transfer the render result to the screen
+		#__slots__ = ['__qt_window__', '_event_filterer_']
 
-			"""
-			UpdateTexture(MooseTexture); # this is update() / render() call...
+		"""
+		def __snap_inputs__(self):
+			return {
+				'TRIGGER_BLIT':SnapEvent(),
+				'BLIT':SnapEvent(),
+				'ALLOCATE':SnapEvent(),
+				'SHOW':SnapEvent(),
+				'HIDE':SnapEvent(),
+				'is_fullscreen':SnapProperty(),
+				'FULLSCREEN':SnapEvent(),
+				'MOVE':SnapEvent(),
+				'RESIZE':SnapEvent(),
+				'CLOSE':SnapEvent(),
+			}
+		"""
 
-			# these are blit:
-			SDL_RenderClear(renderer);
-			SDL_RenderTexture(renderer, MooseTexture, NULL, NULL); XXX this is now SDL_RenderCopy()?
-			SDL_RenderPresent(renderer);
-			"""
-			return SnapGuiWindowBase.render(self)
 
-		def trigger_blit(self):
-			self.__qt_window__.update() # will trigger blit on next mainloop iteration (you can call this multiple times, it only updates once)
-			
-			#GtkWidget* gtk_window = (GtkWidget*)snap_getattr(self, "__gtk_window__");
-			#GdkWindow* window = gtk_widget_get_window(gtk_window);
-			#if (window){
-			#	gdk_window_invalidate_rect(window, NULL, FALSE); // window, GdkRectangle, process children
-			#	gdk_window_process_updates(window, FALSE); // second argument: update children, there are none (not in gtk)
-			#	//window.invalidate_rect(None, False) # can be gdk.Rectangle(*AREA)(0,0) + self.get_size()
-			#	//window.process_updates(False)
-			#}
-			return None
-
-		def blit(self):
-			"""
-			# stackoverflow.com/questions/113600009/how-can-access-to-pixel-data-with-pyqt-qimage-scanline
-
-			from PyQt4 import QtGui, QtCore
-			img = QtGui.QImage(200, 100, QtGui.QImage.Format_ARGB32)
-			img.fill(0xdeadbeef)
-
-			ptr = img.bits()
-			ptr.setsize(img.byteCount())
-
-			## copy the data out as a string
-			strData = ptr.asstring()
-
-			## get a read-only buffer to access the data
-			buf = buffer(ptr, 0, img.byteCount())
-
-			## view the data as a read-only numpy array
-			import numpy
-			arr = numpy.frombuffer(buf, dtype=numpy.ubyte).reshape(img.height(), img.width(), 4)
-
-			## view the data as a writable numpy array
-			arr = numpy.asarray(ptr).reshape(img.height(), img.width(), 4)
-			"""
-
-			#ENGINE = self._engine_ # from SnapContainer
-			blit_texture = self._blit_texture_
-			window = self.__qt_window__
-			if not (ENGINE and window):
-				# the window might just not be ready yet
-				return False
-
-			if 0:
-				pass
-			elif ENGINE.name() == 'CAIRO':
-				# assume cairo?
-
-				#cairo_t* cr = gdk_cairo_create(gtk_widget_get_window(gtk_window));
-
-				#snap_event(&ENGINE, "BLIT_GUI_WINDOW", "window", *self, "blit_texture", blit_texture, "context", cr);
-
-				#cairo_destroy(cr);
-
-				'get the pixels from the SDL context and then pass them to the engine to process?' # TODO
-
-			elif ENGINE.name() == 'QT5':
-				# TODO
-				snap_warning("Qt5 blit not handled in gui yet; nothing shown on screen")
-
-			else:
-				snap_warning('unsupported engine:', repr(ENGINE.name()))
-				
-		
-			return True
-
-		def close(self):
-			# TODO forward event to user to possibly reject?
-			return True
-
-		def allocate(self, extents=None, **SETTINGS):
-			# ?
-			return SnapGuiWindowBase.allocate(self, extents=extents, **SETTINGS)
-
-		def show(self):
-			self.set(visible=True)
-
-		def hide(self):
-			self.set(visible=False)
-
-		# TODO minimize(); maximize()
-
-		def is_fullscreen(self):
+		"""
+		if CHANNEL == 'TRIGGER_BLIT':
 			''
 
-		def fullscreen(self):
-			self.set(fullscreen = not self.is_fullscreen())
+		elif CHANNEL == 'BLIT':
+			'' # transfer to the image representing the render result...
 
-		def move(self, x=None, y=None):
-			#gtk_window_move(GtkWindow* gtk_window, gint x, gint y);
-			return self.__qt_window__.move(int(x or 0), int(y or 0))
+		elif CHANNEL == 'ALLOCATE':
+			''
 
-		def resize(self, width=None, height=None):
-			#gtk_window_resize(GtkWindow* gtk_window, gint width, gint height);
-			return self.__qt_window__.resize(int(width or 0), int(height or 0))
+		elif CHANNEL == 'SHOW':
+			'self.set(visible=True)'
 
-		def set(self, **SETTINGS):
+		elif CHANNEL == 'HIDE':
+			'self.set(visible=False)'
 
-			for attr,value in SETTINGS.items():
+		elif CHANNEL == 'is_fullscreen':
+			''
 
-				if attr == 'fullscreen':
-					'' # TODO
-				elif attr == 'visible':
-					'' # TODO
-				elif attr == 'cursor':
-					'' # TODO
+		elif CHANNEL == 'FULLSCREEN':
+			'toggle fullscreen mode, or set to given value?'
+
+		elif CHANNEL == 'MOVE':
+			'move the window'
+
+		elif CHANNEL == 'RESIZE':
+			'resize the window (call ALLOCATE?)'
+
+		elif CHANNEL == 'CLOSE':
+			''
+		"""
+
+		@ENV.SnapProperty
+		class extents:
+			# XXX make this just go to assign of gui window, bypass this
+			# XXX implement this, then forward to superclass for assign and user forward!
+
+			def get(self, MSG):
+				"()->snap_extents_t"
+				qwindow = self['__qt_window__']
+				if qwindow:
+					geo = qwindow.geometry()
+					#return snap_extents_t(geo.x(), geo.y(), 0, geo.x() + geo.width(), geo.y() + geo.height(), 1)
+					return snap_extents_t(0,0,0, geo.width(),geo.height(),1)
 				else:
-					SnapGuiWindowBase.set(self, **{attr:value})
+					ENV.snap_debug('no qt window for extents')
+					return None # snap_extents_t(0,0,0, 1,1,1)
 
+			def set(self, MSG):
+				"(snap_extents_t!)"
+				ext = MSG.args[0]
+				qwindow = self['__qt_window__']
+				if qwindow is None:
+					return
+
+				# and this should trigger resize event which then goes to user...
+				if ext is None:
+					qwindow.setSize(1,1)
+				else:
+					qwindow.setGeometry(int(ext[0]),int(ext[1]), int(ext[3]-ext[0]), int(ext[4]-ext[1]))
+
+				# TODO only use extents for this?
+				#ENV.snap_out('set window ext', ext[:])
+				#return SnapGuiWindowBase.extents.set(self, SnapMessage(ext))
 
 
 		def eventFilter(self, SOURCE, EVENT):
-
+			
 			# https://doc.qt.io/qt-5/qobject.html#installEventFilter
 
-			window = self.__qt_window__
+			window = self['__qt_window__']
 
 			#print(SOURCE, EVENT)
 			#snap_out("event filter", SOURCE == window, EVENT.type())
@@ -245,28 +174,29 @@ def build(ENV):
 			#QEvent.ChildRemoved
 			
 			if etype == QEvent.Clipboard:
-				snap_warning("clipboard event unhandled")
+				ENV.snap_warning("clipboard event unhandled")
 
 			elif etype == QEvent.Close:
-				self._event_filterer_._window_ = None
-				self._event_filterer_ = None
-				snap_emit(SNAP_CH_QUIT, "QUIT") # XXX TODO only if no windows left!  TODO this should just emit close/quit to gui
+				self['__event_filterer__']._window_ = None
+				self['__event_filterer__'] = None
+				#snap_emit(SNAP_CH_QUIT, "QUIT") # XXX TODO only if no windows left!  TODO this should just emit close/quit to gui
+				#ENV.snap_out("close event")
 
 			elif etype == QEvent.DragEnter:
 				# The cursor enters a widget during a drag and drop operation ( QDragEnterEvent ).
-				snap_warning("drag enter unhandled")
+				ENV.snap_warning("drag enter unhandled")
 
 			elif etype == QEvent.DragLeave:
 				# The cursor leaves a widget during a drag and drop operation ( QDragLeaveEvent ).
-				snap_warning("drag leave unhandled")
+				ENV.snap_warning("drag leave unhandled")
 
 			elif etype == QEvent.DragMove:
 				# A drag and drop operation is in progress ( QDragMoveEvent ).
-				snap_warning("drag move unhandled")
+				ENV.snap_warning("drag move unhandled")
 
 			elif etype == QEvent.Drop:
 				# A drag and drop operation is completed ( QDropEvent ).
-				snap_warning("drop event unhandled")
+				ENV.snap_warning("drop event unhandled")
 
 			#QEvent.CloseSoftwareInputPanel
 			#QEvent.ContentsRectChange
@@ -277,7 +207,7 @@ def build(ENV):
 			#QEvent.EnabledChange
 
 			elif etype == QEvent.Enter:
-				snap_warning("mouse enter")
+				#ENV.snap_warning("mouse enter")
 				# TODO
 				"""
 				gboolean snap_gtk_event_enter_notify_event(
@@ -333,23 +263,24 @@ def build(ENV):
 			#QEvent.EnterWhatsThisMode
 			elif etype == QEvent.Expose:
 				# Sent to a window when its on-screen contents are invalidated and need to be flushed from the backing store.
-				snap_warning("unhandled expose event")
+				#ENV.snap_warning("unhandled expose event")
 				
-				window.blit()
+				#window.blit()
+				self.blit()
 
 				return True
 
 			#QEvent.FileOpen
 			elif etype == QEvent.FocusIn:
 				# Widget or Window gains keyboard focus ( QFocusEvent ).
-				snap_warning("keyboard focus in unhandled")
+				ENV.snap_warning("keyboard focus in unhandled")
 
 			elif etype == QEvent.FocusOut:
-				snap_warning("keyboard focus out")
+				ENV.snap_warning("keyboard focus out")
 
 			elif etype == QEvent.FocusAboutToChange:
 				# Widget or Window focus is about to change ( QFocusEvent )
-				snap_warning("focus about to change?")
+				ENV.snap_warning("focus about to change?")
 
 			#QEvent.FontChange
 			#QEvent.Gesture
@@ -376,18 +307,18 @@ def build(ENV):
 			#QEvent.GraphicsSceneWheel
 
 			elif etype == QEvent.Hide:
-				snap_warning("hide")
+				ENV.snap_warning("hide")
 
 			#QEvent.HideToParent
 			
 			elif etype == QEvent.HoverEnter:
-				snap_warning("hover enter")
+				ENV.snap_warning("hover enter")
 
 			elif etype == QEvent.HoverLeave:
-				snap_warning("hover leave")
+				ENV.snap_warning("hover leave")
 
 			elif etype == QEvent.HoverMove:
-				snap_warning("hover move")
+				ENV.snap_warning("hover move")
 				
 			#QEvent.IconDrag
 			#QEvent.IconTextChange
@@ -396,9 +327,39 @@ def build(ENV):
 			#QEvent.KeyboardLayoutChange
 
 			elif etype == QEvent.KeyPress:
-				print('key press', EVENT.key())
+				#ENV.snap_debug('key press', EVENT.key())
 				if EVENT.key() == Qt.Key_Q:
 					''
+				if not EVENT.isAutoRepeat():
+
+					scan_lookup = LOCAL_KEYMAP.get(EVENT.key(), {})
+					snap_key = scan_lookup.get(EVENT.nativeScanCode(), scan_lookup.get(None))
+
+
+					if snap_key is None:
+						ENV.snap_debug('missing key?', EVENT.key(), dir(EVENT))
+					else:
+						#ENV.snap_debug('found key', snap_key, EVENT.nativeScanCode())
+						if snap_key['value'] > 0:
+							ENV.snap_debug('key already pressed?', snap_key)
+						else:
+							snap_key['value'] = 1.0
+					
+
+					text = EVENT.text()
+					if text:
+						encoding = 'UTF8' # TODO ?
+						snap_device_event(KEYBOARD, SnapMessage(action='text_input', value=text, encoding=encoding, time=time.time(), device=KEYBOARD, source=snap_key))
+						
+
+				#print(dir(EVENT), EVENT.key())
+
+				# TODO make a map from qt key codes to the ones that we have...
+
+				#keyboard = ENV.DEVICES['keyboard']
+				#print(dir(EVENT))
+				#print('key', EVENT.nativeScanCode(), EVENT.nativeVirtualKey())
+				#print('get', ENV.SNAP_KEYMAP.snap_keycode_to_name(EVENT.key()), ENV.SNAP_KEYMAP.snap_scancode_to_name(EVENT.nativeVirtualKey()))
 
 				"""
 				int code = (int)E->hardware_keycode;
@@ -408,7 +369,20 @@ def build(ENV):
 				"""
 
 			elif etype == QEvent.KeyRelease:
-				print('key press', EVENT.key())
+				#ENV.snap_debug('key release', EVENT.key())
+
+				if not EVENT.isAutoRepeat():
+					scan_lookup = LOCAL_KEYMAP.get(EVENT.key(), {})
+					snap_key = scan_lookup.get(EVENT.nativeScanCode(), scan_lookup.get(None))
+
+					if snap_key is None:
+						ENV.snap_debug('missing key?', EVENT.key())
+					else:
+						if snap_key['value'] == 0.:
+							ENV.snap_debug('key already released?', snap_key)
+						else:
+							snap_key['value'] = 0.
+
 				"""
 				int code = (int)E->hardware_keycode;
 
@@ -421,7 +395,7 @@ def build(ENV):
 			#QEvent.LayoutRequest
 
 			elif etype == QEvent.Leave:
-				snap_warning("mouse leave")
+				#ENV.snap_warning("mouse leave")
 
 				"""
 
@@ -470,16 +444,16 @@ def build(ENV):
 			#QEvent.LocaleChange
 
 			elif etype == QEvent.NonClientAreaMouseButtonDblClick:
-				snap_warning("double click outside window")
+				ENV.snap_warning("double click outside window")
 
 			elif etype == QEvent.NonClientAreaMouseButtonPress:
-				snap_warning("mouse press outside window")
+				ENV.snap_warning("mouse press outside window")
 
 			elif etype == QEvent.NonClientAreaMouseButtonRelease:
-				snap_warning("mouse release outside window")
+				ENV.snap_warning("mouse release outside window")
 
 			elif etype == QEvent.NonClientAreaMouseMove:
-				snap_warning("mouse move outside window")
+				ENV.snap_warning("mouse move outside window")
 				
 
 			#QEvent.MacSizeChange
@@ -491,19 +465,39 @@ def build(ENV):
 
 			elif etype in (QEvent.MouseButtonPress, QEvent.MouseButtonDblClick):
 
-				# NOTE: to just interpret any double click+ as a double click, just say count > 0 and count % 2 == 0
-				# TODO add double click as a property of the click for the user to easily check
+				# NOTE: we accept double click because it actually happens in the place of single click!  we just want 'each click'
+				# NOTE: to interpret any double click+ as a double click, just say count > 0 and count % 2 == 0
 
+				"""
 				if DEFAULT_POINTER:
 					button = POINTER_MAP.get(EVENT.button())
 					if button:
-						#print('mouse press', button.name(), button.code(), EVENT.button())#, dir(EVENT))
+						print('mouse press', button.name(), button.code(), EVENT.button())#, dir(EVENT))
 						DEFAULT_POINTER.generate_event('PRESS', code=button.code())
 				else:
 					snap_debug("no pointer for press event", EVENT.button())
+				"""
+
+				pointer = ENV.DEVICES['pointer']
+				button = EVENT.button()
+
+				if pointer and button:
+					if button == Qt.LeftButton:
+						pointer.get('buttons', "left").press()
+					elif button == Qt.MiddleButton:
+						pointer.get('buttons', "middle").press()
+					elif button == Qt.RightButton:
+						pointer.get('buttons', "right").press()
+					else:
+						# TODO higher codes can be accessed by indexing BUTTONS group?  make it like a list...  and __iter__, __len__, __getitem__(int)
+						ENV.snap_debug('unhandled mouse button', button)
+
+				else:
+					ENV.snap_debug("no pointer for press event", EVENT.button())
 
 			elif etype == QEvent.MouseButtonRelease:
 
+				"""
 				if DEFAULT_POINTER:
 					button = POINTER_MAP.get(EVENT.button())
 					if button:
@@ -511,9 +505,41 @@ def build(ENV):
 						DEFAULT_POINTER.generate_event('RELEASE', code=button.code())
 				else:
 					snap_debug("no pointer for release event", EVENT.button())
+				"""
+
+				pointer = ENV.DEVICES['pointer']
+				button = EVENT.button()
+
+				if pointer and button:
+					if button == Qt.LeftButton:
+						pointer.get('buttons', "left").release()
+					elif button == Qt.MiddleButton:
+						pointer.get('buttons', "middle").release()
+					elif button == Qt.RightButton:
+						pointer.get('buttons', "right").release()
+					else:
+						# TODO higher codes can be accessed by indexing BUTTONS group?  make it like a list...  and __iter__, __len__, __getitem__(int)
+						# ("LEFT", "MIDDLE", "RIGHT") are always first 3 slots...
+						ENV.snap_debug('unhandled mouse button', button)
+
+				else:
+					ENV.snap_debug("no pointer for release event", EVENT.button())
 
 			elif etype == QEvent.MouseMove:
-				''#print('mouse moved', EVENT.pos())
+				#pos = EVENT.pos()
+				#x,y = pos.x(),pos.y()
+
+				#print(EVENT.globalX(), EVENT.globalY())
+
+				pointer = ENV.DEVICES['pointer']
+				if pointer:
+					position = pointer.get('position')
+					X = position.get('x')
+					Y = position.get('y')
+					X['value'] = EVENT.globalX()
+					Y['value'] = EVENT.globalY()
+				else:
+					ENV.snap_debug('unhandled mouse move', EVENT.pos())
 
 				"""
 				GdkEventMotion* E = (GdkEventMotion*)event;
@@ -544,15 +570,22 @@ def build(ENV):
 			#QEvent.MouseTrackingChange
 				
 			elif etype == QEvent.Move:
-				snap_warning("window moved")
-				
+
+				qwindow = self['__qt_window__']
+				geo = qwindow.geometry()
+
+				x,y,z = self['position']
+				if x != geo.x() or y != geo.y():
+					SnapGuiWindowBase.position.set(self, SnapMessage([geo.x(), geo.y(), 0]))
 
 			#QEvent.NativeGesture
 			#QEvent.OrientationChange
 
 			elif etype == QEvent.Paint:
 				# TODO this is the draw/render call? XXX this would just mean blit?  the render is set to the fps timer...  this would be same as expose?
-				snap_warning("paint event")
+				#ENV.snap_warning("paint event")
+
+				self.blit()
 
 			#QEvent.PaletteChange
 			#QEvent.ParentAboutToChange
@@ -566,11 +599,22 @@ def build(ENV):
 			#QEvent.RequestSoftwareInputPanel
 
 			elif etype == QEvent.Resize:
-				snap_warning("window resize")
+				#ENV.snap_out('resize', EVENT.size().width(), EVENT.size().height())
+
+				qwindow = self['__qt_window__']
+				geo = qwindow.geometry()
+
+				x,y,z = self['position']
+				if x != geo.x() or y != geo.y():
+					SnapGuiWindowBase.position.set(self, SnapMessage([geo.x(), geo.y(), 0]))
+
+				size = EVENT.size()
+				ext = snap_extents_t(0,0,0,size.width(),size.height(),1)
+				SnapGuiWindowBase.extents.set(self, SnapMessage(ext))
 				
 			#QEvent.ScrollPrepare
 			elif etype == QEvent.Scroll:
-				snap_warning("scroll?") # this is window scroll which won't be used
+				ENV.snap_warning("scroll?") # this is window scroll which won't be used
 
 				"""
 				// these settings indicate invalid entries
@@ -619,7 +663,7 @@ def build(ENV):
 			#QEvent.ShortcutOverride
 				
 			elif etype == QEvent.Show:
-				snap_warning("show")
+				ENV.snap_warning("show")
 				
 			#QEvent.ShowToParent
 			#QEvent.SockAct
@@ -628,50 +672,57 @@ def build(ENV):
 			#QEvent.StatusTip
 			#QEvent.StyleChange
 
+
+			# https://stackoverflow.com/questions/48873483/python-example-for-wacom-tablets
 			elif etype == QEvent.TabletMove:
-				snap_warning("tablet move")
+				ENV.snap_warning("tablet move")
+				EVENT.accept()
 				
 			elif etype == QEvent.TabletPress:
-				snap_warning('tablet press')
+				ENV.snap_warning('tablet press')
+				EVENT.accept()
 				
 			elif etype == QEvent.TabletRelease:
-				snap_warning("tablet release")
+				ENV.snap_warning("tablet release")
+				EVENT.accept()
 				
 			elif etype == QEvent.TabletEnterProximity:
-				snap_warning('tablet enter proximity')
+				ENV.snap_warning('tablet enter proximity')
+				EVENT.accept()
 			
 			elif etype == QEvent.TabletLeaveProximity:
-				snap_warning("tablet leave proximity")
+				ENV.snap_warning("tablet leave proximity")
+				EVENT.accept()
 				
 			#QEvent.TabletTrackingChange
 				
 			#QEvent.ThreadChange
 				
 			elif etype == QEvent.Timer:
-				snap_warning("timeout")
+				ENV.snap_warning("timeout")
 				
 			#QEvent.ToolBarChange
 			#QEvent.ToolTip
 			#QEvent.ToolTipChange
 			
 			elif etype == QEvent.TouchBegin:
-				snap_warning("touch begin")
+				ENV.snap_warning("touch begin")
 				
 
 			elif etype == QEvent.TouchCancel:
-				snap_warning('touch cancel')
+				ENV.snap_warning('touch cancel')
 
 			elif etype == QEvent.TouchEnd:
-				snap_warning("touch end")
+				ENV.snap_warning("touch end")
 				
 			elif etype == QEvent.TouchUpdate:
-				snap_warning("touch update")
+				ENV.snap_warning("touch update")
 				
 			elif etype == QEvent.UngrabKeyboard:
-				snap_warning("ungrab keyboard")
+				ENV.snap_warning("ungrab keyboard")
 				
 			elif etype == QEvent.UngrabMouse:
-				snap_warning("ungrab mouse")
+				ENV.snap_warning("ungrab mouse")
 				
 
 			#QEvent.UpdateLater
@@ -680,7 +731,22 @@ def build(ENV):
 			#QEvent.WhatsThisClicked
 
 			elif etype == QEvent.Wheel:
-				''#print('scroll', EVENT.angleDelta())
+				#ENV.snap_debug('scroll', EVENT.angleDelta())
+
+				pointer = ENV.DEVICES['pointer']
+				wheel = pointer.get('wheels', 0)
+				
+				pt = EVENT.angleDelta()
+				if pt.x() > 0:
+					wheel.get('x')['value'] = 1.0
+				elif pt.x() < 0:
+					wheel.get('x')['value'] = -1.0
+
+				if pt.y() > 0:
+					wheel.get('y')['value'] = 1.0
+				elif pt.y() < 0:
+					wheel.get('y')['value'] = -1.0
+				
 				
 			#QEvent.WinEventAct
 			#QEvent.WindowActivate
@@ -690,250 +756,249 @@ def build(ENV):
 
 			elif etype == QEvent.WindowStateChange:
 				# The window's state (minimized, maximized or full-screen) has changed ( QWindowStateChangeEvent ).
-				snap_warning('window state changed')
+				ENV.snap_warning('window state changed')
 
 			#QEvent.WindowTitleChange
 			#QEvent.WindowUnblocked
 			#QEvent.WinIdChange
-			#QEvent.ZOrderChange		
+			#QEvent.ZOrderChange
 
 			return False # unhandled
 
-		def trigger_blitXXX(self):
+		@ENV.SnapChannel
+		def allocate(self, MSG):
+			#ENV.snap_out('GOT allocate')
 
-			window = getattr(self, '__qt_window__', None)
-			if window:
-				window.update()
+			extents = MSG.unpack('extents', None)
 
-		def blitXXX(self):
-			"""
-			SnapNode ENGINE = (SnapNode)snap_getattr_at(self, "ENGINE", IDX_SnapContainer_ENGINE);
-			SnapNode blit_texture = (SnapNode)snap_getattr_at(self, "_blit_texture_", IDX_SnapGuiWindowBase__blit_texture_);
-			GtkWidget* gtk_window = (GtkWidget*)snap_getattr_at(self, "__gtk_window__", -1);
-			if (!(ENGINE && gtk_window)){
-				//snap_warning("gtk BLIT is missing data");
-				return (any)"ERROR";
-			}
+			#ENV.snap_out("allocate", extents)
 
-			#if defined __GTK_CAN_USE_OPENGL__
-			if (snap_getattr_at(&ENGINE, "name", -1) == (any)"OPENGL"){
+			if not extents:
+				return None
 
-				// opengl
+			qwindow = self['__qt_window__']
 
-				GdkGLContext* gl_context = gtk_widget_get_gl_context(gtk_window);
-				GdkGLDrawable* gl_drawable = gtk_widget_get_gl_drawable(gtk_window);
+			#qwindow.move(int(extents[0]), int(extents[1]))
+			#qwindow.resize(int(extents[3]-extents[0]), int(extents[4]-extents[1]))
+			x1,y1,z1,x2,y2,z2 = extents
+			# TODO make sure extents don't put window out of bounds...
+			sw,sh = ENV.GUI['screen_size']
+			if x1 > (sw-10):
+				x1 -= 10
+			if y1 > (sh-10):
+				y1 -= 10
+			if x2-x1 < 10:
+				x2 = x1 + 10
+			if y2-y1 < 10:
+				y2 = y1 + 10
+			#ENV.snap_out('allocated', int(x1), int(y1), int(x2-x1), int(y2-y1))
+			qwindow.setGeometry(int(x1), int(y1), int(x2-x1), int(y2-y1))
 
-				if (!gdk_gl_drawable_gl_begin(gl_drawable, gl_context)){
-					g_assert_not_reached();
-				}
+			ext = snap_extents_t(x1,y1,0, x2,y2,0)
+			return SnapGuiWindowBase.allocate(self, SnapMessage(extents=ext))
 
-				snap_out("BLIT OPENGL CALL");
+		@ENV.SnapChannel
+		def trigger_blit(self, MSG):
+			self['__qt_window__'].update()
 
-				snap_event(&ENGINE, "BLIT_GUI_WINDOW", "window", *self, "blit_texture", blit_texture);
+		@ENV.SnapChannel
+		def blit(self, MSG):
+			'assign current (already rendered) buffer'
+			#ENV.snap_warning('blit!') # TODO put this under EXPOSE event?
 
-				gdk_gl_drawable_gl_end(gl_drawable);
-				
-			}
-			#else
-			if (0){
-			}
-			#endif
-			else {
-				// assume cairo
+			window = self['__qt_window__']
 
-				cairo_t* cr = gdk_cairo_create(gtk_widget_get_window(gtk_window));
+			# TODO just keep the existing design, render on window and then this just pulls the self.data()['__texture__'] setup in self._update_blit_data()
 
-				snap_event(&ENGINE, "BLIT_GUI_WINDOW", "window", *self, "blit_texture", blit_texture, "context", cr);
+			with Qt5.QPainter(window) as ptr:
 
-				cairo_destroy(cr);
-			}
-		
-			return NULL;
-			"""
+				user_window = self['__user_window__']
+				if user_window is None:
+					ptr.fillRect(window.rect(), Qt5.Qt.red)
+					return None
 
+				user_image = user_window['image']
+				if user_image is None:
+					ptr.fillRect(window.rect(), Qt5.Qt.red)
+					return None
 
-
-		def set(self, **SETTINGS):
-
-			for attr,value in SETTINGS.items():
-
-				if attr == 'fullscreen':
-					snap_warning('TODO', attr) # TODO
-
-				elif attr == 'visible':
-					snap_warning("TODO", attr) # show/hide of self.__qt_window__ TODO
-
-				elif attr == 'cursor':
-					snap_warning("TODO", attr)
-
+				if isinstance(user_image, GUI_GRAPHICS.Image):
+					qimage = user_image['__engine_data__']
 				else:
-					SnapGuiWindowBase.set(self, **{attr:value})
+					blit_image = self['__blit_image__']
+					if blit_image is None:
+						blit_image = self['__blit_image__'] = GUI_GRAPHICS.Image()
 
-		def allocate(self, **SETTINGS):
-			# TODO forward to user
+					#ENV.snap_out('blit', user_image['size'], len(user_image['pixels']['data']) if user_image['pixels'] is not None else None, user_image['format'])
+					blit_image.set(image=user_image)
+
+					# TODO save the output...
+					#import os
+					#THISDIR = os.path.realpath(os.path.dirname(__file__))
+					#filepath = os.path.join(THISDIR, 'blit_test.png')
+					#if not os.path.exists(filepath):
+					#	''#user_image.save(filepath)
+
+					qimage = blit_image['__engine_data__']
+
+				try:
+					ptr.drawImage(window.rect(), qimage)
+				except Exception as e:
+					ENV.snap_error('blit error', repr(e))
+					ptr.fillRect(window.rect(), Qt5.Qt.red)
+
+			return None
+
+			
 			"""
-			double* ext = (double*)snap_getattr(MSG, "extents");
-			if (ext){
-				// TODO snap_warning("gui window crop not implemented");
-				// if extents changed, assign extents in gtk_window
-				// XXX TODO this just sets the gui window extents which triggers an event that then sends a crop to the user!
-			}
-			return SnapGuiWindowBase_event(self, EVENT, MSG);
+			blit_texture = self['__blit_texture__'] # TODO this can just be a pre-made context we use to render...
+			if blit_texture is not None:
+				#ENV.snap_out('__blit_texture__ exists!')
+				# TODO resize blit texture image (or reformat if changed from user size)
+				#if blit_texture['__engine_data__'] is None:
+				#	ENV.snap_out('texture engine data', blit_texture['__engine_data__'])
+
+				ENV.snap_out('blit texture', blit_texture)
+				try:
+					ptr.drawPixmap(window.rect(), blit_texture['__engine_data__'])
+					#ptr.drawImage(window.rect(), blit_texture['image']['__engine_data__'])
+				except Exception as e:
+					ENV.snap_error('render error', repr(e))
+					ptr.fillRect(window.rect(), Qt5.Qt.red)
+			else:
+				user_window = self['__user_window__']
+				if user_window is not None:
+					texture = user_window['texture']
+					if texture is not None:
+						#ENV.snap_out('draw pixmap', window.rect(), texture.__engine_data__().size())
+						#user_window.render() # TODO timer...
+
+						#ptr.drawPixmap(window.rect(), texture.__engine_data__())
+						#ENV.snap_out("image size", texture.image().size())
+						try:
+							#ptr.fillRect(window.rect(), Qt5.Qt.white)
+							#ptr.setRenderHint(Qt5.QPainter.Antialiasing, True)
+							#ptr.setCompositionMode(Qt5.QPainter.CompositionMode_Multiply)
+							ptr.drawImage(window.rect(), texture['image']['__engine_data__'])
+						except Exception as e:
+							ENV.snap_error('render error', repr(e))
+							ptr.fillRect(window.rect(), Qt5.Qt.red)
+
+						#ptr.fillRect(Qt5.QRect(10,10,window.width()-20, window.height()-20), Qt5.Qt.red)
+						ptr.end()
+						return None
+
+				#ptr.fillRect(window.rect(), Qt5.Qt.red)
+
+			#ptr.finish()
+			ptr.end()
 			"""
 
+		def __init__(self, **SETTINGS):
+			SnapGuiWindowBase.__init__(self, **SETTINGS)
 
-		def show(self):
-			self.set(visible=True)
+			window = self['__qt_window__'] = Qt5.QWidget()
+			window.setWindowTitle(sys.argv[0])#' ')
 
-		def hide(self):
-			self.set(visible=False)
-
-		def move(self, x=0, y=0):
-			'' # TODO
-
-		def resize(self, *args, **SETTINGS):
-			'' # either 'w', 'width', or args[0]... TODO
-
-
-		def __init__(self, *args, **kwargs):
-			SnapGuiWindowBase.__init__(self, *args, **kwargs)
-
-			window = self.__qt_window__ = Qt5.QWidget()
-
-			self._event_filterer_ = _EventFilterer(self)
+			self['__event_filterer__'] = _EventFilterer(self)
 			window.setMouseTracking(True)
+
+			# TODO cursor
+
+			# TODO self.fullscreen = SnapProperty(self, SnapBool(False))
+
+			#self.position = SnapProperty(self, SnapMatrix())
 
 			window.show()
 
+		def __delete__(self):
+			return SnapGuiWindowBase.__delete__(self)
 
-		def __del__(self):
-			pass
-
-
+	ENV.SnapQt5Window = SnapQt5Window
 
 	class SnapQt5(SnapGuiBase):
 
-		__slots__ = ['_timer_']
+		__slots__ = []
 
-		#_app = Qt5.QApplication([])
+		#__slots__ = ['_timer_'] # XXX can't create weak reference error if this is enabled?
 
-		@snap_incoming
-		def REFRESH(self, SOURCE, *args, **kwargs):
-			return None
+		Window = SnapQt5Window
 
-			try:
-				devices = ENV.devices() # TODO snap_devices?
-				pointer = devices.pointer()
-				keyboard = devices.keyboard()
-			except:
-				pointer = keyboard = devices = None
+		@ENV.SnapProperty
+		class name:
+			def get(self, MSG):
+				"()->str"
+				return "QT5"
 
-		@snap_incoming
-		def QUIT(self, SOURCE, *args, **kwargs):
-			self.stop_mainloop()
-
-
-		def screen_size(self):
-			SCREEN = Qt5.QDesktopWidget().screenGeometry()
-			return SCREEN.width(), SCREEN.height()
-
-		def set_transparent(self):
 			"""
-			palette = WIDGET.palette()
-			palette.setBrush(QtGui.QPalette.Base, QtCore.Qt.transparent)
-			WIDGET.setPalette(palette)
-			WIDGET.setAttribute(QtCore.Qt.WA_TranslucentBackground)
+		def __snap_inputs__(self):
+
+			return {
+				'SET':SnapEvent(), # TODO
+				'screen_size':SnapProperty(None, return_value='list(int, int)'),
+			}
 			"""
 
+		"""
+		def set(self, MSG):
 
-		def start_mainloop(self, **SETTINGS):
-			# blocking mainloop (TODO make blocking optional?)
+			for attr,value in MSG.kwargs.items():
+				if attr == 'transparent':
+					'true|false' # TODO XXX shouldn't this be on gui window?
+					ENV.snap_warning("not implemented, SET", attr)
+		"""
 
-			#snap_debug_gui("mainloop started @ {} or {}/sec".format(SNAP_REFRESH_RATE, 1/SNAP_REFRESH_RATE))
-			snap_debug("mainloop started @ {} or {}/sec".format(snap_refresh_rate(), 1/snap_refresh_rate()))
+		@ENV.SnapProperty
+		class screen_size:
+			def get(self, MSG):
+				"""()->list(int,int)"""
+				SCREEN = Qt5.QDesktopWidget().screenGeometry()
+				return [SCREEN.width(), SCREEN.height()]
 
-			#ENV = self.ENV()
-			snap_listen(SNAP_CH_REFRESH, self)
-			snap_listen(SNAP_CH_QUIT, self)
-			#print('listened to', SNAP_CH_REFRESH)
-			#return snap_start_mainloop(**SETTINGS)
-			self._timer_.start(int(snap_refresh_rate()*1000)) # TODO: rate
+
+		def start_mainloop(self):
+			# TODO if not ENV.MAINLOOP, make one?  TODO ENV.MAINLOOP = SnapProperty(ENV, ENV.SnapMainloop(SNAP))
+
+			ENV.__PRIVATE__['__MAINLOOP_NODE__'].__class__.OWNED = True
+
+			# https://doc.qt.io/qtforpython-5/PySide2/QtCore/QTimer.html#PySide2.QtCore.PySide2.QtCore.QTimer.setInterval
+			# "A QTimer with a timeout interval of 0 will time out as soon as all the events ... have been processed."
+			self['__timer__'].start(0)
 			Qt5._app_.exec()
 
 		def stop_mainloop(self):
-			#snap_stop_mainloop()
-			snap_ignore(SNAP_CH_REFRESH, self)
-			snap_ignore(SNAP_CH_QUIT, self)
-			self._timer_.stop()
-			Qt5._app_.quit()
-			self._open_windows_ = []
-			snap_debug("app quit")
+			self['__timer__'].stop()
+			open_windows = self.__snap_data__['__open_windows__'] or []
+			del self.__snap_data__['__open_windows__']
+			for window in open_windows:
+				'' # TODO close event?
 
-		def _refresh_callback(self, *args, **kwargs):
-			snap_emit(SNAP_CH_REFRESH, "REFRESH")
+			# TODO send quit event to user...
 
-		def __init__(self, *args, **kwargs):
-			SnapGuiBase.__init__(self, *args, **kwargs)
+			ENV.__PRIVATE__['__MAINLOOP_NODE__'].__class__.OWNED = False
 
+			Qt5._app_.quit() # TODO send quit event to user?
+
+		#def timeout(self, MSG):
+		#	'' # ENV.MAINLOOP.next() # XXX UQ.UQ_APP.next() # on main task...
+		#	return True
 			
-
-			self._window_ = SnapQt5Window
-
-			self._timer_ = Qt5.QTimer()
-			self._timer_.timeout.connect(self._refresh_callback)
-
-			#Qt5.QApplication.instance().installEventFilter(self) # TODO
-
-			# https://www.geeksforgeeks.org/sdl-library-in-c-c-with-examples/
-
-			if not 0:#SDL_WasInit(SDL_INIT_EVERYTHING): #if SNAP_SDL_NEEDS_INIT[0]:
-				#SNAP_SDL_NEEDS_INIT[0] = False
-
-				snap_debug('init QT5')
-
-				#if SDL_Init(SDL_INIT_EVERYTHING) != 0:
-				#	raise Exception('unable to initialize SDL', SDL_GetError())
-
-				#SnapSDL_init_default_keyboard(self)
-
-				#print('drop event enabled?', SDL_EventState(SDL_DROPFILE, SDL_QUERY) == SDL_ENABLE)
-				#SDL_EventState(SDL_DROPFILE, SDL_DISABLE)
-				#SDL_EventState(SDL_DROPTEXT, SDL_DISABLE)
-
-				#state = SDL_GetModState()
-				#if KMOD_CAPS & state:
-				#	'init capslock to on' # TODO
-				#	snap_test_out(KMOD_CAPS & state)
-
 			
-		def __del__(self):
-			pass
+		def __init__(self):
+			SnapGuiBase.__init__(self)
 
-			#SDL_Quit()
+			data = self.__snap_data__
 
-			# needs init again?
+			#data['__window_type__'] = SnapQt5Window # logic is in SnapGuiBase, just requires the assign
+
+			t = data['__timer__'] = Qt5.QTimer()
+			t.setTimerType(Qt.PreciseTimer) # Qt.CoarseTimer
+
+			ENV.mainloop # touch to create
+			t.timeout.connect(ENV.__PRIVATE__['__MAINLOOP_NODE__'].next) # # return True to keep going
+
+			#self.screen_size = SnapProperty(self, None, setters=[], getters=[SnapQt5_get_screen_size])
 
 
 	ENV.SnapQt5 = SnapQt5
 
-
-
-if __name__ == '__main__':
-
-	from snap.lib.core import SNAP_GLOBAL_ENV as ENV
-	from snap.lib import extern, graphics
-	from snap.lib.os import devices
-	from snap.lib.gui import SnapGuiBase
-	extern.build(ENV)
-	graphics.build(ENV)
-	devices.build(ENV)
-	SnapGuiBase.build(ENV)
-	build(ENV)
-
-	gui = ENV.SnapQt5()
-	window = gui.Window()
-
-	gui.start_mainloop()
-
-
-	

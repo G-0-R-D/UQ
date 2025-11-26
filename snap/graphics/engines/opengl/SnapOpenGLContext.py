@@ -1,11 +1,72 @@
 
-from OpenGL.GL import *
+# TODO vertex and fragment shader for standard rendering operations, put it on the engine
 
 def build(ENV):
 
+	OpenGL = ENV.extern.OpenGL
+
+	glGenFramebuffers = OpenGL.glGenFramebuffers
+	glGenRenderbuffers = OpenGL.glGenRenderbuffers
+	glBindFramebuffer = OpenGL.glBindFramebuffer
+	glFramebufferTexture2D = OpenGL.glFramebufferTexture2D
+	glCheckFramebufferStatus = OpenGL.glCheckFramebufferStatus
+	glUseProgram = OpenGL.glUseProgram
+	glClearDepth = OpenGL.glClearDepth
+	glEnable = OpenGL.glEnable
+	glShadeModel = OpenGL.glShadeModel
+	glPolygonMode = OpenGL.glPolygonMode
+	glFrontFace = OpenGL.glFrontFace
+	glCullFace = OpenGL.glCullFace
+	glViewport = OpenGL.glViewport
+	glClearColor = OpenGL.glClearColor
+	glClear = OpenGL.glClear
+	glDepthFunc = OpenGL.glDepthFunc
+	glDeleteFramebuffers = OpenGL.glDeleteFramebuffers
+	glDeleteRenderbuffers = OpenGL.glDeleteRenderbuffers
+
+	GLint = OpenGL.GLint
+
+	GL_FRAMEBUFFER = OpenGL.GL_FRAMEBUFFER
+	GL_COLOR_ATTACHMENT0 = OpenGL.GL_COLOR_ATTACHMENT0
+	GL_TEXTURE_2D = OpenGL.GL_TEXTURE_2D
+	GL_FRAMEBUFFER_COMPLETE = OpenGL.GL_FRAMEBUFFER_COMPLETE
+	GL_LEQUAL = OpenGL.GL_LEQUAL
+	GL_LESS = OpenGL.GL_LESS
+	GL_SMOOTH = OpenGL.GL_SMOOTH
+	GL_FRONT = OpenGL.GL_FRONT
+	GL_FILL = OpenGL.GL_FILL
+	GL_FRONT_AND_BACK = OpenGL.GL_FRONT_AND_BACK
+	GL_LINE = OpenGL.GL_LINE
+	GL_CW = OpenGL.GL_CW
+	GL_CCW = OpenGL.GL_CCW
+	GL_CULL_FACE = OpenGL.GL_CULL_FACE
+	GL_COLOR_BUFFER_BIT = OpenGL.GL_COLOR_BUFFER_BIT
+	GL_DEPTH_BUFFER_BIT = OpenGL.GL_DEPTH_BUFFER_BIT
+	GL_STENCIL_BUFFER_BIT = OpenGL.GL_STENCIL_BUFFER_BIT
+	GL_DEPTH_TEST = OpenGL.GL_DEPTH_TEST
+
 	SnapContext = ENV.SnapContext
+	SnapNode = ENV.SnapNode
 
 	ENGINE = ENV.graphics.__current_graphics_build__
+
+	class SnapOpenGLContextData(SnapNode):
+		# frame and render buffers need to go somewhere persistent so they don't have to be destroyed and recreated
+		# on every render, but context shouldn't really be re-usable either, context should be destroyed after each render
+		# window shouldn't have a context, so that leaves image as a place to store this info
+		# but the image itself shouldn't know about it, since this only applies to images that are rendered to...
+		# so we'll put it in this container, and assign it to the image, and when the image is deleted this container will know
+		# how to cleanup
+
+		__slots__ = []
+
+		@ENV.SnapChannel
+		def image_changed(self, MSG):
+			"()"
+			# TODO just delete the framebuffer, it will be recreated by the context when needed
+
+		def __del__(self):
+			'' # TODO delete fbo and rbo
 
 	class SnapOpenGLContext(SnapContext):
 
@@ -102,7 +163,7 @@ def build(ENV):
 
 		#def cmd_draw_text(self, TEXT):
 
-		#def cmd_fill_spline(self, PAINT, PATH):
+		#def cmd_fill_spline(self, PAINT, SPLINE):
 
 		#cmd_fill_shape = cmd_fill_spline
 
@@ -116,7 +177,7 @@ def build(ENV):
 		#def cmd_fill_ellipse(self, PAINT, x,y, w,h):
 
 
-		#def cmd_stroke_spline(self, PAINT, PATH):
+		#def cmd_stroke_spline(self, PAINT, SPLINE):
 
 		#cmd_stroke_shape = cmd_stroke_spline
 
@@ -214,7 +275,7 @@ def build(ENV):
 		@ENV.SnapChannel
 		def finish(self, MSG):
 			"()"
-			# TODO
+			# TODO detach image?
 			glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
 		@ENV.SnapChannel
@@ -243,6 +304,7 @@ def build(ENV):
 
 			# TODO maybe put these buffers on the window or something?  so we don't have to create and destroy them constantly!
 			#	-- put them on image, if they are used on the image...
+			#	-- TODO make a SnapRenderConfig class, assign it to the image, but it will handle cleanup when renderinfo is discarded for the image...
 			if self.__snap_data__['__fbo__'] is None:
 				self.__snap_data__['__fbo__'] = glGenFramebuffers(1)
 			if self.__snap_data__['__rbo__'] is None:
@@ -262,7 +324,6 @@ def build(ENV):
 				raise Exception('framebuffer error!')
 
 			self.reset()
-
 
 		def __del__(self):
 			fbo = self.__snap_data__['__fbo__']

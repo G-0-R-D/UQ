@@ -37,7 +37,7 @@ def build(ENV):
 
 	SnapEngine = ENV.SnapEngine
 
-	if not __GL_IS_INIT__[0]:
+	if not ENV.extern.Qt5.HAS_OPENGL and not __GL_IS_INIT__[0]:
 		init(show=False)
 		__GL_IS_INIT__[0] = True
 

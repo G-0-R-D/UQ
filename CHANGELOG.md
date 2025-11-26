@@ -23,6 +23,28 @@
 
 
 ---------------
+## 2025.11.25 📢
+---------------
+
+- 🛠️/🎨 *(WIP/graphics)* struggling to get opengl blit to work with Qt5, but pushing the changes anyway cause it has been awhile and a lot has been changed.  Just enable the 'USING_OPENGL' variable in **`../UQ/snap/gui/Qt5/SnapQt5.py`** if you want to tinker with the blit
+
+	
+- 🐛 *(bug)* window with opengl is a bit more stable now, but it crashes if the window is resized to a smaller size... (but not a bigger one...) it probably has something to do with the way framebuffers are being rapidly created and destroyed in the context currently XD, will get to it when I find the time!  If anyone finds any fixes for any problems please do let [@G-0-R-D](https://github.com/G-0-R-D) know!  Thanks! :)
+
+
+
+---------------
+## 2025.11.24 📢
+---------------
+
+- ✨/🎪 *(new/demo)* making tutorials as demos (just to get started), like: **`UQ/demo/snap/tutorial/core/basics_of_snap_protocol.py`**
+
+	
+- 🛠️/🎨/🧠 *(WIP/graphics/learning)* figured out how to setup the opengl gui context using Qt
+
+
+
+---------------
 ## 2025.11.22 📢
 ---------------
 

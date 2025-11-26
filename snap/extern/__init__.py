@@ -2,6 +2,7 @@
 import os
 from snap.extern.ctypes import my_ctypes as ctypes
 from snap.extern import Qt5
+from snap.extern import OpenGL
 
 def build(ENV):
 
@@ -20,5 +21,6 @@ def build(ENV):
 			self.ctypes = ctypes
 
 			Qt5.build(self)
+			OpenGL.build(self)
 
 	ENV.extern = SnapExtern()

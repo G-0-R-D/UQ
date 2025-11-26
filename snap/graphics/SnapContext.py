@@ -8,6 +8,10 @@ def build(ENV):
 	snap_matrix_invert = ENV.snap_matrix_invert
 	snap_matrix_multiply = ENV.snap_matrix_multiply
 
+	DUMMY_MSG = ENV.SnapMessage()
+
+	snap_prop_get = ENV.snap_prop_get
+
 	#SnapProperty = ENV.SnapProperty
 
 	class SnapContext(SnapMatrix):
@@ -68,9 +72,7 @@ def build(ENV):
 				try:
 					self.cmd_apply_matrix()
 				except:
-					if self['engine_context'] is None:
-						pass
-					else:
+					if self['engine_context'] is not None:
 						raise Exception('unable to apply matrix.set() to context', self.__class__.__name__)
 
 		@ENV.SnapProperty
@@ -119,7 +121,7 @@ def build(ENV):
 				render_mode = data['render_mode']
 				items_attr = data['items_attr']
 
-				CTX_matrix = self.__snap_data__['matrix']
+				CTX_matrix = data['matrix']
 
 				saved_offset = snap_matrix_t(*CTX_matrix)
 
@@ -153,7 +155,8 @@ def build(ENV):
 					data['current_items'] = c[items_attr]
 
 					try:
-						item_matrix = c['render_matrix']
+						item_matrix = snap_prop_get(c, 'render_matrix', DUMMY_MSG)
+						#item_matrix = c['render_matrix'] # TODO use low-level api for this access
 					except Exception as e:
 						ENV.snap_print_exception(e)
 						item_matrix = None
@@ -392,32 +395,28 @@ def build(ENV):
 		#	'' # TODO image?  non-rendering config?
 
 
-		@ENV.SnapChannel
-		def activate(self, MSG):
+		def activate(self):
 			"""()"""
 			# activate in some engines will initialize the engine_context (if it has one)
 			return None
 
-		@ENV.SnapChannel
-		def reset(self, MSG):
+		def reset(self):
 			"""()"""
 			# undo configuration options to defaults, implement in subclass
 			return None
 
-		@ENV.SnapChannel
-		def finish(self, MSG):
+		def finish(self):
 			"""()"""
-			image = self['image']
+			data = self.__snap_data__
+			image = data['image']
 			if image:
 				image.changed_data.send()
-			data = self.__snap_data__
 			data['current_container'] = data['current_items'] = None
 			return None
 
-		@ENV.SnapChannel
-		def clear(self, MSG):
+		def clear(self):
 			"""()"""
-			image = self['image']
+			image = self.__snap_data__['image']
 			if image is not None:
 				image.clear() # TODO bg/default color from self._engine_context_?
 			return None

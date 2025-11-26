@@ -1,8 +1,28 @@
 
-from OpenGL.GL import *
 import numpy
 
 def build(ENV):
+
+	OpenGL = ENV.extern.OpenGL
+
+	glGenTextures = OpenGL.glGenTextures
+	glTexParameterf = OpenGL.glTexParameterf
+	glDeleteTextures = OpenGL.glDeleteTextures
+	glBindTexture = OpenGL.glBindTexture
+	glGetTexImage = OpenGL.glGetTexImage
+	glTexImage2D = OpenGL.glTexImage2D
+
+	GL_TEXTURE_2D = OpenGL.GL_TEXTURE_2D
+	GL_BGRA = OpenGL.GL_BGRA
+	GL_RGBA = OpenGL.GL_RGBA
+	GL_UNSIGNED_BYTE = OpenGL.GL_UNSIGNED_BYTE
+	GL_TEXTURE_WRAP_S = OpenGL.GL_TEXTURE_WRAP_S
+	GL_TEXTURE_WRAP_T = OpenGL.GL_TEXTURE_WRAP_T
+	GL_CLAMP_TO_EDGE = OpenGL.GL_CLAMP_TO_EDGE
+	GL_TEXTURE_MIN_FILTER = OpenGL.GL_TEXTURE_MIN_FILTER
+	GL_TEXTURE_MAG_FILTER = OpenGL.GL_TEXTURE_MAG_FILTER
+	GL_LINEAR = OpenGL.GL_LINEAR
+
 
 	SnapImage = ENV.SnapImage
 	SnapBytes = ENV.SnapBytes
@@ -12,10 +32,6 @@ def build(ENV):
 	snap_extents_t = ENV.snap_extents_t
 
 	ENGINE = ENV.graphics.__current_graphics_build__
-
-	if 1:#ENV.__SNAP_IS_PYTHON__:
-		import numpy as np
-
 
 
 	def numpy_to_glimage(NUMPY, ID):
@@ -34,8 +50,6 @@ def build(ENV):
 		raise NotImplementedError()
 
 		return ID
-
-
 
 	class SnapOpenGLImage(SnapImage):
 
@@ -161,7 +175,6 @@ def build(ENV):
 				else:
 					raise TypeError('unsupported format', repr(FORMAT), BITS_PER_PIXEL)
 
-
 			glBindTexture(GL_TEXTURE_2D, engine_data)
 
 			# TODO: query Image api to get settings
@@ -197,8 +210,8 @@ def build(ENV):
 
 		def __del__(self):
 			gl = self.__snap_data__['__engine_data__']
-			if gl:
-				glDeleteTextures(1, gl)
+			if gl is not None:
+				glDeleteTextures(1, [gl])
 				del self.__snap_data__['__engine_data__']
 
 	ENGINE.SnapOpenGLImage = SnapOpenGLImage

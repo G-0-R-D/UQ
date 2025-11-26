@@ -1,7 +1,21 @@
 
-from OpenGL.GL import *
+#from OpenGL.GL import *
 
 def build(ENV):
+
+	OpenGL = ENV.extern.OpenGL
+
+	glCreateProgram = OpenGL.glCreateProgram
+	glAttachShader = OpenGL.glAttachShader
+	glLinkProgram = OpenGL.glLinkProgram
+	glGetProgramInfoLog = OpenGL.glGetProgramInfoLog
+	glValidateProgram = OpenGL.glValidateProgram
+	glGetProgramiv = OpenGL.glGetProgramiv
+	glDeleteProgram = OpenGL.glDeleteProgram
+
+	GL_VALIDATE_STATUS = OpenGL.GL_VALIDATE_STATUS
+	GL_FALSE = OpenGL.GL_FALSE
+	GL_LINK_STATUS = OpenGL.GL_LINK_STATUS
 
 	SnapShader = ENV.SnapShader
 
@@ -122,8 +136,6 @@ def build(ENV):
 					return glGetProgramInfoLog(program)
 				return '<no program>'
 
-
-
 		@ENV.SnapProperty
 		class vertex_shader:
 			def get(self, MSG):
@@ -135,6 +147,9 @@ def build(ENV):
 				source = MSG.args[0]
 				self.__snap_data__['vertex_shader'] = _as_component(source, 'VERTEX')
 				self.changed(vertex_shader=source)
+
+		@vertex_shader.alias
+		class vertex_source: pass
 
 		@ENV.SnapProperty
 		class geometry_shader:
@@ -148,6 +163,9 @@ def build(ENV):
 				self.__snap_data__['geometry_shader'] = _as_component(source, 'GEOMETRY')
 				self.changed(geometry_shader=source)
 
+		@geometry_shader.alias
+		class geometry_source: pass
+
 		@ENV.SnapProperty
 		class fragment_shader:
 			def get(self, MSG):
@@ -159,6 +177,9 @@ def build(ENV):
 				source = MSG.args[0]
 				self.__snap_data__['fragment_shader'] = _as_component(source, 'FRAGMENT')
 				self.changed(fragment_shader=source)
+
+		@fragment_shader.alias
+		class fragment_source: pass
 
 
 		@ENV.SnapChannel

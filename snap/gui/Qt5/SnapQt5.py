@@ -2,11 +2,178 @@
 from weakref import ref as weakref_ref
 
 import sys, time
+import numpy
+
+
+TEMP_BLIT_DATA = {}
+
+VERTEX_SOURCE = """# version 330 core
+layout (location = 0) in vec3 position;
+layout (location = 1) in vec2 uv;
+
+out vec2 UV;
+
+void main(void){
+	gl_Position = vec4(position.xy, 0.0, 1.0);
+	UV = uv;
+}
+"""
+FRAGMENT_SOURCE = """#version 330 core
+out vec4 FragColor;
+
+in vec2 UV;
+
+uniform sampler2D image;
+
+void main(){
+    FragColor = texture(image, UV);
+}
+"""
+VERTICES = numpy.array([
+	1.0, -1.0,
+	-1.0, -1.0,
+	-1.0, 1.0,
+	1.0, 1.0,
+
+	-1.0, 1.0,
+	1.0, 1.0,
+	-1.0, -1.0,
+	1.0, -1.0,
+
+	0.0, 0.0,
+	1.0, 0.0,
+	0.0, 1.0,
+	1.0, 1.0,
+
+	#0.0, 0.0, # bottom left
+	#1.0, 0.0, # bottom right
+	#1.0, 1.0, # top right
+	#0.0, 1.0, # top left
+
+	#0.0, 0.0, # bottom left
+	#0.0, 1.0, # top left
+	#1.0, 1.0, # top right
+	#1.0, 0.0, # bottom right
+	], dtype=numpy.float32)
+
+def temp_blit(ENV, GL_IMAGE_ID):
+	OpenGL = ENV.extern.OpenGL
+	ctypes = ENV.extern.ctypes
+
+	sizeof_GLfloat = ctypes.sizeof(OpenGL.GLfloat)
+
+	glActiveTexture = OpenGL.glActiveTexture
+	glBindFramebuffer = OpenGL.glBindFramebuffer
+	glDrawArrays = OpenGL.glDrawArrays
+	glGetUniformLocation = OpenGL.glGetUniformLocation
+	glUniform1i = OpenGL.glUniform1i
+	glUseProgram = OpenGL.glUseProgram
+	glDisable = OpenGL.glDisable
+	glBindBuffer = OpenGL.glBindBuffer
+	glBufferData = OpenGL.glBufferData
+	glGenBuffers = OpenGL.glGenBuffers
+	glBindVertexArray = OpenGL.glBindVertexArray
+	glVertexAttribPointer = OpenGL.glVertexAttribPointer
+	glEnableVertexAttribArray = OpenGL.glEnableVertexAttribArray
+	glGetAttribLocation = OpenGL.glGetAttribLocation
+	glGenVertexArrays = OpenGL.glGenVertexArrays
+	glBindTexture = OpenGL.glBindTexture
+	glClearColor = OpenGL.glClearColor
+	glClear = OpenGL.glClear
+
+	GLvoid = OpenGL.GLvoid
+	GL_FRAMEBUFFER = OpenGL.GL_FRAMEBUFFER
+	GL_TEXTURE0 = OpenGL.GL_TEXTURE0
+	GL_TEXTURE_2D = OpenGL.GL_TEXTURE_2D
+	GL_TRIANGLE_FAN = OpenGL.GL_TRIANGLE_FAN
+	GL_CULL_FACE = OpenGL.GL_CULL_FACE
+	GL_STATIC_DRAW = OpenGL.GL_STATIC_DRAW
+	GL_ARRAY_BUFFER = OpenGL.GL_ARRAY_BUFFER
+	GL_FALSE = OpenGL.GL_FALSE
+	GL_FLOAT = OpenGL.GL_FLOAT
+	GL_COLOR_BUFFER_BIT = OpenGL.GL_COLOR_BUFFER_BIT
+
+	shader = TEMP_BLIT_DATA.get('shader')
+	if shader is None:
+		shader = TEMP_BLIT_DATA['shader'] = ENV.graphics.OPENGL.Shader(
+			vertex_source=VERTEX_SOURCE, fragment_source=FRAGMENT_SOURCE)
+
+	VAO = TEMP_BLIT_DATA.get('VAO')
+	if not VAO:
+		VAO = glGenVertexArrays(1)
+		VBO = glGenBuffers(1)
+
+		glUseProgram(shader['program'])
+
+		glBindVertexArray(VAO)
+
+		glBindBuffer(GL_ARRAY_BUFFER, VBO)
+		glBufferData(GL_ARRAY_BUFFER, VERTICES.nbytes, VERTICES, GL_STATIC_DRAW)
+
+		# (var_idx, num_per_vertex, data_type, normalized, stride(skip), offset(start_pointer)) # count is determined by draw call!
+		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, GLvoid) # in_position
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof_GLfloat, ctypes.c_void_p(2 * sizeof_GLfloat)) # in_tex_coord
+
+		glEnableVertexAttribArray(glGetAttribLocation(shader['program'], "position"))
+		glEnableVertexAttribArray(glGetAttribLocation(shader['program'], "uv"))
+
+		TEMP_BLIT_DATA['VAO'] = VAO
+		TEMP_BLIT_DATA['VBO'] = VBO
+
+	program = shader['program']
+
+	glUseProgram(program)
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0) # make sure we're rendering to main window
+
+	# TODO clear viewport?
+	#glClearColor(0., 0., 0., 1.)
+	glClearColor(0.2, 0.3, 0.3, 1.0)
+	glClear(GL_COLOR_BUFFER_BIT)
+
+	glActiveTexture(GL_TEXTURE0)
+	glBindTexture(GL_TEXTURE_2D, GL_IMAGE_ID)
+
+	glUniform1i(glGetUniformLocation(program, "image"), 0)
+
+	glDisable(GL_CULL_FACE)
+
+	glBindVertexArray(VAO)
+
+	glDrawArrays(GL_TRIANGLE_FAN, 0, 4)
+
+	glBindTexture(GL_TEXTURE_2D, 0)
+	glBindBuffer(GL_ARRAY_BUFFER, 0)
+	glBindVertexArray(0)
+	glUseProgram(0)
+
+	
 
 def build(ENV):
 
-	Qt5 = ENV.extern.Qt5 # from lib.extern
+	Qt5 = ENV.extern.Qt5
 	QEvent = Qt5.QEvent
+
+	def set_transparent(WIDGET):
+		palette = WIDGET.palette()
+		palette.setBrush(Qt5.QPalette.Base, Qt5.Qt.transparent)
+		WIDGET.setPalette(palette)
+		WIDGET.setAttribute(Qt5.Qt.WA_TranslucentBackground)
+
+	OpenGL = ENV.extern.OpenGL
+	glClearColor = OpenGL.glClearColor
+	glClear = OpenGL.glClear
+	glDeleteVertexArrays = OpenGL.glDeleteVertexArrays
+	GL_ARRAY_BUFFER = OpenGL.GL_ARRAY_BUFFER
+	GL_STATIC_DRAW = OpenGL.GL_STATIC_DRAW
+	glBufferData = OpenGL.glBufferData
+	glDeleteBuffers = OpenGL.glDeleteBuffers
+	glViewport = OpenGL.glViewport
+
+	GL_COLOR_BUFFER_BIT = OpenGL.GL_COLOR_BUFFER_BIT
+
+	QT_HAS_OPENGL = Qt5.HAS_OPENGL
+	#ENV.snap_out("gui graphics", ENV.GRAPHICS)
 
 	# https://doc.qt.io/qtforpython-5/PySide2/QtCore/Qt.html
 	Qt = Qt5.Qt # for keys
@@ -19,6 +186,17 @@ def build(ENV):
 	# TODO load the preferred engine of gui if not loaded...
 	assert getattr(ENV, 'GUI_GRAPHICS', None) is None, 'gui graphics already loaded?'
 	GUI_GRAPHICS = ENV.GUI_GRAPHICS = ENV.graphics.load('QT5')
+
+	# TODO FIXME: get opengl blit to work...
+	USING_OPENGL = False
+	#USING_OPENGL = QT_HAS_OPENGL and 'opengl' in ENV.GRAPHICS['name'].lower()
+
+	if USING_OPENGL:
+		QWIDGET = Qt5.QGLWidget
+	else:
+		QWIDGET = Qt5.QWidget
+
+	#ENV.snap_out('using opengl', USING_OPENGL, ENV.GRAPHICS['name'])
 
 	snap_extents_t = ENV.snap_extents_t
 
@@ -37,7 +215,7 @@ def build(ENV):
 		d[scan] = key
 		LOCAL_KEYMAP[qkey] = d
 
-
+	"""
 	class _EventFilterer(Qt5.QWidget):
 		# just to be able to install event filter because it has to be a QWidget subclass and I don't want polymorphism.
 
@@ -49,6 +227,35 @@ def build(ENV):
 
 			self._window_ = weakref_ref(WINDOW)
 			WINDOW['__qt_window__'].installEventFilter(self)
+	"""
+
+
+	class _Qt5Widget(QWIDGET):
+
+		__slots__ = []
+
+		def resizeGL(self, W, H):
+			glViewport(0,0,W,H)
+
+		def paintGLX(self):
+			ENV.snap_debug('qt:paintGL')
+
+		def initializeGL(self):
+			ENV.snap_debug('qt:initializeGL')
+
+		def eventFilter(self, SOURCE, EVENT):
+			return self._window_().eventFilter(SOURCE, EVENT)
+
+		def __init__(self, WINDOW):
+			QWIDGET.__init__(self)
+
+			self._window_ = weakref_ref(WINDOW)
+
+			self.installEventFilter(self)
+
+			self.setWindowTitle(sys.argv[0])#' ')
+
+			self.setMouseTracking(True)
 
 
 	class SnapQt5Window(SnapGuiWindowBase):
@@ -177,8 +384,9 @@ def build(ENV):
 				ENV.snap_warning("clipboard event unhandled")
 
 			elif etype == QEvent.Close:
-				self['__event_filterer__']._window_ = None
-				self['__event_filterer__'] = None
+				pass
+				#self['__qt_window__']._window_ = None
+				#self['__qt_window__'] = None
 				#snap_emit(SNAP_CH_QUIT, "QUIT") # XXX TODO only if no windows left!  TODO this should just emit close/quit to gui
 				#ENV.snap_out("close event")
 
@@ -766,7 +974,7 @@ def build(ENV):
 			return False # unhandled
 
 		@ENV.SnapChannel
-		def allocate(self, MSG):
+		def allocateXXX(self, MSG):
 			#ENV.snap_out('GOT allocate')
 
 			extents = MSG.unpack('extents', None)
@@ -801,107 +1009,103 @@ def build(ENV):
 		def trigger_blit(self, MSG):
 			self['__qt_window__'].update()
 
-		@ENV.SnapChannel
-		def blit(self, MSG):
-			'assign current (already rendered) buffer'
-			#ENV.snap_warning('blit!') # TODO put this under EXPOSE event?
-
-			window = self['__qt_window__']
-
-			# TODO just keep the existing design, render on window and then this just pulls the self.data()['__texture__'] setup in self._update_blit_data()
-
-			with Qt5.QPainter(window) as ptr:
+		if USING_OPENGL:
+			@ENV.SnapChannel
+			def blit(self, MSG):
+				"()"
+				window = self['__qt_window__']
 
 				user_window = self['__user_window__']
 				if user_window is None:
-					ptr.fillRect(window.rect(), Qt5.Qt.red)
+					glClearColor(1,0,0,1)
+					glClear(GL_COLOR_BUFFER_BIT)
 					return None
 
 				user_image = user_window['image']
 				if user_image is None:
-					ptr.fillRect(window.rect(), Qt5.Qt.red)
+					glClearColor(0,1,0,1)
+					glClear(GL_COLOR_BUFFER_BIT)
 					return None
 
-				if isinstance(user_image, GUI_GRAPHICS.Image):
-					qimage = user_image['__engine_data__']
+				if isinstance(user_image, ENV.graphics.OPENGL.Image):
+					use_image = user_image['__engine_data__']
+
+					#import os
+					#THISDIR = os.path.realpath(os.path.dirname(__file__))
+					#filepath = os.path.join(THISDIR, 'SnapQt5_blit_test.png')
+					#if not os.path.exists(filepath):
+					#	user_image.save(filepath)
 				else:
 					blit_image = self['__blit_image__']
 					if blit_image is None:
-						blit_image = self['__blit_image__'] = GUI_GRAPHICS.Image()
+						blit_image = self['__blit_image__'] = ENV.graphics.OPENGL.Image()
+						ENV.snap_out('new blit image', blit_image)
 
-					#ENV.snap_out('blit', user_image['size'], len(user_image['pixels']['data']) if user_image['pixels'] is not None else None, user_image['format'])
 					blit_image.set(image=user_image)
 
-					# TODO save the output...
-					#import os
-					#THISDIR = os.path.realpath(os.path.dirname(__file__))
-					#filepath = os.path.join(THISDIR, 'blit_test.png')
-					#if not os.path.exists(filepath):
-					#	''#user_image.save(filepath)
+					use_image = blit_image['__engine_data__']
 
-					qimage = blit_image['__engine_data__']
+				# TODO 
 
-				try:
-					ptr.drawImage(window.rect(), qimage)
-				except Exception as e:
-					ENV.snap_error('blit error', repr(e))
-					ptr.fillRect(window.rect(), Qt5.Qt.red)
+				#ENV.snap_out("TODO: opengl blit()", use_image)
+				#glViewport(0,0, window.width(), window.height())
+				temp_blit(ENV, use_image)
 
-			return None
+		else:
+			@ENV.SnapChannel
+			def blit(self, MSG):
+				'assign current (already rendered) buffer'
+				#ENV.snap_warning('blit!') # TODO put this under EXPOSE event?
 
-			
-			"""
-			blit_texture = self['__blit_texture__'] # TODO this can just be a pre-made context we use to render...
-			if blit_texture is not None:
-				#ENV.snap_out('__blit_texture__ exists!')
-				# TODO resize blit texture image (or reformat if changed from user size)
-				#if blit_texture['__engine_data__'] is None:
-				#	ENV.snap_out('texture engine data', blit_texture['__engine_data__'])
+				window = self['__qt_window__']
 
-				ENV.snap_out('blit texture', blit_texture)
-				try:
-					ptr.drawPixmap(window.rect(), blit_texture['__engine_data__'])
-					#ptr.drawImage(window.rect(), blit_texture['image']['__engine_data__'])
-				except Exception as e:
-					ENV.snap_error('render error', repr(e))
-					ptr.fillRect(window.rect(), Qt5.Qt.red)
-			else:
-				user_window = self['__user_window__']
-				if user_window is not None:
-					texture = user_window['texture']
-					if texture is not None:
-						#ENV.snap_out('draw pixmap', window.rect(), texture.__engine_data__().size())
-						#user_window.render() # TODO timer...
+				# TODO just keep the existing design, render on window and then this just pulls the self.data()['__texture__'] setup in self._update_blit_data()
 
-						#ptr.drawPixmap(window.rect(), texture.__engine_data__())
-						#ENV.snap_out("image size", texture.image().size())
-						try:
-							#ptr.fillRect(window.rect(), Qt5.Qt.white)
-							#ptr.setRenderHint(Qt5.QPainter.Antialiasing, True)
-							#ptr.setCompositionMode(Qt5.QPainter.CompositionMode_Multiply)
-							ptr.drawImage(window.rect(), texture['image']['__engine_data__'])
-						except Exception as e:
-							ENV.snap_error('render error', repr(e))
-							ptr.fillRect(window.rect(), Qt5.Qt.red)
+				with Qt5.QPainter(window) as ptr:
 
-						#ptr.fillRect(Qt5.QRect(10,10,window.width()-20, window.height()-20), Qt5.Qt.red)
-						ptr.end()
+					user_window = self['__user_window__']
+					if user_window is None:
+						ptr.fillRect(window.rect(), Qt5.Qt.red)
 						return None
 
-				#ptr.fillRect(window.rect(), Qt5.Qt.red)
+					user_image = user_window['image']
+					if user_image is None:
+						ptr.fillRect(window.rect(), Qt5.Qt.green)
+						return None
 
-			#ptr.finish()
-			ptr.end()
-			"""
+					if isinstance(user_image, GUI_GRAPHICS.Image):
+						qimage = user_image['__engine_data__']
+					else:
+						blit_image = self['__blit_image__']
+						if blit_image is None:
+							blit_image = self['__blit_image__'] = GUI_GRAPHICS.Image()
 
+						#ENV.snap_out('blit', user_image['size'], len(user_image['pixels']['data']) if user_image['pixels'] is not None else None, user_image['format'])
+						blit_image.set(image=user_image)
+
+						# TODO save the output...
+						#import os
+						#THISDIR = os.path.realpath(os.path.dirname(__file__))
+						#filepath = os.path.join(THISDIR, 'blit_test.png')
+						#if not os.path.exists(filepath):
+						#	''#user_image.save(filepath)
+
+						qimage = blit_image['__engine_data__']
+
+					try:
+						ptr.drawImage(window.rect(), qimage)
+					except Exception as e:
+						ENV.snap_error('blit error', repr(e))
+						ptr.fillRect(window.rect(), Qt5.Qt.red)
+
+				return None
+
+
+	
 		def __init__(self, **SETTINGS):
 			SnapGuiWindowBase.__init__(self, **SETTINGS)
 
-			window = self['__qt_window__'] = Qt5.QWidget()
-			window.setWindowTitle(sys.argv[0])#' ')
-
-			self['__event_filterer__'] = _EventFilterer(self)
-			window.setMouseTracking(True)
+			window = self['__qt_window__'] = _Qt5Widget(self)
 
 			# TODO cursor
 
@@ -910,6 +1114,14 @@ def build(ENV):
 			#self.position = SnapProperty(self, SnapMatrix())
 
 			window.show()
+
+		def __del__(self):
+			for key,value in TEMP_BLIT_DATA.items():
+				if key == 'VBO':
+					#glBufferData(GL_ARRAY_BUFFER, 0, None, GL_STATIC_DRAW)
+					glDeleteBuffers(1, [value])
+				elif key == 'VAO': glDeleteVertexArrays(1, [value]) 
+			TEMP_BLIT_DATA.clear()
 
 		def __delete__(self):
 			return SnapGuiWindowBase.__delete__(self)

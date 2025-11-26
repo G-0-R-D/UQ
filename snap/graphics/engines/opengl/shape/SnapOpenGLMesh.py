@@ -1,9 +1,18 @@
 
-from OpenGL.GL import *
-
 import os
 
 def build(ENV):
+
+	OpenGL = ENV.extern.OpenGL
+
+	glGenBuffers = OpenGL.glGenBuffers
+	glDeleteBuffers = OpenGL.glDeleteBuffers
+	glBindBuffer = OpenGL.glBindBuffer
+	glBufferData = OpenGL.glBufferData
+
+	GL_STATIC_DRAW = OpenGL.GL_STATIC_DRAW
+	GL_ARRAY_BUFFER = OpenGL.GL_ARRAY_BUFFER
+	GL_ELEMENT_ARRAY_BUFFER = OpenGL.GL_ELEMENT_ARRAY_BUFFER
 
 	SnapMesh = ENV.SnapMesh
 
@@ -65,9 +74,10 @@ def build(ENV):
 				raise OSError('not an obj file?', repr(objpath))
 
 			# TODO
-			obj_data = obj_open(objpath)
+			#obj_data = obj_open(objpath)
 
-			ENV.snap_out('obj data', obj_data)
+			#ENV.snap_out('obj data', obj_data)
+			raise NotImplementedError()
 
 
 		@ENV.SnapChannel

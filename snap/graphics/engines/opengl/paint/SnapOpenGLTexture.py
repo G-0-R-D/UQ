@@ -3,6 +3,8 @@
 
 def build(ENV):
 
+	OpenGl = ENV.extern.OpenGL
+
 	SnapMessage = ENV.SnapMessage
 
 	SnapTexture = ENV.SnapTexture
@@ -73,7 +75,7 @@ def build(ENV):
 		@ENV.SnapProperty
 		class __engine_data__:
 
-			# TODO texture will just set the wrap mode and matrix before drawing the image...
+			# TODO texture will just set the wrap mode and matrix before drawing the image...  then set it back...
 			#glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
 			#glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
 			#glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)

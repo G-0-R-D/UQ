@@ -576,7 +576,7 @@ def build(ENV):
 
 		def __del__(self):
 			if self._vao_ is not None:
-				glDeleteVertexArrays(1, self._vao_)
+				glDeleteVertexArrays(1, [self._vao_])
 				self._vao_ = None
 
 	return RhobidiumShader
