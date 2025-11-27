@@ -10,8 +10,6 @@
 		
 - 🎨 *(graphics)* SnapContext will support context management with a ['subcontext'] property to easily do a local render and save/restore (inspired by how qt5 does `with QPainter(self) as ptr: ...`)
 		
-- 🎨 *(graphics)* OpenGL (this would be [@G-0-R-D](https://github.com/G-0-R-D)'s 5th(?) time wrapping it... shouldn't take too long once he starts!)
-		
 - 🧱/🔒 *(stability/security)* ENV.QUIT channel for things like SnapSubprocess to listen to, protected by try/except (SystemExit, KeyboardInterrupt) so everything has a chance to shutdown properly and subprocesses aren't left hanging...
 		
 - 🤖 *(programming)* argspec parsing with parseq (and gui debugging for parseq)
@@ -20,6 +18,14 @@
 
 	
 ---------------
+
+
+---------------
+## 2025.11.26 📢
+---------------
+
+- 📌/💪/🎨 *(pinned/done/graphics)* OpenGL is being marked as complete.  It'll keep getting worked on, but it's not the priority right now.  Top-level gui opengl rendering is aborted, since Qt attempts to do 'smart' context switching (despite being told not to with AA_ShareOpenGLContexts!), and the design of snap was to only have 1 opengl context so it would require a complete redesign to do anything else.  Rather than try to muck around with it, we'll just init one OpenGL context with a hidden Qt window and just blit the GPU image to the CPU and accept the cost for the simplicity!  This may be revisited later.
+
 
 
 ---------------

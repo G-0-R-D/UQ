@@ -507,6 +507,8 @@ def build(ENV):
 
 		def initialize(self):
 
+			#ENV.snap_out('rhobidium context', ENV.extern.Qt5.QOpenGLContext.currentContext())
+
 			#print('rhobidium vars are', self._VARS_)
 
 			glUseProgram(self['program'])
@@ -522,9 +524,9 @@ def build(ENV):
 			
 			#glEnableVertexAttribArray(self._VARS_.get('in_position',0))
 			#glEnableVertexAttribArray(self._VARS_.get('in_tex_coord',1))
-			print('in_position', glGetAttribLocation(self['program'], "in_position"))
-			print('in_tex_coord', glGetAttribLocation(self['program'], "in_tex_coord"))
-			print('program', self['program'])
+			#print('in_position', glGetAttribLocation(self['program'], "in_position"))
+			#print('in_tex_coord', glGetAttribLocation(self['program'], "in_tex_coord"))
+			#print('program', self['program'])
 			glEnableVertexAttribArray(glGetAttribLocation(self['program'], "in_position"))
 			#glEnableVertexAttribArray(glGetAttribLocation(self['program'], "in_tex_coord"))
 
@@ -532,8 +534,6 @@ def build(ENV):
 			#glBindBuffer(GL_ARRAY_BUFFER, 0)
 			glBindVertexArray(0)
 			glUseProgram(0)
-
-
 
 		def draw(self, CTX):
 

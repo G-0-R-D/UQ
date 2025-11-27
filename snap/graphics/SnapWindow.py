@@ -389,6 +389,7 @@ def build(ENV):
 				camera['use_perspective'] = False
 
 			image = ENGINE.Image(width=int(window_size[0]), height=int(window_size[1]))
+			ENV.snap_out('image init', image)
 			texture = ENGINE.Texture(image=image)
 			#shader = ENGINE.Shader(shape=image, fill_color=texture)
 

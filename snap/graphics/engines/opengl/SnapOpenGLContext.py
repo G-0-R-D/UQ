@@ -23,6 +23,10 @@ def build(ENV):
 	glDepthFunc = OpenGL.glDepthFunc
 	glDeleteFramebuffers = OpenGL.glDeleteFramebuffers
 	glDeleteRenderbuffers = OpenGL.glDeleteRenderbuffers
+	glFenceSync = OpenGL.glFenceSync
+	glWaitSync = OpenGL.glWaitSync
+	glDeleteSync = OpenGL.glDeleteSync
+	glFlush = OpenGL.glFlush
 
 	GLint = OpenGL.GLint
 
@@ -44,6 +48,8 @@ def build(ENV):
 	GL_DEPTH_BUFFER_BIT = OpenGL.GL_DEPTH_BUFFER_BIT
 	GL_STENCIL_BUFFER_BIT = OpenGL.GL_STENCIL_BUFFER_BIT
 	GL_DEPTH_TEST = OpenGL.GL_DEPTH_TEST
+	GL_SYNC_GPU_COMMANDS_COMPLETE = OpenGL.GL_SYNC_GPU_COMMANDS_COMPLETE
+	GL_TIMEOUT_IGNORED = OpenGL.GL_TIMEOUT_IGNORED
 
 	SnapContext = ENV.SnapContext
 	SnapNode = ENV.SnapNode
@@ -105,6 +111,8 @@ def build(ENV):
 
 				if glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE:
 					raise Exception('framebuffer error!')
+
+				#glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
 				self.reset()
 
@@ -246,9 +254,17 @@ def build(ENV):
 		def activate(self, MSG):
 			"()"
 			# TODO
+			#ENV.snap_out('activate context', ENV.extern.Qt5.QOpenGLContext.currentContext())
+			#ENV.snap_out('render activate')
 			fbo = self.__snap_data__['__fbo__']
 			if fbo is not None:
+				#ENV.snap_out('activate; bind framebuffer')
 				glBindFramebuffer(GL_FRAMEBUFFER, fbo)
+
+				#self.__snap_data__['SYNC'] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0)
+				#OpenGL.glGetError()
+				#glFlush()
+
 
 		@ENV.SnapChannel
 		def reset(self, MSG):
@@ -276,7 +292,24 @@ def build(ENV):
 		def finish(self, MSG):
 			"()"
 			# TODO detach image?
+
+			SYNC = self.__snap_data__['SYNC']
+			if SYNC is not None:
+				#ENV.snap_out('SYNC', SYNC)
+				glWaitSync(SYNC, 0, GL_TIMEOUT_IGNORED)
+
+				glDeleteSync(SYNC)
+
+			#ENV.snap_out('finish; unbind framebuffer')
 			glBindFramebuffer(GL_FRAMEBUFFER, 0)
+			#ENV.snap_out('render finish')
+
+
+			import os
+			THISDIR = os.path.realpath(os.path.dirname(__file__))
+			filepath = os.path.join(THISDIR, 'finished.png')
+			if not os.path.exists(filepath):
+				''#self['image'].save(filepath)
 
 		@ENV.SnapChannel
 		def clear(self, MSG):
@@ -289,7 +322,7 @@ def build(ENV):
 
 				w,h = image['size']
 				glViewport(0,0,w,h)
-				glClearColor(0,0,0,0)
+				glClearColor(0,0,0,1)
 				glClearDepth(1.0)
 				glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT)
 

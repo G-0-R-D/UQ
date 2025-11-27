@@ -195,6 +195,8 @@ def build(ENV):
 
 			# if "FORCE_RENDER" is called a flag is set to prevent the next render from going through until previous render completes...
 			if not self['__render_forced__']:
+				self.trigger_blit()
+				"""
 				user_window = self['__user_window__']
 				#ENV.snap_out("user window", user_window)
 				if user_window is not None:
@@ -209,6 +211,7 @@ def build(ENV):
 					self.trigger_blit() # gui updates display
 
 					# TODO if getattr(self, "interactive") == "TRUE": update active graphic of pointers?  then all other event updates refer to that graphic
+				"""
 
 			else:
 				# cancels force status, another force may now commence
