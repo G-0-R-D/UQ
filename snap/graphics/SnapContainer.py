@@ -166,37 +166,6 @@ def build(ENV):
 
 		__slots__ = []
 
-		"""
-		@ENV.SnapProperty
-		class extents:
-
-			def set(self, MSG):
-				"(snap_extents_t!)"
-				ext = MSG.args[0]
-				if ext is not None:
-					assert isinstance(ext, snap_extents_t)
-					e = snap_extents_t(*ext)
-					if e[3] <= e[0]: e[3] = e[0]
-					if e[4] <= e[1]: e[4] = e[1]
-					if e[5] <= e[2]: e[5] = e[2]
-					x,y = e[0],e[1]
-					e[0] = e[1] = 0
-					m = self.__snap_data__['matrix']
-					if m is None:
-						m = self.__snap_data__['matrix'] = snap_matrix_t(*SNAP_IDENTITY_MATRIX)
-					m[3] = x
-					m[7] = y
-					self.__snap_data__['extents'] = ext
-				else:
-					self.__snap_data__['extents'] = None
-				self.changed(extents=ext)
-		"""
-
-
-		# moved to SnapMatrix base
-		#@ENV.SnapProperty
-		#class render_matrix:
-
 		@ENV.SnapProperty
 		class children:
 
@@ -393,8 +362,6 @@ def build(ENV):
 			else:
 				CTX.cmd_render_subitems()
 
-			# send draw?
-
 			return None
 
 		def lookup(self, CTX):
@@ -408,8 +375,6 @@ def build(ENV):
 				return shader.lookup(CTX)
 			else:
 				CTX.cmd_render_subitems()
-
-			# send lookup?
 
 			return None
 
@@ -465,31 +430,7 @@ def build(ENV):
 			if items:
 				self['children'] = items + self['children']
 
-			#self['draw_program'] = None
-			#self['lookup_program'] = None
 
-			#self['__node_display__'] = None # list of graphics, one for each scene added to...
-			#self['__node_render_info__'] = None # when containers are added to a task or program they are wrapped in a SnapNodeGraphic, and that is referenced along with the 'scene' it belongs in here... TODO
-
-			# TODO self._scenes_ = {} # {Scene():SceneItem(self), ...} # when in node display...
-
-			#SNAP_INIT(self, SETTINGS,
-			#	'shader')
-
-			#if items:
-			#	self.set(items=items)
-
-			#self.set(**{k:v for k,v in SETTINGS.items() if k in ('item','items')})
-
-
-		"""
-		def __snap_description__(self):
-			d = SnapMetrics.__snap_description__(self)
-			d.update({
-				'render':SnapEvent('(SnapContext)', required=[0], output=SnapOutput('(SnapContext)', required=[0])),
-			})
-			return d
-		"""
 
 
 

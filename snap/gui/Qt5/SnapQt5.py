@@ -32,11 +32,16 @@ def build(ENV):
 	GUI_GRAPHICS = ENV.GUI_GRAPHICS = ENV.graphics.load('QT5')
 
 	# XXX abandoned; using single opengl context in the background (hidden window) and then just blit to cpu window
-	USING_OPENGL = False
-	#USING_OPENGL = QT_HAS_OPENGL and 'opengl' in ENV.GRAPHICS['name'].lower()
+	#USING_OPENGL = False
+	USING_OPENGL = QT_HAS_OPENGL and 'opengl' in ENV.GRAPHICS['name'].lower()
 
 	if USING_OPENGL:
 		QWIDGET = Qt5.QGLWidget
+
+		OpenGL = ENV.extern.OpenGL
+		glClear = OpenGL.glClear
+		glClearColor = OpenGL.glClearColor
+		GL_COLOR_BUFFER_BIT = OpenGL.GL_COLOR_BUFFER_BIT
 	else:
 		QWIDGET = Qt5.QWidget
 
@@ -73,7 +78,7 @@ def build(ENV):
 			WINDOW['__qt_window__'].installEventFilter(self)
 	"""
 
-
+	"""
 	class _Qt5Widget(QWIDGET):
 
 		__slots__ = []
@@ -141,6 +146,7 @@ def build(ENV):
 			self.setWindowTitle(sys.argv[0])#' ')
 
 			self.setMouseTracking(True)
+	"""
 
 
 	class SnapQt5Window(SnapGuiWindowBase):
@@ -231,6 +237,108 @@ def build(ENV):
 				#ENV.snap_out('set window ext', ext[:])
 				#return SnapGuiWindowBase.extents.set(self, SnapMessage(ext))
 
+		# TODO make special contexts for activation?  or just make one and assign the engine_context?
+		def paintGL(self, QT_WINDOW):
+			'either the user is in OpenGL format (in which case we render directly) or we blit'
+
+			user_window = self['__user_window__']
+			if user_window is None:
+				glClearColor(1,0,0,1) # red
+				glClear(GL_COLOR_BUFFER_BIT)
+				return None
+
+			if user_window['engine']['name'] == 'SnapOpenGLEngine':
+				'toplevel render'
+				ctx = ENV.graphics.OPENGL.Context()
+				fbo = ctx.__snap_data__['__fbo__']
+				ctx.__snap_data__['__fbo__'] = 0
+				ctx.do_draw(items=user_window['render_items'])
+				ctx.__snap_data__['__fbo__'] = fbo # for cleanup
+			else:
+				'blit render'
+				user_window.render()
+
+				user_image = user_window['image']
+				if user_image is None:
+					glClearColor(0,1,0,1) # green
+					glClear(GL_COLOR_BUFFER_BIT)
+					return None
+
+				if isinstance(user_image, ENV.graphics.OPENGL.Image):
+					glimage = user_image['__engine_data__']
+				else:
+					blit_image = self['__blit_image__']
+					if blit_image is None:
+						blit_image = self['__blit_image__'] = ENV.graphics.OPENGL.Image()
+
+					blit_image.set(image=user_image)
+
+					glimage = blit_image['__engine_data__']
+
+				# TODO actual texture render
+				ENV.snap_debug('opengl blit not implemented')
+
+			# TODO if QT_WINDOW is Qt5.__SNAP_OPENGL_WINDOW__[0] then render toplevel
+			# elif user is opengl then blit?
+			# else?  blit into opengl from whatever user is
+
+		def paintEvent(self, QT_WINDOW):
+			'so either the user is in QImage format (in which case we render to the painter directly), or we blit'
+
+			# TODO just keep the existing design, render on window and then this just pulls the self.data()['__texture__'] setup in self._update_blit_data()
+
+			ptr = Qt5.QPainter(QT_WINDOW)
+
+			user_window = self['__user_window__']
+			if user_window is None:
+				ptr.fillRect(QT_WINDOW.rect(), Qt5.Qt.red)
+				ptr.end()
+				return None
+
+			if user_window['engine']['name'] == 'SnapQt5Engine':
+				# create context with own QPainter assigned
+				ctx = ENV.graphics.QT5.Context()
+				ctx.__snap_data__['engine_context'] = ptr
+				ctx.do_draw(items=user_window['render_items'])
+				ctx.__snap_data__['engine_context'] = None
+			else:
+				# blit after render
+				user_window.render()
+
+				user_image = user_window['image']
+				if user_image is None:
+					ptr.fillRect(QT_WINDOW.rect(), Qt5.Qt.green)
+					ptr.end()
+					return None
+
+				if isinstance(user_image, ENV.graphics.QT5.Image):
+					qimage = user_image['__engine_data__']
+				else:
+					blit_image = self['__blit_image__']
+					if blit_image is None:
+						blit_image = self['__blit_image__'] = ENV.graphics.QT5.Image()
+
+					#ENV.snap_out('blit', user_image['size'], len(user_image['pixels']['data']) if user_image['pixels'] is not None else None, user_image['format'])
+					blit_image.set(image=user_image)
+
+					# TODO save the output...
+					#import os
+					#THISDIR = os.path.realpath(os.path.dirname(__file__))
+					#filepath = os.path.join(THISDIR, 'blit_test.png')
+					#if not os.path.exists(filepath):
+					#	''#user_image.save(filepath)
+
+					qimage = blit_image['__engine_data__']
+
+				try:
+					ptr.drawImage(QT_WINDOW.rect(), qimage)
+				except Exception as e:
+					ENV.snap_error('blit error', repr(e))
+					ptr.fillRect(QT_WINDOW.rect(), Qt5.Qt.red)
+
+				ptr.end()
+			return None
+
 
 		def eventFilter(self, SOURCE, EVENT):
 			
@@ -273,7 +381,7 @@ def build(ENV):
 				#self['__qt_window__']._window_ = None
 				#self['__qt_window__'] = None
 				#snap_emit(SNAP_CH_QUIT, "QUIT") # XXX TODO only if no windows left!  TODO this should just emit close/quit to gui
-				#ENV.snap_out("close event")
+				ENV.snap_out("close event")
 
 			elif etype == QEvent.DragEnter:
 				# The cursor enters a widget during a drag and drop operation ( QDragEnterEvent ).
@@ -858,53 +966,36 @@ def build(ENV):
 
 			return False # unhandled
 
-		@ENV.SnapChannel
-		def allocateXXX(self, MSG):
-			#ENV.snap_out('GOT allocate')
-
-			extents = MSG.unpack('extents', None)
-
-			#ENV.snap_out("allocate", extents)
-
-			if not extents:
-				return None
-
-			qwindow = self['__qt_window__']
-
-			#qwindow.move(int(extents[0]), int(extents[1]))
-			#qwindow.resize(int(extents[3]-extents[0]), int(extents[4]-extents[1]))
-			x1,y1,z1,x2,y2,z2 = extents
-			# TODO make sure extents don't put window out of bounds...
-			sw,sh = ENV.GUI['screen_size']
-			if x1 > (sw-10):
-				x1 -= 10
-			if y1 > (sh-10):
-				y1 -= 10
-			if x2-x1 < 10:
-				x2 = x1 + 10
-			if y2-y1 < 10:
-				y2 = y1 + 10
-			#ENV.snap_out('allocated', int(x1), int(y1), int(x2-x1), int(y2-y1))
-			qwindow.setGeometry(int(x1), int(y1), int(x2-x1), int(y2-y1))
-
-			ext = snap_extents_t(x1,y1,0, x2,y2,0)
-			return SnapGuiWindowBase.allocate(self, SnapMessage(extents=ext))
 
 		@ENV.SnapChannel
 		def trigger_blit(self, MSG):
 			self['__qt_window__'].update()
 
 	
-		def __init__(self, **SETTINGS):
-			SnapGuiWindowBase.__init__(self, **SETTINGS)
+		def __init__(self, USER, *user_a, **user_k):
+			SnapGuiWindowBase.__init__(self, USER, *user_a, **user_k)
 
-			window = self['__qt_window__'] = _Qt5Widget(self)
+			user = self['user']
+			if USING_OPENGL and user is not None and user['engine'] == ENV.graphics.OPENGL and Qt5.__SNAP_OPENGL_WINDOW__[0] is not None and Qt5.__SNAP_OPENGL_WINDOW__[0].snap_window is None:
+				window = self['__qt_window__'] = Qt5.__SNAP_OPENGL_WINDOW__[0]
+				window.snap_window = self
+
+				user_window = self['__user_window__']
+				w,h = user_window['size']
+				scrw,scrh = self.GUI['screen_size']
+				window.setGeometry(int((scrw-w)/2),int((scrh-h)/2), int(w),int(h))
+			else:
+				'use regular widget'
+			# TODO if user['engine'] is opengl, attempt to get the opengl window (check it doesn't have a user attached)
+				window = self['__qt_window__'] = Qt5.SnapQt5Widget(self)
 
 			# TODO cursor
 
 			# TODO self.fullscreen = SnapProperty(self, SnapBool(False))
 
 			#self.position = SnapProperty(self, SnapMatrix())
+
+			window.setWindowTitle(sys.argv[0])#' ')
 
 			window.show()
 

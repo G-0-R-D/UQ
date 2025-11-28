@@ -296,7 +296,7 @@ def build(ENV):
 	return SnapProject
 
 def main(ENV):
-	ENV.__run_gui__(ENV.SnapProject, packages=["../../../../demo/programming/hello_world/project/"])
+	ENV.__run_gui__(ENV.SnapProject, packages=["../../../demo/snap/programming/hello_world/project/"])
 
 if __name__ == '__main__':
 

@@ -279,7 +279,7 @@ class SnapEnv(object):
 		return _return
 
 
-	def __run_gui__(self, NODE, *user_args, **user_kwargs):
+	def __run_gui__(self, USER, *user_args, **user_kwargs):
 		# this will start an application mainloop, using gui if selected
 		# INTERNALS is a dict of internal options
 
@@ -291,7 +291,7 @@ class SnapEnv(object):
 
 		if self.__PRIVATE__.get('__RUNNING__', False):
 			raise RuntimeError('ENV is already running')
-		self.__PRIVATE__['__RUNNING__'] = True
+		self.__PRIVATE__['__RUNNING__'] = True # TODO move to gui or mainloop?
 
 
 		# TODO headless XXX for now use self.__run__() for headless
@@ -299,37 +299,17 @@ class SnapEnv(object):
 		#self.graphics.load(name=INTERNALS.get('graphics', 'QT5'))
 		GUI = self.GUI
 
-		win = GUI.Window() # so self.GUI.MAINWINDOW exists before user.__init__() is run
+		win = GUI.Window(USER, *user_args, **user_kwargs)
 
 
-		instance = None
-		if isinstance(NODE, str):
-			STRING = NODE
-			assert STRING not in self.__PRIVATE__['__BUILT_MODULES__'], 'unsupported, build value should return instance'
-			if STRING not in self.__PRIVATE__['__BUILT_MODULES__']:
-				# TODO returned values should be saved with the built module data?
-				loaded = self.__build__(STRING)
-
-			assert loaded is not None, 'user build() must return instance to run in gui'
-
-			instance = loaded(*user_args, **user_kwargs)
-
-		elif isinstance(NODE, type) and issubclass(NODE, self.SnapNode):
-			instance = NODE(*user_args, **user_kwargs)
-		elif isinstance(NODE, FunctionType) and getattr(NODE, '__name__', None) == 'build':
-			loaded = NODE(self)
-			instance = loaded(*user_args, **user_kwargs)
-		else:
-			assert NODE is None, 'must provide string path or SnapNode baseclass for gui to run, not: {}'.format(NODE)
-			instance = None
 
 		#self.gui.start(user=instance)
-		win['user'] = instance
+		#win['user'] = instance
 		GUI.start_mainloop()
 
 		del self.__PRIVATE__['__RUNNING__']
 
-		self.snap_out('__run_gui__({}) -> exit ok\n'.format(repr(NODE)) + 80 * '_')
+		self.snap_out('__run_gui__({}) -> exit ok\n'.format(repr(USER)) + 80 * '_')
 
 
 	def __run__(self, X, *user_args, **user_kwargs):

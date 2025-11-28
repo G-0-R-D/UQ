@@ -37,13 +37,19 @@ def build(ENV):
 
 	SnapEngine = ENV.SnapEngine
 
-	if not ENV.extern.Qt5.HAS_OPENGL and not __GL_IS_INIT__[0]:
+	if ENV.extern.Qt5.HAS_OPENGL:
+		ENV.extern.Qt5.__SNAP_OPENGL_INIT__()
+	elif not __GL_IS_INIT__[0]:
 		init(show=False)
 		__GL_IS_INIT__[0] = True
 
 	class SnapOpenGLEngine(SnapEngine):
 
 		__slots__ = []
+
+		def do_lookup(self, *a, **k):
+			# TODO
+			return []
 
 		def __init__(self, **SETTINGS):
 			SnapEngine.__init__(self, **SETTINGS)

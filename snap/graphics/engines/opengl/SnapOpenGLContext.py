@@ -250,8 +250,7 @@ def build(ENV):
 			'' # TODO this can't be the method used in opengl...?
 			raise NotImplementedError()
 
-		@ENV.SnapChannel
-		def activate(self, MSG):
+		def activate(self):
 			"()"
 			# TODO
 			#ENV.snap_out('activate context', ENV.extern.Qt5.QOpenGLContext.currentContext())
@@ -266,8 +265,7 @@ def build(ENV):
 				#glFlush()
 
 
-		@ENV.SnapChannel
-		def reset(self, MSG):
+		def reset(self):
 			"()"
 			fbo = self.__snap_data__['__fbo__']
 			if fbo is not None:
@@ -288,8 +286,7 @@ def build(ENV):
 
 				glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
-		@ENV.SnapChannel
-		def finish(self, MSG):
+		def finish(self):
 			"()"
 			# TODO detach image?
 
@@ -311,8 +308,7 @@ def build(ENV):
 			if not os.path.exists(filepath):
 				''#self['image'].save(filepath)
 
-		@ENV.SnapChannel
-		def clear(self, MSG):
+		def clear(self):
 			"()"
 			image = self['image']
 			if image is not None:
@@ -340,6 +336,17 @@ def build(ENV):
 			#	-- TODO make a SnapRenderConfig class, assign it to the image, but it will handle cleanup when renderinfo is discarded for the image...
 			if self.__snap_data__['__fbo__'] is None:
 				self.__snap_data__['__fbo__'] = glGenFramebuffers(1)
+
+
+				if IMAGE is not None:
+					glBindFramebuffer(GL_FRAMEBUFFER, self.__snap_data__['__fbo__'])
+					glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, IMAGE['__engine_data__'], 0) # GLint = mipmap level
+					#glBindRenderbuffer(GL_RENDERBUFFER, self._rbo_)
+					#glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, *IMAGE.size())
+					#glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, self._rbo_) # depth and stencil buffers
+
+					if glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE:
+						raise Exception('framebuffer error!')
 			if self.__snap_data__['__rbo__'] is None:
 				self.__snap_data__['__rbo__'] = glGenRenderbuffers(1)
 
@@ -347,14 +354,6 @@ def build(ENV):
 
 			#ENV.snap_out('image set', IMAGE, IMAGE['size'])
 
-			glBindFramebuffer(GL_FRAMEBUFFER, self.__snap_data__['__fbo__'])
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, IMAGE['__engine_data__'], 0) # GLint = mipmap level
-			#glBindRenderbuffer(GL_RENDERBUFFER, self._rbo_)
-			#glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, *IMAGE.size())
-			#glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, self._rbo_) # depth and stencil buffers
-
-			if glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE:
-				raise Exception('framebuffer error!')
 
 			self.reset()
 

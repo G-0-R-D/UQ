@@ -48,15 +48,22 @@ def build(ENV):
 
 		Window = None # assign in implementation
 
-		@property
-		def MAINWINDOW(self):
-			windows = ENV.GUI['windows']
-			assert windows, 'no mainwindow'
-			if len(windows) > 1:
-				ENV.snap_warning('MAINWINDOW access with > 1 window')
-			return windows[0] # mainwindow will always be first created...
+		@ENV.SnapProperty
+		class mainwindow:
+			def get(self, MSG):
+				"()->SnapGuiWindowBase"
+				windows = self['windows']
+				assert windows, 'no mainwindow'
+				if len(windows) > 1:
+					ENV.snap_warning('mainwindow access with > 1 window')
+				return windows[0] # mainwindow will always be first created...
 
-		@property
+			set = None
+
+		@mainwindow.alias
+		class default_window: pass
+
+		@ENV.SnapProperty
 		class name:
 			def get(self, MSG):
 				'()->str'

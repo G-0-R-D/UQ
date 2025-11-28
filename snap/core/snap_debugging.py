@@ -23,7 +23,7 @@ def build(ENV):
 		filepath = os.path.realpath(FILEPATH)
 		for project_path in ENV.__PRIVATE__['__SEARCH_PATHS__'].values():
 			if project_path in filepath:
-				return filepath[len(project_path):].strip(os.sep).replace(os.sep, '.')
+				return filepath[len(project_path):].strip(os.sep)#.replace(os.sep, '.')
 		return filepath#.replace(os.sep, '.') # if doesn't work then just report as an actual filepath
 
 

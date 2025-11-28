@@ -1,4 +1,5 @@
 
+from types import FunctionType
 
 def build(ENV):
 
@@ -94,76 +95,11 @@ def build(ENV):
 
 		@ENV.SnapProperty
 		class user:
-
 			def get(self, MSG):
 				"()->SnapContainer"
 				return self.__snap_data__['__user__']
 
-			def set(self, MSG):
-				"(SnapContainer!)" # TODO (SnapNode) ?
-
-				USER = MSG.args[0]
-
-				if USER is not None:
-					assert isinstance(USER, SnapNode),"gui \"user\" must be a SnapNode subtype or None"
-
-				#existing_user = data.get('__user__')
-
-				data = self.__snap_data__
-
-				data['__user__'] = USER
-				del data['__blit_image__']
-
-				if USER is None:
-					data['__user_window__'] = None
-					#data['__blit_image__'] = None
-					#ENV.snap_out('set user abort')
-					return
-
-				elif isinstance(USER, SnapWindow):
-					# toplevel must be a window so __user_window__.render() is available...
-					debug_gui('user IS a Window')
-					data['__user_window__'] = USER
-				else:
-					debug_gui('user is NOT a Window')
-					if not isinstance(self['__user_window__'], SnapGuiDummyWindow):
-						# TODO where to init size?  from user window?  if it is a window?
-						# problem: gui window won't be resized when user resizes implicitly,
-						# and init size is often 1 pixel, so we would likely end up with 1 pixel
-						# gui window to init that won't rescale as user does...
-						data['__user_window__'] = SnapGuiDummyWindow(items=[USER], size=[640,480])
-					else:
-						data['__user_window__'].set(items=[USER])
-
-				user_window = data['__user_window__']
-
-				user_window['extents'] = snap_extents_t(0,0,0, 640,480,0)
-
-				# if toplevel is not in the same graphics engine as the gui then
-				# image must be transferred to a local copy in gui format
-				# so a __blit_image__ is only assigned/used if user engine is different than
-				# gui, otherwise __user_window__.texture() is used directly
-
-				GUI_ENGINE = getattr(ENV, 'GUI_GRAPHICS', None) #ENV.snap_preferred_engine()
-				if user_window is None:
-					return
-				USER_ENGINE = user_window['engine']
-
-				assert GUI_ENGINE is not None, 'cannot render if no gui graphics!'
-
-				"""
-				if GUI_ENGINE == USER_ENGINE:
-					data['__blit_image__'] = None
-				else:
-					'assign __blit_image__ to new GUI_ENGINE.Texture()'
-					image = GUI_ENGINE.Image()
-					data['__blit_image__'] = GUI_ENGINE.Texture(image=image)
-				"""
-
-				if not DEVICES:
-					ENV.snap_warning("no devices for user assign!")
-
-				self.changed(user=USER)
+			set = None # see self.assign_user()
 
 
 		@ENV.SnapProperty
@@ -348,6 +284,91 @@ def build(ENV):
 		def grab(self, MSG):
 			raise NotImplementedError('grab')
 
+
+		def assign_user(self, USER, *user_args, **user_kwargs):
+			
+			user = None
+			if isinstance(USER, str):
+				STRING = USER
+				assert STRING not in ENV.__PRIVATE__['__BUILT_MODULES__'], 'unsupported, build value should return instance'
+				if STRING not in ENV.__PRIVATE__['__BUILT_MODULES__']:
+					# TODO returned values should be saved with the built module data?
+					loaded = ENV.__build__(STRING)
+
+				assert loaded is not None, 'user build() must return instance to run in gui'
+
+				user = loaded(*user_args, **user_kwargs)
+
+			elif isinstance(USER, type) and issubclass(USER, SnapNode):
+				user = USER(*user_args, **user_kwargs)
+			elif isinstance(USER, FunctionType) and getattr(USER, '__name__', None) == 'build':
+				loaded = USER(ENV)
+				user = loaded(*user_args, **user_kwargs)
+			else:
+				assert USER is None, 'must provide string path or SnapNode baseclass for gui to run, not: {}'.format(USER)
+				user = None
+
+			if user is not None:
+				assert isinstance(user, SnapNode), "gui \"user\" must be a SnapNode subtype or None"
+
+			#existing_user = data.get('__user__')
+
+			data = self.__snap_data__
+
+			data['__user__'] = user
+			del data['__blit_image__']
+
+			if user is None:
+				data['__user_window__'] = None
+				#data['__blit_image__'] = None
+				#ENV.snap_out('set user abort')
+				return
+
+			elif isinstance(user, SnapWindow):
+				# toplevel must be a window so __user_window__.render() is available...
+				debug_gui('user IS a Window')
+				data['__user_window__'] = user
+			else:
+				debug_gui('user is NOT a Window')
+				if not isinstance(self['__user_window__'], SnapGuiDummyWindow):
+					# TODO where to init size?  from user window?  if it is a window?
+					# problem: gui window won't be resized when user resizes implicitly,
+					# and init size is often 1 pixel, so we would likely end up with 1 pixel
+					# gui window to init that won't rescale as user does...
+					data['__user_window__'] = SnapGuiDummyWindow(items=[user], size=[640,480])
+				else:
+					data['__user_window__'].set(items=[user])
+
+			user_window = data['__user_window__']
+
+			# TODO if user extents are not null then use them?
+			user_window['extents'] = snap_extents_t(0,0,0, 640,480,0)
+
+			# if toplevel is not in the same graphics engine as the gui then
+			# image must be transferred to a local copy in gui format
+			# so a __blit_image__ is only assigned/used if user engine is different than
+			# gui, otherwise __user_window__.texture() is used directly
+
+			#GUI_ENGINE = getattr(ENV, 'GUI_GRAPHICS', None) #ENV.snap_preferred_engine()
+			#if user_window is None:
+			#	return
+			#USER_ENGINE = user_window['engine']
+
+			#assert GUI_ENGINE is not None, 'cannot render if no gui graphics!'
+
+			"""
+			if GUI_ENGINE == USER_ENGINE:
+				data['__blit_image__'] = None
+			else:
+				'assign __blit_image__ to new GUI_ENGINE.Texture()'
+				image = GUI_ENGINE.Image()
+				data['__blit_image__'] = GUI_ENGINE.Texture(image=image)
+			"""
+
+			if not DEVICES:
+				ENV.snap_warning("no devices for user assign!")
+
+			self.changed(user=user)
 
 		def _update_blit_data(self, MSG):
 			# when user window changes this is called from callback to reconfigure blit texture
@@ -541,8 +562,9 @@ def build(ENV):
 			self['extents'] = M['mapped_extents']
 
 
-		def __init__(self, items=None, user=None, **SETTINGS):
-			SnapContainer.__init__(self, **SETTINGS)
+		def __init__(self, user=None, *user_args, **user_kwargs):
+			# TODO window registers itself with gui here?
+			SnapContainer.__init__(self)
 
 			GUI = self.GUI
 			assert GUI is not None, 'gui not assigned in gui window'
@@ -557,12 +579,12 @@ def build(ENV):
 			data['__render_forced__'] = False
 			data['interactive'] = False # XXX gui is always interactive, just depends on if user is...?  assume it always is for now?  if not then lookup render won't do anything...?
 
-			if items and user is not None:
-				ENV.snap_warning("items not allowed, must be assigned a single \"user\"")
+			#if items and user is not None:
+			#	ENV.snap_warning("items not allowed, must be assigned a single \"user\"")
 
 			#self.set(**{k:v for k,v in SETTINGS.items() if k in ('width','height','size','extents')})
 
-			self.set(user=user)
+			self.assign_user(user, *user_args, **user_kwargs)
 
 			#ENV.snap_out('user set', self['user'])
 

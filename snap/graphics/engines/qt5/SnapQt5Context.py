@@ -581,12 +581,15 @@ def build(ENV):
 			#ptr = self._engine_context_ = QPainter(self._image_.__engine_data__())
 			data = self.__snap_data__
 
-			image = data['image']
-			assert isinstance(image, ENGINE.Image), 'wrong image type: {}'.format(type(image))
-			#ENV.snap_error('GOT HERE')
-			engine_context = data['engine_context']
-			assert engine_context is None, 'already activated'
-			ptr = data['engine_context'] = QPainter(image['__engine_data__'])
+			ptr = data.get('engine_context')
+			if ptr is None:
+
+				image = data['image']
+				assert isinstance(image, ENGINE.Image), 'wrong image type: {}'.format(type(image))
+				#ENV.snap_error('GOT HERE')
+				engine_context = data['engine_context']
+				assert engine_context is None, 'already activated'
+				ptr = data['engine_context'] = QPainter(image['__engine_data__'])
 			ptr.setClipping(True)
 			#ENV.snap_out("</SnapQt5Context activate()>")
 
@@ -680,7 +683,7 @@ def build(ENV):
 			#if self._engine_context_:
 			#	self.update()
 
-			self['__qimage__'] = self['image']['__engine_data__'] # keep a local reference so it stays alive
+			#self['__qimage__'] = self['image']['__engine_data__'] # keep a local reference so it stays alive
 
 
 	ENGINE.SnapQt5Context = SnapQt5Context

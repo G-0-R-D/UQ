@@ -21,6 +21,16 @@
 
 
 ---------------
+## 2025.11.28 📢
+---------------
+
+- 📌/💪/🎨 *(pinned/done/graphics)* After a good nights sleep and a bit of thought, [@G-0-R-D](https://github.com/G-0-R-D) did just a little reconfiguring of the rendering system and now we have toplevel OpenGL rendering (without a blit!) and a single OpenGL context used by all!  The answer was to re-use the initial Qt5 OpenGL window for primary OpenGL rendering, and subsequent windows will just be regular QWidgets that would blit from OpenGL into QImage format for their display (so we always have only one OpenGL window / context globally).
+
+	Still more work to do, but check out **`../UQ/demo/snap/graphics/opengl/shadertoy/Rhobidium.py`** now! :)
+
+
+
+---------------
 ## 2025.11.26 📢
 ---------------
 

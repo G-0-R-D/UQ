@@ -25,7 +25,7 @@ def build(ENV):
 	ENV.__build__('snap.graphics.shader.SnapShader')
 	# TODO composite, particle, ... TODO implemented as containers with specific shader programs
 
-	ENV.__build__('snap.graphics.SnapContext')
+	ENV.__build__('snap.graphics.SnapContext2')
 
 	ENV.__build__('snap.graphics.SnapEngine')
 
@@ -33,7 +33,7 @@ def build(ENV):
 	ENV.__build__('snap.graphics.SnapAssetManager')
 	ENV.__build__('snap.graphics.SnapContainer')
 	ENV.__build__('snap.graphics.SnapCamera')
-	ENV.__build__('snap.graphics.SnapWindow')
+	ENV.__build__('snap.graphics.SnapWindow2')
 
 	# NOTE: engine is initialized separately as it must be selected
 
