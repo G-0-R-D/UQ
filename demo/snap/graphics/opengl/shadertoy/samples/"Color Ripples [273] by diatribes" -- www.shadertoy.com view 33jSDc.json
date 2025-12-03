@@ -1,0 +1,40 @@
+[
+	{
+		"ver": "0.1",
+		"info": {
+			"id": "33jSDc",
+			"date": "1746707020",
+			"viewed": 957,
+			"name": "Color Ripples [273]",
+			"username": "diatribes",
+			"description": "Color Ripples [273]\n\n/*\n    Inspired by Xor's recent raymarchers with comments!\n    https://www.shadertoy.com/view/tXlXDX\n*/",
+			"likes": 56,
+			"published": 3,
+			"flags": 0,
+			"usePreview": 0,
+			"tags": [
+				"raymarch",
+				"small",
+				"short"
+			],
+			"hasliked": 0,
+			"parentid": "W3SXWy",
+			"parentname": "Clouds [266]"
+		},
+		"renderpass": [
+			{
+				"inputs": [],
+				"outputs": [
+					{
+						"id": "4dfGRr",
+						"channel": 0
+					}
+				],
+				"code": "/*\n    Inspired by Xor's recent raymarchers with comments!\n    https://www.shadertoy.com/view/tXlXDX\n*/\n\nvoid mainImage(out vec4 o, vec2 u) {\n    float i,d,s;\n    for(o*=i; i++<1e2; ) {\n        vec3 p = d * normalize(vec3(u+u,0) - iResolution.xyx );\n        for (s = .1; s < 1.;\n            p -= dot(sin(p * s * 16.), vec3(.01)) / s,\n            p.xz *= mat2(cos(.3*iTime+vec4(0,33,11,0))),\n            s += s);\n        d += s = .01 + abs(p.y);\n        o += (1.+cos(d+vec4(4,2,1,0))) / s;\n    }\n    o = tanh(o / 6e3);\n}",
+				"name": "Image",
+				"description": "",
+				"type": "image"
+			}
+		]
+	}
+]

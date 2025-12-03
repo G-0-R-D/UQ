@@ -5,14 +5,14 @@ def build(ENV):
 
 	SnapNode = ENV.SnapNode
 
-	snap_time_since_epoch = ENV.snap_time_since_epoch
+	snap_time = ENV.snap_time
 
 	class SnapTimers(SnapNode):
 
 		__slots__ = []
 
 		# updated once per mainloop iteration... (efficient! yay!)
-		CURRENT_TIME = snap_time_since_epoch()
+		CURRENT_TIME = snap_time()
 		ELAPSED_TIME = 0
 
 		@ENV.SnapChannel

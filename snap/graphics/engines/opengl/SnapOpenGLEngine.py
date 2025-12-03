@@ -38,8 +38,10 @@ def build(ENV):
 	SnapEngine = ENV.SnapEngine
 
 	if ENV.extern.Qt5.HAS_OPENGL:
+		# init opengl using qt window
 		ENV.extern.Qt5.__SNAP_OPENGL_INIT__()
 	elif not __GL_IS_INIT__[0]:
+		# attempt to fallback to initializing opengl with glut
 		init(show=False)
 		__GL_IS_INIT__[0] = True
 
@@ -48,7 +50,10 @@ def build(ENV):
 		__slots__ = []
 
 		def do_lookup(self, *a, **k):
-			# TODO
+			# TODO look into Shader Storage Buffer Objects (SSBOs), apparently they can be written to?
+			# another idea might be to pass in the uv/location and then we indicate based on visibility to the output render of that pixel?
+			#	or create a new pixel buffer for each draw call...  but that's kinda brutal
+
 			return []
 
 		def __init__(self, **SETTINGS):
@@ -90,6 +95,8 @@ def build(ENV):
 
 			ENV.__build__('snap.graphics.engines.opengl.shader.SnapOpenGLShader')
 			self.Shader = self.SnapOpenGLShader
+
+			self.Matrix = ENV.SnapMatrix # TODO
 
 			delattr(ENV.graphics, '__current_graphics_build__')
 

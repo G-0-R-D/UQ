@@ -1,5 +1,4 @@
 
-
 def build(ENV):
 
 	snap_matrix_t = ENV.snap_matrix_t
@@ -25,7 +24,7 @@ def build(ENV):
 
 		CONFIG_DEFAULTS = {
 			
-			'antialias':0.0,
+			'cmd_set_antialias':0.0,
 			}
 
 		MAX_RENDER_DEPTH = 100
@@ -46,12 +45,6 @@ def build(ENV):
 					assert isinstance(image, ENV.SnapImage), 'not a SnapImage: {}'.format(type(image))
 				self.__snap_data__['image'] = image
 			"""
-
-		@ENV.SnapProperty
-		class engine:
-			def get(self, MSG):
-				"()->SnapEngine"
-				return None # implement in subclass
 
 		@ENV.SnapProperty
 		class matrix:
@@ -105,63 +98,6 @@ def build(ENV):
 				return self.__snap_data__['current_container']
 
 			# set not allowed at user level
-			set = None
-
-
-
-		@ENV.SnapChannel
-		def image_changed(self, MSG):
-			"()"
-			# TODO end?  nullify engine_context...
-
-		
-		def do_draw(self, items=None, offset=None, max_depth=None, clear=True):
-
-			#GFX = self['engine']
-			#if GFX is None:
-			#	ENV.snap_warning("cannot draw without engine-specific context!")
-			#	return None
-
-			# TODO if image is not None, otherwise use existing?
-			#assert isinstance(image, GFX.Image), 'cannot use context without engine-specific image target'
-
-			#self.__snap_data__['image'] = image # ? TODO?  check if is same image, and check if has been resized?  or just listen to it's changed?
-
-
-			data = self.__snap_data__
-
-			self.activate()
-
-			#engine_context = data['engine_context']
-			#assert engine_context is not None, 'context cannot be used without active engine_context'
-
-			self.reset()
-			if clear:
-				self.clear()
-
-			data['depth'] = max_depth if max_depth is not None else self.MAX_RENDER_DEPTH
-			assert self['depth'] <= self.MAX_RENDER_DEPTH, 'depth: {} exceeds limit: {}'.format(self['depth'], self.MAX_RENDER_DEPTH)
-
-			self['matrix'] = offset if offset is not None else snap_matrix_t(*SNAP_IDENTITY_MATRIX)
-
-			data['current_container'] = None
-			data['current_items'] = items # will be the items of the container when applicable...
-			data['render_mode'] = 'draw'
-			data['items_attr'] = 'render_items'
-
-			# TODO check for RENDER_INFO error message?
-			self.cmd_render_subitems()
-
-			self.finish()
-
-			return None
-
-		# do_lookup() is on engine
-
-
-
-
-
 
 		def cmd_check_interact(self, threshold=0):
 			return None # engine must implement, does pixel check for visibility (pixel alpha >= threshold)
@@ -227,15 +163,11 @@ def build(ENV):
 
 					if item_matrix is not None:
 						snap_matrix_multiply(saved_offset, item_matrix, CTX_matrix)
-						self.cmd_apply_matrix()
+						self.cmd_apply_matrix() # ?
 
 					# c.draw(self)|c.lookup(self)
 					call = getattr(c, render_mode, None)
 					if call is not None:
-						# TODO save config aside, assign a new one, then reset what is changed after call...
-						#	-- we can save once for all children, then check what is changed after each call and set that back...
-						#	-- anything like clipping or other hard to reset things can use the engine save/restore (just flag that an engine restore is required...)
-						# TODO matrix is also a config the user can change that gets set back?
 						# allow for non-renderables to be in scene
 						call(self)
 					#	-> this forwards to shader program or any other handling the container wants to do...
@@ -252,8 +184,6 @@ def build(ENV):
 				data['current_items'] = items
 
 				data['depth'] += 1
-
-
 
 
 		"""
@@ -468,18 +398,11 @@ def build(ENV):
 		def activate(self):
 			"""()"""
 			# activate in some engines will initialize the engine_context (if it has one)
-			raise NotImplementedError()
-
-		def reset(self):
-			"()"
-			# undo configuration options to defaults, implement in subclass
 			return None
 
-		def clear(self):
+		def reset(self):
 			"""()"""
-			image = self.__snap_data__['image']
-			if image is not None:
-				image.clear() # TODO bg/default color from self._engine_context_?
+			# undo configuration options to defaults, implement in subclass
 			return None
 
 		def finish(self):
@@ -489,6 +412,13 @@ def build(ENV):
 			if image:
 				image.changed_data.send()
 			data['current_container'] = data['current_items'] = None
+			return None
+
+		def clear(self):
+			"""()"""
+			image = self.__snap_data__['image']
+			if image is not None:
+				image.clear() # TODO bg/default color from self._engine_context_?
 			return None
 
 		"""
@@ -545,13 +475,10 @@ def build(ENV):
 			data['only_first_lookup'] = True
 			data['lookup_results'] = []
 
-			data['config'] = {} # TODO save each, pop to previous after user call...  append new value on assign
+			data['config'] = {}
 
-			# TODO this should actually initialize self['engine_context'] with the image assigned...  then the do_draw.... just checks that engine_context is ready?
-			#assert image is not None, 'must provide image for context to render onto'
+			assert image is not None, 'must provide image for context to render onto'
 			data['image'] = image
-			if image is not None:
-				image.changed.listen(self.image_changed)
 
 
 	ENV.SnapContext = SnapContext
@@ -563,5 +490,7 @@ def main(ENV):
 	ENV.snap_out('ok')
 
 if __name__ == '__main__':
-	import snap; main(snap.SnapEnv())
+
+	from snap.SnapEnv import SnapEnv
+	main(SnapEnv())
 

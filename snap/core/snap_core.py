@@ -66,8 +66,10 @@ def build(ENV):
 		return THE_TIME()
 	ENV.snap_time_since_epoch = snap_time_since_epoch
 
+	START_TIME = THE_TIME()
 	def snap_time():
-		return snap_time_since_epoch()# - ENV.__SNAP_MAINLOOP__._start_time_
+		return THE_TIME() - START_TIME
+		#return snap_time_since_epoch()# - ENV.__SNAP_MAINLOOP__._start_time_
 		"""
 		t = PRIVATE['SNAP_START_TIME']
 		if t < 0:

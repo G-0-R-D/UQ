@@ -1,6 +1,8 @@
 
 import numpy
 
+# https://community.khronos.org/t/loading-obj-file-how-to-triangularize-polygons/74965
+
 def _finalize_obj(OBJ, opengl_format=True):
 
 	point_data = OBJ.get('point_data', {})

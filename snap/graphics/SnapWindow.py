@@ -18,6 +18,9 @@ def build(ENV):
 	snap_matrix_invert = ENV.snap_matrix_invert
 	snap_matrix_multiply = ENV.snap_matrix_multiply
 
+	DUMMY_MSG = SnapMessage()
+	snap_prop_get = ENV.snap_prop_get
+
 	class SnapWindowUserContainer(SnapContainer):
 		# used for foreground/background when control is given to a subgraphic (so we can distinguish whether we gave control or not)
 		pass
@@ -36,10 +39,13 @@ def build(ENV):
 
 			# XXX TODO use a settings property, dict...  and use a default global if setting isn't locally defined...
 
+		@ENV.SnapProperty
+		class buffered:
+			'' # TODO whether there is an image the window renders to or does the window just render with a clip?
+
 	class SnapWindow(SnapContainer):
 
 		__slots__ = []
-		#__slots__ = ['_image_', '_texture_', '_camera_', '_ctx_', '__was_resized__', '__render_verified__']
 
 		SETTINGS = SnapWindowSettings()
 
@@ -182,7 +188,7 @@ def build(ENV):
 			set = None
 
 		@render_items.alias
-		class lookup_items: pass
+		class lookup_items: pass # XXX TODO phase this out, render_items are enough...  implement differences in shaders and such...
 
 
 		@ENV.SnapProperty
@@ -190,7 +196,7 @@ def build(ENV):
 
 			def get(self, MSG):
 				"()->SnapImage"
-				return self.__snap_data__['image'] # XXX TODO get from texture?
+				return self.__snap_data__['image']
 
 			set = None
 
@@ -204,6 +210,7 @@ def build(ENV):
 				self.changed(image=image) # TODO update context?
 			"""
 
+		"""
 		@ENV.SnapProperty
 		class texture:
 
@@ -212,6 +219,7 @@ def build(ENV):
 				return self.__snap_data__['texture']
 
 			set = None
+		"""
 
 		#def engine(self, MSG):
 		#	return getattr(ENV, 'GRAPHICS', None)
@@ -222,15 +230,17 @@ def build(ENV):
 			def get(self, MSG):
 				"()->snap_extents_t"
 				# XXX assign local size, make image secondary (ie. when extents are changed (set(extents)) then mark __was_resized__
-				image = self['image']
-				if image is not None:
-					w,h = image['size']
-					return snap_extents_t(0,0,0, w,h,0)
-				else:
-					return SnapContainer.extents.get(self, MSG)
+				#image = self['image']
+				#if image is not None:
+				#	w,h = image['size']
+				#	return snap_extents_t(0,0,0, w,h,0)
+				#else:
+				return SnapContainer.extents.get(self, MSG)
 
 			def set(self, MSG):
 				'(snap_extents_t!)'
+
+				"""
 				image = self['image']
 				if image is not None:
 					ext = MSG.args[0]
@@ -247,6 +257,9 @@ def build(ENV):
 					self.changed(extents=image['extents']) # TODO this needs to update the gui blit texture...
 				else:
 					SnapContainer.extents.set(self, MSG)
+				"""
+				# we queue the resize until render or draw, to minimize resize spam and actually resize the image as few times as possible...
+				SnapContainer.extents.set(self, MSG)
 				self.__snap_data__['__was_resized__'] = True
 
 				
@@ -320,12 +333,14 @@ def build(ENV):
 			image_size = image['size']
 
 			if window_size != image_size:
+				# TODO make this image['size'] = window_size?
 				image.resize(width=int(window_size[0]), height=int(window_size[1]))#, mode="CROP")
 
-			self['__was_resized__'] = False
+			self.__snap_data__['__was_resized__'] = False
 
 			#ENV.snap_out('image resized', image)
 
+			del self.__snap_data__['__ctx__'] # recreate on render, to be safe...
 			#snap_event(snap_getattr(self, "_ctx_"), "SET", "image", image); // XXX ctx should listen for image changes itself
 
 			camera = self['camera']
@@ -345,7 +360,7 @@ def build(ENV):
 
 			return None
 
-		def _make_renderable(self, ITEMS):
+		def _make_renderable(self):
 			# pass in items as list
 
 			# to keep the SnapWindow engine neutral, the engine is determined from the renderable items
@@ -353,15 +368,18 @@ def build(ENV):
 
 			# draw can trigger render from submitted items, even though items are not assigned to window itself!
 
-			ENGINE = self['engine']
+			data = self.__snap_data__
+
+			ctx = data.get('__ctx__')
+			if ctx is not None:
+				return True
+
+			ENGINE = self['engine'] # this is a full walk checking engine of all children until one is found...
 			if ENGINE is None:
 				#ENGINE = SnapContainer._find_engine(None, ITEMS)
 				#self._engine_ = ENGINE
 				ENV.snap_warning('no engine defined in Window')
 				return False
-
-			if ENGINE is not None and self['image'] is not None:
-				return True # ready to go
 			
 			#if item_engine is None:
 			#	return False # nothing to render yet?
@@ -388,56 +406,55 @@ def build(ENV):
 			else:
 				camera['use_perspective'] = False
 
-			image = ENGINE.Image(width=int(window_size[0]), height=int(window_size[1]))
-			ENV.snap_out('image init', image)
-			texture = ENGINE.Texture(image=image)
-			#shader = ENGINE.Shader(shape=image, fill_color=texture)
+			image = self['image']
+			if image is None:
+				image = self.__snap_data__['image'] = ENGINE.Image(width=int(window_size[0]), height=int(window_size[1]))
 
-			#ctx = ENGINE.Context(image=image)
-
-			data = self.__snap_data__
+			ctx = ENGINE.Context(image=image)
 
 			data['image'] = image
-			data['texture'] = texture
-			#data['shader'] = shader
-			#data['__ctx__'] = ctx
-			#SnapNode_set(self, 'engine', item_engine)
+			data['__ctx__'] = ctx
 
 			data['__was_resized__'] = False
-			data['__render_verified__'] = True
 
 			#self.changed(engine=ENGINE)
 
 			return True
 
-		def _prep_for_render(self, ITEMS):
+		def _prep_for_render(self):
 			# pass in ITEMS as list
 
-			if not self['__render_verified__']:
-				assert self._make_renderable(ITEMS) # or not ready
-
-			if self['__was_resized__']:
+			if self.__snap_data__['__was_resized__']:
 				# done right before render to minimize resize spam,
 				# image does not actually need to be resized until it is used!
 				self._do_resize()
 
+			if self.__snap_data__['__ctx__'] is None:
+				assert self._make_renderable() # or not ready
+
 			return None
 
-		@ENV.SnapChannel
-		def render(self, MSG):
+		def render(self):
+
+			# TODO if toplevel engine is same as user engine then we can just pass the toplevel context in for rendering...
 
 			#ENV.snap_out('window render')
 
-			items = self['render_items']
-
 			# draw to self.image
 			try:
-				self._prep_for_render(items)
+				self._prep_for_render()
 			except Exception as e:
 				ENV.snap_debug('render not ready', ENV.snap_exception_info(e))
 				return None
 
-			ENGINE = self['engine']
+
+			ctx = self.__snap_data__['__ctx__']
+			if ctx is None:
+				ENV.snap_error('uninitialized context in window')
+				return None
+
+			# NOTE: camera is in render items...
+			ctx.do_draw(items=self['render_items'])
 
 			#ENV.snap_out("render", list(items))
 
@@ -445,7 +462,7 @@ def build(ENV):
 			#m = camera['render_matrix']
 
 			#ENV.snap_out("ctx.do_draw", self['image'], self['render_items'])
-			ENGINE.do_draw(image=self['image'], items=self['render_items'])#, offset=m)
+			#ENGINE.do_draw(image=self['image'], items=self['render_items'])#, offset=m)
 
 			return None
 
@@ -457,19 +474,30 @@ def build(ENV):
 			# TODO if buffered then we just draw the image (maybe call render to make sure it is current?)
 			# otherwise we can draw the scene
 
-			CTX.cmd_save()
-			CTX.cmd_clip_extents(self['extents'])
-			CTX.cmd_render_subitems()
-			CTX.cmd_restore()
+			if 'buffered':
+				self.render(None)
+				self['image'].draw(CTX)
+			else:
+				# draw directly, with clipping
+				CTX.cmd_save()
+				CTX.cmd_clip_extents(self['extents'])
+				CTX.cmd_render_subitems()
+				CTX.cmd_restore()
 
 			return None
 
 		def lookup(self, CTX):
 
-			CTX.cmd_save()
-			CTX.cmd_clip_extents(self['extents'])
-			CTX.cmd_render_subitems()
-			CTX.cmd_restore()
+			if 'buffered':
+				'lookup on image?  this should maybe be like render()...?'
+				# GFX.do_lookup()?
+				ENV.snap_warning('lookup not implemented')
+			else:
+
+				CTX.cmd_save()
+				CTX.cmd_clip_extents(self['extents'])
+				CTX.cmd_render_subitems()
+				CTX.cmd_restore()
 
 			return None
 			"""
@@ -593,26 +621,11 @@ def build(ENV):
 		def __init__(self, *items, **SETTINGS):
 			SnapContainer.__init__(self, *items, **SETTINGS)
 
-			ENV.snap_out('window init')
-
-			#include "snap/lib/graphics/SnapShader.h" // XXX until SnapRenderinfo organization is resolved, pull in here for definition...
-
-
-			#ENV.snap_out('data', data.keys())
-
-			#self['extents'] = snap_extents_t(0,0,0,1,1,1)
-
 			data = self.__snap_data__
 
 			data['image'] = None
-			data['texture'] = None
-			#data['__ctx__'] = None
-			#self._engine_ = None
-			#self['camera'] = SnapCamera()
-			data['__was_resized__'] = True
-			data['__render_verified__'] = False
-
-			#self.set(**{k:v for k,v in SETTINGS.items() if k in ('camera',)})
+			data['__ctx__'] = None
+			data['__was_resized__'] = False
 
 	ENV.SnapWindow = SnapWindow
 

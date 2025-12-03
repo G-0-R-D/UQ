@@ -99,8 +99,8 @@ def build(ENV):
 					# NOTE: when image is painted to the underlying buffer is copied...  so just always update the buffer just in case (XXX TODO FIXME: get rid of Qt backend!)
 					qimage_to_numpy(qimage, pixels['data'])
 
-					arr = pixels['data'].reshape(self['height'], self['width'], 4)
-					arr[:] = arr[:,:, [2,1,0,3]] # BGRA
+					#arr = pixels['data'].reshape(self['height'], self['width'], 4)
+					#arr[:] = arr[:,:, [2,1,0,3]] # BGRA
 				return pixels
 				"""
 				q = self['__engine_data__']

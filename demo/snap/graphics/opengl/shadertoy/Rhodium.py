@@ -455,11 +455,9 @@ import numpy
 
 def build(ENV):
 
-	# https://stackoverflow.com/questions/19449590/webgl-glsl-how-does-a-shadertoy-work
-
 	GFX = ENV.GRAPHICS
 
-	class RhobidiumShader(GFX.Shader):
+	class RhodiumShader(GFX.Shader):
 
 		__slots__ = ('_vao_') # temp
 
@@ -519,7 +517,7 @@ def build(ENV):
 
 			# (var_idx, num_per_vertex, data_type, normalized, stride(skip), offset(start_pointer)) # count is determined by draw call!
 			glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, GLvoid) # in_position
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof_GLfloat, GLvoid) # in_tex_coord
+			#glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof_GLfloat, GLvoid) # in_tex_coord
 
 			
 			#glEnableVertexAttribArray(self._VARS_.get('in_position',0))
@@ -563,6 +561,9 @@ def build(ENV):
 
 			glDrawArrays(GL_TRIANGLE_FAN, 0, 4)
 
+			glBindVertexArray(0)
+			glUseProgram(0)
+
 
 		def __init__(self):
 			GFX.Shader.__init__(self)
@@ -579,7 +580,7 @@ def build(ENV):
 				glDeleteVertexArrays(1, [self._vao_])
 				self._vao_ = None
 
-	return RhobidiumShader
+	return RhodiumShader
 
 
 

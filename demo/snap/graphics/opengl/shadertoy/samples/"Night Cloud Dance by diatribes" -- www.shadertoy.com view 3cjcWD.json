@@ -1,0 +1,42 @@
+[
+	{
+		"ver": "0.1",
+		"info": {
+			"id": "3cjcWD",
+			"date": "1756652882",
+			"viewed": 1094,
+			"name": "Night Cloud Dance",
+			"username": "diatribes",
+			"description": "Night Cloud Dance",
+			"likes": 56,
+			"published": 3,
+			"flags": 0,
+			"usePreview": 0,
+			"tags": [
+				"raymarch",
+				"cloud",
+				"small",
+				"short"
+			],
+			"hasliked": 0,
+			"parentid": "tfXcRn",
+			"parentname": "Be Still"
+		},
+		"renderpass": [
+			{
+				"inputs": [],
+				"outputs": [
+					{
+						"id": "4dfGRr",
+						"channel": 0
+					}
+				],
+				"code": "void mainImage(out vec4 o, vec2 u) {\n    float d,a,e,i,s,t = iTime*.5;\n    vec3  ep, p = iResolution;    \n    \n    // scale coords\n    u = (u+u-p.xy)/p.y;\n    \n    u += vec2(cos(t*.4)*.3, cos(t*.8)*.1);\n    \n    for(o*=i; i++<1e2;\n\n        // accumulate distance\n        d += s = min(.02+.6*abs(s),e=max(.8*e, .01)),\n        \n        // grayscale color\n        o += 1./(s+e*2.))\n        \n        // noise loop start, march\n        for (p = vec3(u*d,d+t), // p = ro + rd *d, p.z + t;\n    \n            // entity (orb) position\n            ep = p - vec3(\n                sin(sin(t)+t*.4) * 8.,\n                sin(sin(t)+t*.2) *2.,\n                16.+t+cos(t)*8.),\n                \n            // orb sphere\n            e = length(ep) - .1,\n                    \n            // plane, mix with entity/orb\n            s = mix(e*.02,4.+p.y, smoothstep(0., 12., length(ep))),\n            \n            // noise params\n            a = .4; a < 8.; a *= 1.4)\n            \n            // apply noise\n            s -= abs(dot(cos(t+.2*p.z+p * a ), .11+p-p)) / a;\n    \n    // tanh tonemap, blue tint, brightness, moon\n    o = tanh(vec4(1,2,6,0)*o/1e1/length(u-.65));\n}",
+				"name": "Image",
+				"description": "",
+				"type": "image"
+			}
+		]
+	}
+]
+

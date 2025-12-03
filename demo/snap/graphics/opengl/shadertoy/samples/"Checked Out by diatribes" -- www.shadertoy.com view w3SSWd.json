@@ -1,0 +1,40 @@
+[
+	{
+		"ver": "0.1",
+		"info": {
+			"id": "w3SSWd",
+			"date": "1746707036",
+			"viewed": 1297,
+			"name": "Checked Out",
+			"username": "diatribes",
+			"description": "Fire & Ice\n\n    Playing with turbulence and translucency from\n    @Xor's recent shaders, e.g.\n        https://www.shadertoy.com/view/wXjSRt\n        https://www.shadertoy.com/view/wXSXzV",
+			"likes": 77,
+			"published": 3,
+			"flags": 0,
+			"usePreview": 0,
+			"tags": [
+				"raymarch",
+				"small",
+				"short"
+			],
+			"hasliked": 0,
+			"parentid": "33jSDc",
+			"parentname": "Color Ripples [273]"
+		},
+		"renderpass": [
+			{
+				"inputs": [],
+				"outputs": [
+					{
+						"id": "4dfGRr",
+						"channel": 0
+					}
+				],
+				"code": "/*\n    Inspired by Xor's recent raymarchers with comments!\n    https://www.shadertoy.com/view/tXlXDX\n*/\n\nvoid mainImage(out vec4 o, vec2 u) {\n    float i,d,s,t=iTime;\n    for(o*=i; i++<1e2; ) {\n        vec3 p = d * normalize(vec3(u+u,0) - iResolution.xyy );\n        p.z -= t;\n        for (s = .1; s < 2.;\n            p -= dot(cos(t+p * s* 16.), vec3(.01)) / s,\n            p += sin(p.yzx*.9)*.3,\n            s *= 1.42);\n        d += s = .02 + abs(3.-length(p.yx))*.1;\n        o += (1.+cos(d+vec4(4,2,1,0))) / s;\n    }\n    o = tanh(o / 2e3);\n}",
+				"name": "Image",
+				"description": "",
+				"type": "image"
+			}
+		]
+	}
+]

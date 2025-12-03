@@ -21,6 +21,20 @@
 
 
 ---------------
+## 2025.12.02 📢
+---------------
+
+- 💪/🎨 *(finished/graphics)* ShaderToy is starting to take shape!  check out **`../UQ/demo/snap/graphics/opengl/shadertoy/ShaderToy.py`**
+
+	
+- 🚛 *(moved)*  Rhobidium ShaderToy to proper Rhodium.py name (but it will be integrated into the ShaderToy app once multi-buffers are supported)
+
+	
+- 📢 *(announcement)* sorry for the delay in updates, was trying to get the shadertoy app to function at a basic level and have had very little time to work on it!  [@G-0-R-D](https://github.com/G-0-R-D) will try to be more consistent with smaller updates going forward!
+
+
+
+---------------
 ## 2025.11.28 📢
 ---------------
 

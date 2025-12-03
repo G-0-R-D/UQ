@@ -22,6 +22,8 @@ def build(ENV):
 	GL_TEXTURE_MIN_FILTER = OpenGL.GL_TEXTURE_MIN_FILTER
 	GL_TEXTURE_MAG_FILTER = OpenGL.GL_TEXTURE_MAG_FILTER
 	GL_LINEAR = OpenGL.GL_LINEAR
+	GL_MIRRORED_REPEAT = OpenGL.GL_MIRRORED_REPEAT
+	GL_REPEAT = OpenGL.GL_REPEAT
 
 
 	SnapImage = ENV.SnapImage
@@ -111,7 +113,7 @@ def build(ENV):
 				glGetTexImage(
 					GL_TEXTURE_2D,
 					0, # mipmap level
-					GL_BGRA, # GL_BGRA ? TODO when saving
+					GL_RGBA, # GL_BGRA ? TODO when saving
 					GL_UNSIGNED_BYTE,
 					pixels['data'],
 					)
@@ -178,8 +180,10 @@ def build(ENV):
 			glBindTexture(GL_TEXTURE_2D, engine_data)
 
 			# TODO: query Image api to get settings
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+			#glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
+			#glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
 

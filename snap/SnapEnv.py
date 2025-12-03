@@ -92,7 +92,7 @@ class SnapEnv(object):
 
 		#TIMERS = self.TIMERS
 		SnapTimers = self.SnapTimers
-		snap_time_since_epoch = self.snap_time_since_epoch
+		snap_time = self.snap_time
 
 		NODE = LOCAL_ENV.__PRIVATE__.get('__MAINLOOP_NODE__')
 		if NODE is None:
@@ -126,7 +126,7 @@ class SnapEnv(object):
 					# TIMERS and TASKS listen to mainloop to function, user can listen to mainloop too,
 					# but using tasks or timers is the preferred method...
 
-					CURRENT_TIME = snap_time_since_epoch()
+					CURRENT_TIME = snap_time()
 					SnapTimers.ELAPSED_TIME = CURRENT_TIME - SnapTimers.CURRENT_TIME
 					SnapTimers.CURRENT_TIME = CURRENT_TIME
 
