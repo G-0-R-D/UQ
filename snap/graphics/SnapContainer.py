@@ -354,6 +354,7 @@ def build(ENV):
 
 			# NOTE: CTX can be used here directly if render behaviour needs to be hard-coded and not user changeable via the program...
 
+			#shader = self['shader']
 			shader = self['shader']
 
 			if shader is not None:

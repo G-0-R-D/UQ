@@ -97,7 +97,7 @@ def build(ENV):
 				CTX.cmd_stroke_extents(GFX.Color(0,0,1,1), self.animated_line_ext)
 
 			if self.hover_glyph_ext:
-				CTX.cmd_stroke_extents(GFX.Color(0,1,0,1), self.hover_glyph_ext)
+				CTX.cmd_stroke_extents(GFX.Color(.5,.5,.5,1), self.hover_glyph_ext)
 
 
 			CTX.cmd_draw_text(self.instructions)

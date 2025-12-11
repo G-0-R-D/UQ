@@ -9,10 +9,6 @@ def build(ENV):
 	snap_matrix_invert = ENV.snap_matrix_invert
 	snap_matrix_multiply = ENV.snap_matrix_multiply
 
-	DUMMY_MSG = ENV.SnapMessage()
-
-	snap_prop_get = ENV.snap_prop_get
-
 	#SnapProperty = ENV.SnapProperty
 
 	class SnapContext(SnapMatrix):
@@ -84,7 +80,8 @@ def build(ENV):
 
 		@ENV.SnapProperty
 		class local_matrix:
-
+			# TODO except this would lose track of the current offset... this would always have to assign relative the current offset...
+			get = None
 			def set(self, MSG):
 				"(snap_matrix_t!)"
 				m = MSG.args[0]
@@ -94,7 +91,7 @@ def build(ENV):
 						'multiply'
 					'assign new matrix to engine context (not to self!)'
 
-			get = None
+				# TODO store offset matrix with config and it can be reset?
 				
 
 		@ENV.SnapProperty
@@ -106,6 +103,9 @@ def build(ENV):
 
 			# set not allowed at user level
 			set = None
+
+
+		# TODO make all settings properties?  line width, miter, etc...?  and put them in config dict so we can localize it and reset on each sub-call...
 
 
 
@@ -219,7 +219,7 @@ def build(ENV):
 					data['current_items'] = c[items_attr]
 
 					try:
-						item_matrix = snap_prop_get(c, 'render_matrix', DUMMY_MSG)
+						item_matrix = c['render_matrix']
 						#item_matrix = c['render_matrix'] # TODO use low-level api for this access
 					except Exception as e:
 						ENV.snap_print_exception(e)
@@ -461,8 +461,13 @@ def build(ENV):
 		# TODO lookup is just a draw and then a check and clear, so it should use draw_elements() as well!
 		"""
 
+		# TODO
 		#def set(self, **SETTINGS):
-		#	'' # TODO image?  non-rendering config?
+		#	'this is all properties, to config (which gets "saved" on each sub-render -- and what changes is restored)'
+		#	# matrix and local matrix
+		#	# line width, miter, join, ... etc...
+
+		#	# unsupported settings are quietly ignored...
 
 
 		def activate(self):
@@ -518,6 +523,7 @@ def build(ENV):
 				#curr[SET_FUNC] = args or SnapShader.EMPTY_ARGS
 				#self._config_[-1] = curr
 		"""
+			
 
 		def __init__(self, image=None, depth=None, **SETTINGS):
 			SnapMatrix.__init__(self, **SETTINGS)

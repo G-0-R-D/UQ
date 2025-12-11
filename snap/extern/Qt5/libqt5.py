@@ -2,6 +2,7 @@
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import * #QApplication, QPushButton
+from PyQt5.QtMultimedia import *
 
 from weakref import ref as weakref_ref
 

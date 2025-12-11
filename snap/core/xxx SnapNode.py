@@ -29,6 +29,14 @@ def build(ENV):
 	SnapBoundChannel = ENV.SnapBoundChannel
 	SnapBoundProperty = ENV.SnapBoundProperty
 
+	def snap_unpack_msg_from_key(KEY):
+		if isinstance(KEY, tuple) and len(KEY) == 2 and isinstance(KEY[-1], SnapMessage):# and isinstance(KEY[0], str):
+			return KEY # (unpack 2) # XXX TODO get rid of this, passing arguments to a property key access looks awful and is unintuitive, plus it adds overhead!
+		else:
+			return KEY,SnapMessage()
+
+	ENV.snap_unpack_msg_from_key = snap_unpack_msg_from_key
+
 	class SnapNodeData(object):
 
 		__slots__ = ['dictionary']
@@ -53,7 +61,10 @@ def build(ENV):
 			return self.dictionary.get(*a, **k)
 
 		def pop(self, KEY):
-			return self.dictionary.pop(KEY)
+			try: 
+				return self.dictionary.pop(KEY)
+			except:
+				return None
 
 		def __repr__(self):
 			return '{}({})'.format(self.__class__.__name__, self.dictionary)
@@ -134,6 +145,16 @@ def build(ENV):
 
 			#ENV.__SNAP_RECURSION_GUARD__ += 1
 
+		#def silence(self, CHANNEL):
+		#	raise NotImplementedError()
+
+		#def aggregate(self, CHANNEL):
+		#	raise NotImplementedError()
+
+		#def register_block(self, **CHANNEL_OP):
+		#	'channel=silence|aggregate' # put the logic internally?
+		#	raise NotImplementedError()
+
 		def unused(self):
 			return bool(not self.channels)
 
@@ -181,6 +202,67 @@ def build(ENV):
 			# TODO do the blocked like a refcount system...  once released then the action is taken (like aggregate event sent)
 
 	ENV.SnapNodeListeners = SnapNodeListeners
+
+	"""
+	def snap_handle_item_access(self, KEY, VALUE, MODE, DEFAULT_HANDLER):
+
+		assert MODE in ('get','set','delete'), 'unrecognized mode: {}'.format(repr(MODE))
+
+		KEY,MSG = snap_unpack_msg_from_key(KEY)
+
+		if isinstance(KEY, str):
+
+				# TODO if property is provided then ALL handling goes through property?  ie. if set/get/delete is not defined or declared then it is disabled not bypassed?
+				bound_prop = getattr(self, KEY, None)
+				if isinstance(bound_prop, SnapBoundProperty):
+					callable = bound_prop.__data__[-1]
+					if callable is not None:
+						call = getattr(callable, MODE, None)
+						if call:
+							if MODE == 'set':
+								if MSG.args or MSG.kwargs:
+									# TODO error if existing args?  that's kinda ambiguous...
+									MSG = SnapMessage(VALUE, *MSG.args, **MSG.kwargs)
+								else:
+									MSG = SnapMessage(VALUE)
+							# TODO check if callable is marked private?  XXX forget private, refuse connections by specifying no protocol...
+							_return = call(self, MSG)
+							getattr(bound_prop, {'get':'accessed', 'set':'assigned', 'delete':'deleted'}[MODE]).emit()
+							return _return
+					#ENV.snap_out('is bound', KEY, self, MODE)
+					if MODE == 'get':
+						return None # soft on get, hard on others
+					raise KeyError('{}[{}]'.format(self.__class__.__name__, KEY)) # if property exists then it must handle all i/o...
+
+				elif getattr(self, 'SNAP_STRICT_PROPERTIES', False):
+					# whether to allow setting properties that aren't declared directly (useful for private stuff)
+					raise KeyError('{}[{}]'.format(self.__class__.__name__, KEY))
+
+				#elif bound_prop is not None: # allow?  this isn't technically a collision...  they are in different namespaces...
+				#	raise KeyError('in use for non-property', KEY)
+
+				if MODE == 'set':
+					return DEFAULT_HANDLER(self, KEY, VALUE)
+				return DEFAULT_HANDLER(self, KEY)
+
+		# TODO send numerical slices and indexing to a different set of properties?  or make a special property for data streams?
+
+		raise KeyError('{}[{}]'.format(self.__class__.__name__, KEY))
+	"""
+
+	"""
+	def SnapNode_get_property(self, NAME, ATTR):
+		bound_prop = getattr(self, NAME, None)
+		if isinstance(bound_prop, SnapBoundProperty):
+			callable = bound_prop.__data__[-1]
+			if callable is not None:
+				call = getattr(callable, ATTR, None)
+				return bound_prop, call
+			return bound_prop, None
+		return None,None
+
+	ENV.SnapNode_get_property = SnapNode_get_property
+	"""
 
 	class SnapNode(object):
 
@@ -354,7 +436,6 @@ def build(ENV):
 
 			if SETTINGS:
 				self.set(**SETTINGS) # -> goes to individual properties for assign
-
 
 
 	ENV.SnapNode = SnapNode

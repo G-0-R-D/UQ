@@ -26,21 +26,26 @@ def build(ENV):
 	ENV.SnapChannelProxy = SnapChannelProxy
 
 
-	def snap_wrapper_factory(USER_CALL, KWARGS, TYPE, OUTPUT_SPEC):
+	def snap_wrapper_factory(USER_CALL, KWARGS, TYPE, SUPERTYPE):
 
 		if TYPE == SnapPropertyType:
 			assert isinstance(USER_CALL, type), 'wrong type (SnapProperty needs a class): {}'.format(USER_CALL.__qualname__)
 		else:
 			assert isinstance(USER_CALL, FunctionType), 'wrong type (SnapChannel needs a function): {}'.format(USER_CALL.__qualname__)
 
+		if SUPERTYPE is not None:
+			# TODO basically we just start with all the settings as they are in the supertype (instance) and then override with any local or user config
+			''#raise NotImplementedError('super decorator')
+
+			# TODO superclass should always be implicit for decorators (should just always pass in the base so the mro can be accessed?)
 
 		FULLNAME = USER_CALL.__qualname__
 		spl = FULLNAME.split('.')
 		NAME = spl[-1]
 		CLASSNAME = spl[-2]
 
-		#if SUPERTYPE is not None:
-		#	ENV.snap_warning(FULLNAME, 'deprecated supertype')
+		if SUPERTYPE is not None:
+			ENV.snap_warning(FULLNAME, 'deprecated supertype')
 
 		#CLASS = getattr(ENV, CLASSNAME, None)
 
@@ -86,7 +91,6 @@ def build(ENV):
 			__USER__ = USER_CALL
 			__NAME__ = NAME
 			__BASE_NAME__ = CLASSNAME
-			__OUTPUT_SPEC__ = OUTPUT_SPEC
 
 			# TODO options...  input/output (set/get/delete) specs...
 
@@ -108,7 +112,7 @@ def build(ENV):
 						return SnapBoundProperty(INSTANCE, NAME, self)
 					return self
 
-				def __call_direct__(self, INSTANCE, MSG):
+				def __direct__(self, INSTANCE, MSG):
 					#return HANDLERS['set'](INSTANCE, MSG)
 					return self.set(INSTANCE, MSG)
 			else:
@@ -122,13 +126,11 @@ def build(ENV):
 						return SnapBoundChannel(INSTANCE, NAME, self)
 					return self
 
-				def __call_direct__(self, INSTANCE, MSG):
+				def __direct__(self, INSTANCE, MSG):
 					return USER_CALL(INSTANCE, MSG)
 
 
 			# BOTH:
-
-			__direct__ = __call_direct__
 
 			@property
 			def __name__(self):
@@ -177,7 +179,7 @@ def build(ENV):
 
 			def __call__(self, INSTANCE, MSG):
 				# NOTE: this isn't *a, **k because this would really only be called 'unbound' like Class.method(self, MSG)
-				return self.__call_direct__(INSTANCE, MSG)
+				return self.__direct__(INSTANCE, MSG)
 
 			def shared(self, CALLABLE): # TODO rename to 'alias'?
 				#@otherprop.shared to duplicate a property under a different name
@@ -247,14 +249,11 @@ def build(ENV):
 		if ARGS:
 			assert len(ARGS) == 1, 'unnamed args are not supported'
 			USER_CALL = ARGS[0]
-			if isinstance(USER_CALL, str):
-			#if isinstance(USER_CALL, (SnapChannelType, SnapPropertyType)):
-				#raise NotImplementedError('decorator superclass arg is deprecated', USER_CALL.__qualname__)
+			if isinstance(USER_CALL, (SnapChannelType, SnapPropertyType)):
+				raise NotImplementedError('decorator superclass arg is deprecated', USER_CALL.__qualname__)
 				def configure(FUNC):
 					return snap_wrapper_factory(FUNC, KWARGS, TYPE, USER_CALL)
 				return configure
-			else:
-				assert callable(USER_CALL), 'not a callable: {}'.format(type(USER_CALL))
 			# otherwise is normal function
 			return snap_wrapper_factory(USER_CALL, KWARGS, TYPE, None)
 		else:

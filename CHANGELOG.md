@@ -10,14 +10,34 @@
 		
 - 🎨 *(graphics)* SnapContext will support context management with a ['subcontext'] property to easily do a local render and save/restore (inspired by how qt5 does `with QPainter(self) as ptr: ...`)
 		
-- 🧱/🔒 *(stability/security)* ENV.QUIT channel for things like SnapSubprocess to listen to, protected by try/except (SystemExit, KeyboardInterrupt) so everything has a chance to shutdown properly and subprocesses aren't left hanging...
-		
 - 🤖 *(programming)* argspec parsing with parseq (and gui debugging for parseq)
 		
 - 🎨/📽 *(graphics/animation)* get the animation system working via `ENV.ANIMATION.animate(...)`
 
 	
 ---------------
+
+
+---------------
+## 2025.12.10 📢
+---------------
+
+- 🎧/💪 *(audio/finished)* not gonna lie, been struggling (very part-time) to get proper audio playback from Qt5.  Works but still more to do on it.
+
+	
+- 🏁/❗/💎 *(performance/refactoring/core)* got a performance boost by changing the `SnapNode.__getitem__` api to access the class properties instead of bound properties
+
+
+
+---------------
+## 2025.12.03 📢
+---------------
+
+- 🛠️/📺/🎧 *(WIP/media/audio)* using qt5 for audio playback (since we're already using it anyway) in **`..UQ/snap/media/SnapAudio.py`**
+
+	
+- 📌/💪/🧱/🔒 *(pinned/finished/stability/security)* ENV.QUIT channel for things like SnapSubprocess to listen to...  just do `ENV.QUIT.listen(self.__delete__)` to ensure a proper (and timely) cleanup.
+
 
 
 ---------------

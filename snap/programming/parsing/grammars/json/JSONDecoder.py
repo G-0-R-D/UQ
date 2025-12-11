@@ -1,7 +1,7 @@
 
 from snap.lib.parsing.parseq import *
 
-# /home/user/Android/Sdk/sources/android-25/android/util/JsonReader.java
+# ~/Android/Sdk/sources/android-25/android/util/JsonReader.java
 # https://www.ietf.org/rfc/rfc4627.txt
 
 #JSON can represent four primitive types (strings, numbers, booleans, and null) and two structured types (objects and arrays).

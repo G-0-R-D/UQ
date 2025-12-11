@@ -18,9 +18,6 @@ def build(ENV):
 	snap_matrix_invert = ENV.snap_matrix_invert
 	snap_matrix_multiply = ENV.snap_matrix_multiply
 
-	DUMMY_MSG = SnapMessage()
-	snap_prop_get = ENV.snap_prop_get
-
 	class SnapWindowUserContainer(SnapContainer):
 		# used for foreground/background when control is given to a subgraphic (so we can distinguish whether we gave control or not)
 		pass
@@ -352,10 +349,7 @@ def build(ENV):
 				m = snap_matrix_t(*SNAP_IDENTITY_MATRIX)
 				#snap_perspective_matrix(45.0, window_size[0] / window_size[1], -1, 1, (double*)m);
 				snap_perspective_matrix(window_size[1] / 45.0, window_size[0] / window_size[1], .1, 100., m)
-				#snap_perspective_matrix2(window_size[0], window_size[1], .1, 100., (double*)m);
-				#snap_out("do resize perspective matrix:");
-				#snap_matrix_print(m);
-				camera.set(perspective_matrix=m)
+				camera['perspective_matrix'] = m
 				"""
 
 			return None

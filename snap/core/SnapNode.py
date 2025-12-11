@@ -28,14 +28,9 @@ def build(ENV):
 
 	SnapBoundChannel = ENV.SnapBoundChannel
 	SnapBoundProperty = ENV.SnapBoundProperty
+	SnapPropertyType = ENV.SnapPropertyType
 
-	def snap_unpack_msg_from_key(KEY):
-		if isinstance(KEY, tuple) and len(KEY) == 2 and isinstance(KEY[-1], SnapMessage):# and isinstance(KEY[0], str):
-			return KEY # (unpack 2) # XXX TODO get rid of this, passing arguments to a property key access looks awful and is unintuitive, plus it adds overhead!
-		else:
-			return KEY,SnapMessage()
-
-	ENV.snap_unpack_msg_from_key = snap_unpack_msg_from_key
+	DUMMY_MSG = ENV.SnapMessage()
 
 	class SnapNodeData(object):
 
@@ -59,6 +54,9 @@ def build(ENV):
 
 		def get(self, *a, **k):
 			return self.dictionary.get(*a, **k)
+
+		def pop(self, KEY):
+			return self.dictionary.pop(KEY)
 
 		def __repr__(self):
 			return '{}({})'.format(self.__class__.__name__, self.dictionary)
@@ -139,16 +137,6 @@ def build(ENV):
 
 			#ENV.__SNAP_RECURSION_GUARD__ += 1
 
-		#def silence(self, CHANNEL):
-		#	raise NotImplementedError()
-
-		#def aggregate(self, CHANNEL):
-		#	raise NotImplementedError()
-
-		#def register_block(self, **CHANNEL_OP):
-		#	'channel=silence|aggregate' # put the logic internally?
-		#	raise NotImplementedError()
-
 		def unused(self):
 			return bool(not self.channels)
 
@@ -197,67 +185,6 @@ def build(ENV):
 
 	ENV.SnapNodeListeners = SnapNodeListeners
 
-	"""
-	def snap_handle_item_access(self, KEY, VALUE, MODE, DEFAULT_HANDLER):
-
-		assert MODE in ('get','set','delete'), 'unrecognized mode: {}'.format(repr(MODE))
-
-		KEY,MSG = snap_unpack_msg_from_key(KEY)
-
-		if isinstance(KEY, str):
-
-				# TODO if property is provided then ALL handling goes through property?  ie. if set/get/delete is not defined or declared then it is disabled not bypassed?
-				bound_prop = getattr(self, KEY, None)
-				if isinstance(bound_prop, SnapBoundProperty):
-					callable = bound_prop.__data__[-1]
-					if callable is not None:
-						call = getattr(callable, MODE, None)
-						if call:
-							if MODE == 'set':
-								if MSG.args or MSG.kwargs:
-									# TODO error if existing args?  that's kinda ambiguous...
-									MSG = SnapMessage(VALUE, *MSG.args, **MSG.kwargs)
-								else:
-									MSG = SnapMessage(VALUE)
-							# TODO check if callable is marked private?  XXX forget private, refuse connections by specifying no protocol...
-							_return = call(self, MSG)
-							getattr(bound_prop, {'get':'accessed', 'set':'assigned', 'delete':'deleted'}[MODE]).emit()
-							return _return
-					#ENV.snap_out('is bound', KEY, self, MODE)
-					if MODE == 'get':
-						return None # soft on get, hard on others
-					raise KeyError('{}[{}]'.format(self.__class__.__name__, KEY)) # if property exists then it must handle all i/o...
-
-				elif getattr(self, 'SNAP_STRICT_PROPERTIES', False):
-					# whether to allow setting properties that aren't declared directly (useful for private stuff)
-					raise KeyError('{}[{}]'.format(self.__class__.__name__, KEY))
-
-				#elif bound_prop is not None: # allow?  this isn't technically a collision...  they are in different namespaces...
-				#	raise KeyError('in use for non-property', KEY)
-
-				if MODE == 'set':
-					return DEFAULT_HANDLER(self, KEY, VALUE)
-				return DEFAULT_HANDLER(self, KEY)
-
-		# TODO send numerical slices and indexing to a different set of properties?  or make a special property for data streams?
-
-		raise KeyError('{}[{}]'.format(self.__class__.__name__, KEY))
-	"""
-
-	"""
-	def SnapNode_get_property(self, NAME, ATTR):
-		bound_prop = getattr(self, NAME, None)
-		if isinstance(bound_prop, SnapBoundProperty):
-			callable = bound_prop.__data__[-1]
-			if callable is not None:
-				call = getattr(callable, ATTR, None)
-				return bound_prop, call
-			return bound_prop, None
-		return None,None
-
-	ENV.SnapNode_get_property = SnapNode_get_property
-	"""
-
 	class SnapNode(object):
 
 		__slots__ = ['__snap_data__', '__snap_listeners__', '__snap_init__', '__weakref__']
@@ -287,23 +214,23 @@ def build(ENV):
 
 			if isinstance(KEY, str):
 
-				bound_prop = getattr(self, KEY, None)
-				if isinstance(bound_prop, SnapBoundProperty):
-					callable = bound_prop.__data__[-1]
-					if callable is not None:
-						# need to catch "get = None" as a block
-						has = False
-						try:
-							get = getattr(callable, 'get')
-							has = True
-						except AttributeError:
-							pass
+				#bound_prop = getattr(self, KEY, None)
+				prop = getattr(self.__class__, KEY, None)
+				if isinstance(prop, SnapPropertyType):
+				
+					# need to catch "get = None" as a block
+					has = False
+					try:
+						get = getattr(prop, 'get')
+						has = True
+					except AttributeError:
+						pass
 
-						if has:
-							if get is not None:
-								return get(self, SnapMessage())
-							else:
-								raise ValueError(self.__class__.__name__, KEY, 'get() disabled')
+					if has:
+						if get is not None:
+							return get(self, DUMMY_MSG)
+						else:
+							raise ValueError(self.__class__.__name__, KEY, 'get() disabled')
 
 					if getattr(self, '__SNAP_STRICT_PROPERTIES__', None):
 						raise KeyError('{}["{}"]'.format(self.__class__.__name__, KEY))
@@ -320,23 +247,22 @@ def build(ENV):
 
 			if isinstance(KEY, str):
 
-				bound_prop = getattr(self, KEY, None)
-				if isinstance(bound_prop, SnapBoundProperty):
-					callable = bound_prop.__data__[-1]
-					if callable is not None:
-						# need to catch "set = None" as a block
-						has = False
-						try:
-							set = getattr(callable, 'set')
-							has = True
-						except AttributeError:
-							pass
+				prop = getattr(self.__class__, KEY, None)
+				if isinstance(prop, SnapPropertyType):
 
-						if has:
-							if set is not None:
-								return set(self, SnapMessage(VALUE))
-							else:
-								raise ValueError(self.__class__.__name__, KEY, 'set() disabled')
+					# need to catch "set = None" as a block
+					has = False
+					try:
+						set = getattr(prop, 'set')
+						has = True
+					except AttributeError:
+						pass
+
+					if has:
+						if set is not None:
+							return set(self, SnapMessage(VALUE))
+						else:
+							raise ValueError(self.__class__.__name__, KEY, 'set() disabled')
 				else:
 					self.__snap_data__[KEY] = VALUE
 					return
@@ -347,23 +273,22 @@ def build(ENV):
 
 			if isinstance(KEY, str):
 
-				bound_prop = getattr(self, KEY, None)
-				if isinstance(bound_prop, SnapBoundProperty):
-					callable = bound_prop.__data__[-1]
-					if callable is not None:
-						# need to catch "delete = None" as a block
-						has = False
-						try:
-							delete = getattr(callable, 'delete')
-							has = True
-						except AttributeError:
-							pass
+				prop = getattr(self.__class__, KEY, None)
+				if isinstance(prop, SnapPropertyType):
 
-						if has:
-							if delete is not None:
-								return delete(self, SnapMessage())
-							else:
-								raise ValueError(self.__class__.__name__, KEY, 'delete() disabled')
+					# need to catch "delete = None" as a block
+					has = False
+					try:
+						delete = getattr(prop, 'delete')
+						has = True
+					except AttributeError:
+						pass
+
+					if has:
+						if delete is not None:
+							return delete(self, DUMMY_MSG)
+						else:
+							raise ValueError(self.__class__.__name__, KEY, 'delete() disabled')
 						
 
 					raise KeyError('del {}["{}"]'.format(self.__class__.__name__, KEY))
@@ -394,9 +319,9 @@ def build(ENV):
 
 			for attr,value in MSG.kwargs.items():
 
-				bound_prop = getattr(self, attr, None)
-				if isinstance(bound_prop, SnapBoundProperty):
-					bound_prop.set(value)
+				prop = getattr(self.__class__, attr, None)
+				if isinstance(prop, SnapPropertyType):
+					prop.set(self, SnapMessage(value))
 				else:
 					raise KeyError('{}.set() missing property: {}'.format(self.__class__.__name__, repr(attr)))
 
@@ -430,6 +355,20 @@ def build(ENV):
 
 			if SETTINGS:
 				self.set(**SETTINGS) # -> goes to individual properties for assign
+
+		@ENV.SnapChannel
+		def __delete__(self, MSG):
+			# subscribe to ENV.QUIT.listen(self.__delete__) for proper cleanup when necessary (threads, subprocesses, ...)
+			ENV.QUIT.ignore(self.__delete__)
+			try:
+				self.__del__()
+			except:
+				pass
+
+		def __del__(self):
+			delete = getattr(self, '__delete__', None)
+			if delete:
+				ENV.QUIT.ignore(delete)
 
 
 

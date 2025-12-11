@@ -13,7 +13,7 @@ ref: Python2.7/Objects/typeobject.c
 #https://en.wikipedia.org/wiki/C3_linearization
 # basically a breadth-first bottom-up front-back search, with no repeats
 # referenced from Python2.7/Objects/typeobject.c
-		
+
 
 def fill_mro(MRO, CLS):
 

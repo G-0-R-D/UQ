@@ -627,7 +627,7 @@ def build(ENV):
 			self['interactive'] = True # TODO better api
 
 			if not self['fps']:
-				self.set(fps=30.0) # TODO make a 'default fps' to assign to ENV init...  assign to gui base?  and then new windows can reference it if they aren't given their own argument?  or maybe just put it on ENV?  ENV.SETTINGS?
+				self.set(fps=60.0) # TODO make a 'default fps' to assign to ENV init...  assign to gui base?  and then new windows can reference it if they aren't given their own argument?  or maybe just put it on ENV?  ENV.SETTINGS?
 
 
 	ENV.SnapGuiWindowBase = SnapGuiWindowBase

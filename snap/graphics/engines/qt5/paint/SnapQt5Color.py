@@ -102,15 +102,6 @@ def build(ENV):
 			SnapColor.__init__(self, *args, **kwargs)
 
 
-		def __delete__(self):
-			''
-			#if self._snap_engine_data_:
-			#	self._snap_engine_data_ = None
-
-
-		def __del__(self):
-			self.__delete__()
-
 	ENGINE.SnapQt5Color = SnapQt5Color
 	return SnapQt5Color
 

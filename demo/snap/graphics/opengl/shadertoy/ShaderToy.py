@@ -430,10 +430,13 @@ def build(ENV):
 				self['image_buffers'] = self['image_buffers'] # update
 				self.changed(common_code=code)
 
-		def from_json(self, FILEPATH):
+		def from_json(self, INPUT):
 
-			with open(FILEPATH, 'r') as openfile:
-				data = json.loads(openfile.read())
+			if isinstance(INPUT, (list,dict)):
+				data = INPUT
+			else:
+				with open(INPUT, 'r') as openfile:
+					data = json.loads(openfile.read())
 
 			if isinstance(data, list):
 				if len(data) > 1:
@@ -547,7 +550,7 @@ def build(ENV):
 				# Update uniforms
 				for uniform in buf['uniforms']:
 					loc = uniform.location
-					if loc < 0: continue # or it just wouldn't be in there...?
+					#if loc < 0: continue # or it just wouldn't be in there...?
 					name = uniform.name
 					if name == 'iResolution':
 						glUniform3fv(loc, 1, iResolution)
@@ -559,6 +562,8 @@ def build(ENV):
 						glUniform1i(loc, iFrame)
 					elif name == 'iMouse':
 						glUniform4fv(loc, 1, iMouse)
+					elif name.startswith('iChannel'):
+						continue # already bound
 					else:
 						ENV.snap_debug('miss uniform', name)
 
@@ -596,6 +601,7 @@ def build(ENV):
 			GFX.Shader.__init__(self, **SETTINGS)
 
 			self.from_json(os.path.join(SAMPLEDIR, '"Night Cloud Dance by diatribes" -- www.shadertoy.com view 3cjcWD.json'))
+			#self.from_json(os.path.join(SAMPLEDIR, '"Rhodium Liquid Carbon by Virgill" -- www.shadertoy.com view llK3Dy.json'))
 
 	# TODO make a non-opengl gui like the one shadertoy has, then do the gl render in the corner...
 

@@ -83,6 +83,11 @@ class SnapEnv(object):
 		''
 
 	@property
+	def QUIT(self):
+		m = self.mainloop # touch
+		return self.__PRIVATE__['__MAINLOOP_NODE__'].QUIT
+
+	@property
 	def mainloop(self):
 		# NOTE: if an error occurs inside a property when __getattr__ is used,
 		# it will cause AttributeError (when error might be something else)
@@ -111,6 +116,10 @@ class SnapEnv(object):
 					def get(self, MSG):
 						"()->bool"
 						return bool(self.__snap_data__['__running__']) # XXX or assign the owner of the mainloop process?  like gui?
+
+				@LOCAL_ENV.SnapChannel
+				def QUIT(self, MSG):
+					raise NotImplementedError('QUIT is output only')
 
 				@LOCAL_ENV.SnapChannel
 				def mainloop(self, MSG):
@@ -212,6 +221,7 @@ class SnapEnv(object):
 		except AttributeError as e:
 			raise AttributeError('{} has no attribute: {}'.format(self.__class__.__name__, repr(ATTR)))
 
+
 	def __import__(self, STRING):
 
 		module_name = STRING
@@ -249,6 +259,7 @@ class SnapEnv(object):
 		# XXX most of the functionality of the program will be implemented by parsing and compiling other code, in which case the namespace and the env for that will be very customizable...  so we don't really need this to be so fully featured!  treat this one as just one big shared namespace...
 
 		# TODO pass a fake ENV instance to the build, but actually assign to self, so we can track what the build does?  and maybe forbid certain assigns or operations?  like accessing __PRIVATE__ is forbidden...
+		#	-- each package should get it's own ENV, with getattr() to snap env, but assign can override snap elements in local env...
 
 		module_name = STRING
 		# TODO support importing by full absolute path as well...
@@ -305,7 +316,10 @@ class SnapEnv(object):
 
 		#self.gui.start(user=instance)
 		#win['user'] = instance
-		GUI.start_mainloop()
+		try:
+			GUI.start_mainloop()
+		finally:
+			self.QUIT.send()
 
 		del self.__PRIVATE__['__RUNNING__']
 
@@ -318,32 +332,35 @@ class SnapEnv(object):
 
 		# TODO or pass SnapNode or main function?
 
-		if isinstance(X, str):
-			STRING = X
-			if os.sep in STRING:
-				# TODO convert the system path into dot notation, relative to a package root...
-				raise NotImplementedError('path', STRING, os.curdir())
+		try:
+			if isinstance(X, str):
+				STRING = X
+				if os.sep in STRING:
+					# TODO convert the system path into dot notation, relative to a package root...
+					raise NotImplementedError('path', STRING, os.curdir())
 
-			if STRING not in self.__PRIVATE__['__BUILT_MODULES__']:
-				self.__build__(STRING) # TODO if SnapNode instance is returned then instantiate it
+				if STRING not in self.__PRIVATE__['__BUILT_MODULES__']:
+					self.__build__(STRING) # TODO if SnapNode instance is returned then instantiate it
 
-			module = self.__PRIVATE__['__BUILT_MODULES__'][STRING]
-			assert hasattr(module, 'main'), '{} has no main function'.format(repr(STRING))
+				module = self.__PRIVATE__['__BUILT_MODULES__'][STRING]
+				assert hasattr(module, 'main'), '{} has no main function'.format(repr(STRING))
 
-			_return = module.main(self)
+				_return = module.main(self)
 
-			if _return is not None:
-				self.snap_warning('main() returned: ', _return)
+				if _return is not None:
+					self.snap_warning('main() returned: ', _return)
 
-		elif isinstance(X, FunctionType) and getattr(X, '__name__', None) == 'build':
-			loaded = X(self)
-			assert isinstance(loaded, type)
-			instance = loaded(*user_args, **user_kwargs)
+			elif isinstance(X, FunctionType) and getattr(X, '__name__', None) == 'build':
+				loaded = X(self)
+				assert isinstance(loaded, type)
+				instance = loaded(*user_args, **user_kwargs)
 
-		elif isinstance(X, type):# and issubclass(X, self.SnapNode):
-			instance = X(*user_args, **user_kwargs)
-		else:
-			assert X is None, 'must provide string path, type, or callable to run'
+			elif isinstance(X, type):# and issubclass(X, self.SnapNode):
+				instance = X(*user_args, **user_kwargs)
+			else:
+				assert X is None, 'must provide string path, type, or callable to run'
+		finally:
+			self.QUIT.send()
 
 		self.snap_out('__run__({}) -> exit ok\n'.format(repr(X)) + 80 * '_')
 
@@ -402,7 +419,10 @@ class SnapEnv(object):
 		self.__build__('snap.gui')
 		GUI = self.gui.load(name=KWARGS.get('gui', 'QT5'))
 
+		self.__build__('snap.media')
+
 		self.__build__('snap.programming')
+
 
 
 def main():

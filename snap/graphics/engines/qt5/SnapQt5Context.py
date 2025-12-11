@@ -641,38 +641,6 @@ def build(ENV):
 			"""(image=SnapQt5Image|SnapImage?)"""
 			return SnapContext.set(self, MSG)
 
-			"""
-			for attr,value in SETTINGS.items():
-
-				if attr == 'image':
-
-					# verify image ENGINE == self ENGINE?
-
-					self._image_ = value
-
-					ptr = self._engine_context_ = None
-
-					if value is not None:
-						#ENV.snap_out('engine data', value.__engine_data__())
-						# NOTE: being a bit careful here because init of QPainter(None) will segfault once used!
-						qimage = value.__engine_data__()
-						assert isinstance(qimage, QImage), 'not a QImage: {}'.format(type(value))
-						ptr = self._engine_context_ = Qt5.QPainter(qimage)
-						# TODO listen for image changed?
-
-						#cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE)
-						ptr.setRenderHint(QPainter.Antialiasing, False)
-
-					#cairo_set_source_rgb(cr, 0,1,1);
-					#cairo_rectangle(cr, 0,0, 100, 100);
-					#cairo_fill(cr);
-
-					#snap_event((SnapNode*)&value, "SAVE", "path", "/home/user/Desktop/MyComputer/PROGRAMMING/c/PROJECTS/snap/src/internal_rendered.png");
-
-				else:
-					SnapContext.set(self, **{attr:value})
-			"""
-
 		def __init__(self, **SETTINGS):
 			SnapContext.__init__(self, **SETTINGS)
 

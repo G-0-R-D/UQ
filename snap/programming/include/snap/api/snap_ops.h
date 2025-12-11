@@ -53,6 +53,10 @@ SnapObject_t* __DECREF(SnapObject_t* ENV, SnapObject_t* OBJ){
 
 SnapObject_t* __call(SnapObject_t* ENV, SnapObject_t* INSTANCE, SnapObject_t* MSG){
 
+	/* TODO
+	use "__getattribute__" first, if something comes back then "__call__" it, otherwise do a direct (low-level) call?
+	*/
+
 	/*
 	if (ERRORED){
 		handle

@@ -72,21 +72,27 @@ def build(ENV):
 
 	# these bypass the creation of the bound channel for efficiency...
 
+	# XXX these have been deprecated, __getitem__, __setitem__, __delitem__ have been optimized to do something more like this anyway...
+	"""
 	def snap_prop_get(self, PROP_NAME, MSG):
-		getter = getattr(getattr(self.__class__, PROP_NAME), 'get')
-		return getter(self, MSG)
+		prop = getattr(self.__class__, PROP_NAME, None)
+		if prop is not None:
+			return getattr(prop, 'get')(self, MSG)
+		return None
 
-	ENV.snap_prop_get = snap_prop_get
+	#ENV.snap_prop_get = snap_prop_get
 
 	def snap_prop_set(self, PROP_NAME, MSG):
 		setter = getattr(getattr(self.__class__, PROP_NAME), 'set')
 		return setter(self, MSG)
 
-	ENV.snap_prop_set = snap_prop_set
+	#ENV.snap_prop_set = snap_prop_set
 
 	def snap_prop_delete(self, PROP_NAME, MSG):
-		delete = getattr(getattr(self.__class__, PROP_NAME), 'delete')
-		return delete(self, MSG)
+		prop = getattr(self.__class__, PROP_NAME, None)
+		if prop is not None:
+			return getattr(prop, 'delete')(self, MSG)
+		return None
 
-	ENV.snap_prop_delete = snap_prop_delete
-
+	#ENV.snap_prop_delete = snap_prop_delete
+	"""

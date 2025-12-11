@@ -823,7 +823,11 @@ def build(ENV):
 			#if command is not None:
 			#	self.start(command, **SETTINGS)
 
-		def __del__(self):
+			ENV.QUIT.listen(self.__delete__)
+
+		@ENV.SnapChannel
+		def __delete__(self, MSG):
+			ENV.QUIT.ignore(self.__delete__)
 			if self['running']:
 				self.terminate()
 

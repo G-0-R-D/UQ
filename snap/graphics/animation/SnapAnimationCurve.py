@@ -5,9 +5,10 @@ def build(ENV):
 
 		__slots__ = []
 
-		# separate from spline because it is strictly 2D, and keys can't overlap in x
-		# plus we can make it very lowlevel...
-
+		# strictly 2D points (x = time, y = value)
+		# x must keep getting bigger (cannot move left, or even to same position without overwrite)
+		
 		# support from description to pull from a Spline: self['description'] = Spline()['description'] and just ignore 3D elements and unsupported types?
+			# -- but ignore 3rd axis if present, and disallow x < last x (clamp + remove overlapping)
 
-		# supported Spline descriptions, but ignore 3rd axis if present, and disallow x < last x (clamp + remove overlapping)
+		# points are linear, bezier, constant...
