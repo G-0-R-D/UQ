@@ -46,11 +46,13 @@ def build(ENV):
 
 		#ENV.snap_out('decorate', CLASSNAME, NAME, CLASS)
 
+		"""
 		for attr in dir(USER_CALL):
 			if attr.startswith('__') and attr.endswith('__'): continue
 			if attr not in ('set','get','delete'):
 				# TODO allow properties to have custom methods?
 				ENV.snap_warning('unsupported attr', USER_CALL, repr(attr))
+		"""
 
 		IS_PROPERTY = issubclass(TYPE, SnapPropertyType)
 

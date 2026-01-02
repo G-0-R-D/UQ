@@ -147,7 +147,10 @@ def build(ENV):
 				if items:
 					for item in items:
 
-						item_matrix = snap_matrix_t(*(item['matrix'] or SNAP_IDENTITY_MATRIX))
+						try:
+							item_matrix = snap_matrix_t(*(item['matrix'] or SNAP_IDENTITY_MATRIX))
+						except:
+							continue
 
 						snap_matrix_multiply(o, item_matrix, item_matrix)
 						queue.append((d-1, item_matrix, item))

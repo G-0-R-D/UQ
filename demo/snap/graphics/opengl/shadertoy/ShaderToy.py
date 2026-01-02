@@ -108,6 +108,60 @@ void main(void){
 """
 
 
+# https://stackoverflow.com/questions/34859701/how-do-shadertoys-audio-shaders-work
+SOUND_HEADER = """
+precision highp float;
+
+uniform float     iChannelTime[4];
+uniform float     iBlockOffset;
+uniform vec4      iDate;
+uniform float     iSampleRate;
+uniform vec3      iChannelResolution[4];
+uniform sampler2D iChannel0;
+uniform sampler2D iChannel1;
+uniform sampler2D iChannel2;
+uniform sampler2D iChannel3;
+
+"""
+DEFAULT_mainSound_FUNCTION = """
+vec2 mainSound(in int samp, in float time){
+    // A 440 Hz wave that attenuates quickly over time
+    //return vec2( sin(6.2831*440.0*time)*exp(-3.0*time) );
+	return vec2( sin(time * 1000.0), sin(time * 1000.0) );
+}
+"""
+SOUND_FOOTER = """
+void main(void){
+	// compute time `t` based on the pixel we're about to write
+	// the 512.0 means the texture is 512 pixels across so it's
+	// using a 2 dimensional texture, 512 samples per row
+	float t = iBlockOffset + ((gl_FragCoord.x-0.5) + (gl_FragCoord.y-0.5)*512.0)/iSampleRate;
+
+	// Get the 2 values for left and right channels
+
+	int samp = -1; // TODO time * iSampleRate = samp?
+	// so: int samp = ((gl_FragCoord.x-0.5) + (gl_FragCoord.y-0.5)*512.0);
+	// float t = samp / iSampleRate;
+
+	vec2 y = mainSound( samp, t );
+
+	// convert them from -1 to 1 to 0 to 65536
+	vec2 v  = floor((0.5+0.5*y)*65536.0);
+
+	// separate them into low and high bytes
+	vec2 vl = mod(v,256.0)/255.0;
+	vec2 vh = floor(v/256.0)/255.0;
+
+	// write them out where 
+	// RED   = channel 0 low byte
+	// GREEN = channel 0 high byte
+	// BLUE  = channel 1 low byte
+	// ALPHA = channel 2 high byte
+	gl_FragColor = vec4(vl.x,vh.x,vl.y,vh.y);
+}
+"""
+
+
 def build(ENV):
 
 	SnapContainer = ENV.SnapContainer
@@ -298,6 +352,7 @@ def build(ENV):
 
 			self.__snap_data__['image_buffer'] = GFX.Image()
 			self.__snap_data__['ctx'] = GFX.Context(image=self.__snap_data__['image_buffer'])
+
 
 
 	class ShaderToy(GFX.Shader):

@@ -44,45 +44,22 @@ def build(ENV):
 			return self.uses_extension(self.get_extension(FILEPATH))
 
 
-		def list_modulesXXX(self, *ROOTS):
-			modules = []
-			for root in ROOTS:
-				if os.path.isfile(root):
-					modules.append(root)
-				elif os.path.isdir(root):
-					for r,s,f in os.walk(root):
-						for fname in files:
-							if self.uses_extension(fname.split('.')[-1]):
-								modules.append(os.path.join(r,fname))
-				else:
-					ENV.snap_warning('invalid path:', repr(root))
-			return modules
+		def get_import_names(self, FILEPATH):
+			if not self.is_module(FILEPATH):
+				return None
+			'parse the text and get the names, try to resolve them'
+			# report: resolved, unresolved, multiple resolutions?
+			# TODO list name, and candidate filepaths that could resolve it XXX or just return the names, let the caller resolve?
+			raise NotImplementedError('implement in language subclass')
 
-		def analyzeXXX(self, *ROOTS):
-			'build a dict report of the modules in all of the paths, and their dependencies between eachother, both what they access from others and export to others'
-
-			modules = self.list_modules(*ROOTS)
-
-			print('found', modules)
-
-			# get the info for each module # TODO c might require knowing the roots for the include file locations... TODO pass full info for module_info to fill in?
-			# figure out the resolution of modules, and valid starting points
-			#	-- report missing or invalid stuff too...
-
-			# TODO missing modules (something is imported but not found)
-
-		def get_module_info(self, FILEPATH, *ALL_FILES):
-
-			# will match all viable dependencies if there are more than one...
+		def get_module_info(self, FILEPATH, *IMPORTS):
+			# TODO IMPORTS are the paths to the imported modules (already resolved)
 
 			if not self.is_module(FILEPATH):
 				return None
 
-			# TODO implement a general decode() handling, where we find import and import_from, and other structures of interest...
-			# generalized
-			
-			# TODO parse with ast, and figure out the accesses from other modules and exports from this module, full resolution from top to bottom with type and name for each component in the tree...
-			# TODO just get the ast, the QUEUE walk it with full rootpath, and figure out what is externally visible and what is accessed from elsewhere...
+			raise NotImplementedError('implement in language subclass')
+
 
 		def __init__(self, **SETTINGS):
 			SnapNode.__init__(self, **SETTINGS)

@@ -19,6 +19,14 @@
 
 
 ---------------
+## 2026.01.02 📢
+---------------
+
+- 🚛/❗ *(moved/refactoring)* taking **`programming/project`** out until it's clearer how it will work...
+
+
+
+---------------
 ## 2025.12.10 📢
 ---------------
 

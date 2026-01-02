@@ -5,6 +5,7 @@ def build(ENV):
 	# (for when you know what you're doing and speed matters)
 
 	SnapMessage = ENV.SnapMessage
+	DUMMY_MSG = SnapMessage()
 
 	def snap_ignore(self, OUTPUT_CHANNEL_NAME, LISTENER, INPUT_CHANNEL_NAME):
 
@@ -37,6 +38,8 @@ def build(ENV):
 	def snap_send_msg(self, CHANNEL_NAME, MSG):
 		listeners = getattr(self, '__snap_listeners__', None)
 		if listeners is not None:
+			if MSG is None:
+				MSG = DUMMY_MSG
 			return listeners.send(self, CHANNEL_NAME, MSG)
 		return None
 
@@ -52,6 +55,9 @@ def build(ENV):
 		listeners = getattr(self, '__snap_listeners__', None)
 		if listeners is not None and CHANNEL_NAME in listeners.channels:
 
+			if MSG is None:
+				MSG = DUMMY_MSG
+
 			try:
 				ENV.__snap_queue_send__(self, CHANNEL_NAME, MSG)
 			except:
@@ -66,6 +72,17 @@ def build(ENV):
 		return snap_emit_msg(self, CHANNEL_NAME, SnapMessage(*a, **k))
 
 	ENV.snap_emit = snap_emit
+
+	def snap_call_msg(self, CHANNEL_NAME, MSG):
+		# bypasses SnapBoundChannel creation...
+		return getattr(self.__class__, CHANNEL_NAME)(self, MSG if MSG is not None else DUMMY_MSG)
+
+	ENV.snap_call_msg = snap_call_msg
+
+	def snap_call(self, CHANNEL_NAME, *a, **k):
+		return snap_call_msg(self, CHANNEL_NAME, SnapMessage(*a, **k))
+
+	ENV.snap_call = snap_call
 
 
 	# properties

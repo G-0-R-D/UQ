@@ -59,6 +59,10 @@ def build(ENV):
 			#	-- could we implement a shader program that checks the input pixel color, indicates somehow whether it's a hit, and then writes a blank pixel to clear it?  how to feedback?
 			#	-- 2 output buffers, 1 width, x height for however many checks to support, we keep swapping them, and the other is used as input, we pass id (index) and only render the output to the chosen pixel, otherwise we render the previous one...
 
+			# assign an array of pixels to output to, 2 buffers, keep swapping them, also assign a uniform index
+			# we render the color to the index of the secondary buffer or render the previous buffer if it isn't the index pixel...
+			# then we can check the secondary buffer after (and keep a list of all the checked items along with it)
+
 			return []
 
 		def __init__(self, **SETTINGS):
